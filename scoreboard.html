@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>British Hills: Ultimate Scoreboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Lato', sans-serif; background-color: #111; user-select: none; -webkit-user-select: none; }
+        .serif-font { font-family: 'Cinzel', serif; }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .glass-panel {
+            background: rgba(40, 40, 40, 0.9);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Animations */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop { animation: pop 0.2s ease-out; }
+
+        /* Grid Layouts */
+        .grid-dynamic { display: grid; gap: 1rem; padding: 1rem; height: 100%; }
+        /* 1-2 Teams */
+        .count-1, .count-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        /* 3-4 Teams */
+        .count-3, .count-4 { grid-template-columns: repeat(2, 1fr); }
+        /* 5-6 Teams */
+        .count-5, .count-6 { grid-template-columns: repeat(3, 1fr); }
+        /* 7+ Teams */
+        .count-7, .count-8, .count-9, .count-10 { grid-template-columns: repeat(4, 1fr); }
+
+        .selected-team {
+            border: 4px solid white;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            transform: scale(1.02);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')] text-white overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="h-16 flex items-center justify-between px-6 bg-black bg-opacity-50 border-b border-gray-800 z-20">
+        <div class="flex items-center gap-4">
+            <h1 class="serif-font text-xl text-amber-500">CLASS SCOREBOARD</h1>
+            <div id="status-bar" class="px-4 py-1 bg-gray-800 rounded-full text-xs font-bold tracking-widest text-gray-400 uppercase border border-gray-700">
+                Select a team
+            </div>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="confirmReset()" class="p-2 hover:bg-gray-800 rounded-full transition text-gray-400 hover:text-red-400" title="Reset Scores">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+            <button onclick="toggleSettings()" class="p-2 hover:bg-gray-800 rounded-full transition text-gray-400 hover:text-white" title="Settings">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN GRID -->
+    <main id="team-grid" class="flex-1 grid-dynamic overflow-y-auto">
+        <!-- Teams injected here -->
+    </main>
+
+    <!-- CONTROL PANEL -->
+    <footer class="h-auto pb-6 pt-4 bg-gray-900 border-t border-gray-800 flex flex-col gap-2 z-30">
+        <!-- Quick Add Row -->
+        <div class="flex justify-center gap-2 md:gap-4 px-4 flex-wrap">
+            <button onclick="updateScore(10)" class="bg-green-700 hover:bg-green-600 active:transform active:scale-95 text-white font-bold py-3 px-6 rounded-lg shadow-lg text-lg md:text-xl flex-1 max-w-[120px] transition">+10</button>
+            <button onclick="updateScore(50)" class="bg-green-700 hover:bg-green-600 active:transform active:scale-95 text-white font-bold py-3 px-6 rounded-lg shadow-lg text-lg md:text-xl flex-1 max-w-[120px] transition">+50</button>
+            <button onclick="updateScore(100)" class="bg-green-700 hover:bg-green-600 active:transform active:scale-95 text-white font-bold py-3 px-6 rounded-lg shadow-lg text-lg md:text-xl flex-1 max-w-[120px] transition">+100</button>
+            <button onclick="updateScore(500)" class="bg-amber-600 hover:bg-amber-500 active:transform active:scale-95 text-white font-bold py-3 px-6 rounded-lg shadow-lg text-lg md:text-xl flex-1 max-w-[120px] transition">+500</button>
+        </div>
+        
+        <!-- Subtract / Custom Row -->
+        <div class="flex justify-center gap-2 md:gap-4 px-4 flex-wrap mt-2">
+            <button onclick="updateScore(-10)" class="bg-red-900 hover:bg-red-800 active:transform active:scale-95 text-red-100 font-bold py-2 px-6 rounded-lg border border-red-700 text-sm flex-1 max-w-[100px] transition">-10</button>
+            <button onclick="updateScore(-50)" class="bg-red-900 hover:bg-red-800 active:transform active:scale-95 text-red-100 font-bold py-2 px-6 rounded-lg border border-red-700 text-sm flex-1 max-w-[100px] transition">-50</button>
+            <div class="w-8"></div> <!-- Spacer -->
+            <button onclick="openKeypad()" class="bg-gray-700 hover:bg-gray-600 active:transform active:scale-95 text-gray-200 font-bold py-2 px-8 rounded-lg border border-gray-600 text-sm flex-1 max-w-[150px] transition">Custom...</button>
+        </div>
+    </footer>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 z-50 bg-black bg-opacity-90 hidden flex items-center justify-center">
+        <div class="glass-panel w-full max-w-2xl h-[80vh] flex flex-col rounded-xl overflow-hidden">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Manage Teams</h2>
+                <button onclick="toggleSettings()" class="text-gray-400 hover:text-white text-2xl">✕</button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6">
+                <div id="team-list" class="space-y-4">
+                    <!-- Team rows injected here -->
+                </div>
+                
+                <button onclick="addNewTeam()" class="mt-6 w-full py-4 border-2 border-dashed border-gray-600 text-gray-400 rounded-lg hover:border-gray-400 hover:text-white transition flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    ADD NEW TEAM
+                </button>
+            </div>
+            
+            <div class="p-6 border-t border-gray-700 bg-gray-800">
+                <button onclick="toggleSettings()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg">DONE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEYPAD MODAL -->
+    <div id="keypad-modal" class="fixed inset-0 z-50 bg-black bg-opacity-90 hidden flex items-center justify-center">
+        <div class="glass-panel w-full max-w-sm rounded-xl overflow-hidden p-6">
+            <div class="flex justify-between mb-4">
+                <span class="text-gray-400 uppercase text-xs font-bold tracking-widest">Custom Entry</span>
+                <button onclick="closeKeypad()" class="text-gray-500 hover:text-white">✕</button>
+            </div>
+            
+            <div id="keypad-display" class="bg-black text-right text-4xl font-mono text-green-400 p-4 rounded mb-4 border border-gray-700">0</div>
+            
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button onclick="keypadType('7')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">7</button>
+                <button onclick="keypadType('8')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">8</button>
+                <button onclick="keypadType('9')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">9</button>
+                <button onclick="keypadType('4')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">4</button>
+                <button onclick="keypadType('5')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">5</button>
+                <button onclick="keypadType('6')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">6</button>
+                <button onclick="keypadType('1')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">1</button>
+                <button onclick="keypadType('2')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">2</button>
+                <button onclick="keypadType('3')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">3</button>
+                <button onclick="keypadType('-')" class="bg-gray-800 p-4 rounded hover:bg-red-900 text-xl font-bold text-red-400">+/-</button>
+                <button onclick="keypadType('0')" class="bg-gray-700 p-4 rounded hover:bg-gray-600 text-xl font-bold">0</button>
+                <button onclick="keypadType('C')" class="bg-red-900 p-4 rounded hover:bg-red-700 text-xl font-bold">C</button>
+            </div>
+            
+            <button onclick="keypadSubmit()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded text-xl">APPLY POINTS</button>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        // --- DATA ---
+        const COLORS = [
+            { bg: 'bg-red-900', border: 'border-red-600', text: 'text-red-100' },
+            { bg: 'bg-blue-900', border: 'border-blue-600', text: 'text-blue-100' },
+            { bg: 'bg-green-900', border: 'border-green-600', text: 'text-green-100' },
+            { bg: 'bg-yellow-900', border: 'border-yellow-600', text: 'text-yellow-100' },
+            { bg: 'bg-purple-900', border: 'border-purple-600', text: 'text-purple-100' },
+            { bg: 'bg-pink-900', border: 'border-pink-600', text: 'text-pink-100' },
+            { bg: 'bg-cyan-900', border: 'border-cyan-600', text: 'text-cyan-100' },
+            { bg: 'bg-orange-900', border: 'border-orange-600', text: 'text-orange-100' }
+        ];
+
+        let teams = [
+            { id: 1, name: "Team 1", score: 0 },
+            { id: 2, name: "Team 2", score: 0 },
+            { id: 3, name: "Team 3", score: 0 },
+            { id: 4, name: "Team 4", score: 0 }
+        ];
+
+        let selectedId = 1;
+        let keypadValue = "";
+
+        // --- INIT ---
+        window.onload = () => {
+            loadState();
+            renderGrid();
+            renderSettings();
+            selectTeam(teams[0].id);
+        };
+
+        // --- RENDER ---
+        function renderGrid() {
+            const grid = document.getElementById('team-grid');
+            grid.innerHTML = '';
+            
+            // Set dynamic grid class based on count
+            grid.className = `flex-1 grid-dynamic overflow-y-auto count-${Math.min(teams.length, 10)}`;
+
+            teams.forEach((team, index) => {
+                const color = COLORS[index % COLORS.length];
+                const isSelected = team.id === selectedId;
+                
+                const card = document.createElement('div');
+                card.className = `glass relative rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-200 
+                    ${color.bg} ${isSelected ? 'selected-team' : 'border border-gray-700 opacity-80 hover:opacity-100 hover:scale-[1.01]'}`;
+                card.onclick = () => selectTeam(team.id);
+
+                card.innerHTML = `
+                    <div class="text-sm md:text-lg font-bold uppercase tracking-widest ${color.text} opacity-70 mb-2">${team.name}</div>
+                    <div id="score-${team.id}" class="text-6xl md:text-8xl font-black text-white drop-shadow-lg">${team.score}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderSettings() {
+            const list = document.getElementById('team-list');
+            list.innerHTML = '';
+
+            teams.forEach((team, index) => {
+                const color = COLORS[index % COLORS.length];
+                const row = document.createElement('div');
+                row.className = "flex gap-2 items-center";
+                row.innerHTML = `
+                    <div class="w-4 h-4 rounded-full ${color.bg} ${color.border} border-2"></div>
+                    <input type="text" value="${team.name}" onchange="renameTeam(${team.id}, this.value)" 
+                        class="flex-1 bg-gray-900 border border-gray-700 text-white px-3 py-2 rounded focus:border-blue-500 outline-none">
+                    <button onclick="removeTeam(${team.id})" class="p-2 text-red-500 hover:bg-gray-900 rounded" title="Delete Team">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        // --- CORE LOGIC ---
+        function selectTeam(id) {
+            selectedId = id;
+            
+            // Visual Update
+            const cards = document.getElementById('team-grid').children;
+            Array.from(cards).forEach((card, index) => {
+                const team = teams[index];
+                if (team.id === id) {
+                    card.classList.add('selected-team');
+                    card.classList.remove('opacity-80');
+                } else {
+                    card.classList.remove('selected-team');
+                    card.classList.add('opacity-80');
+                }
+            });
+
+            // Status Bar Update
+            const team = teams.find(t => t.id === id);
+            const status = document.getElementById('status-bar');
+            if(team) {
+                status.innerText = `SELECTED: ${team.name}`;
+                status.className = `px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-white text-white ${COLORS[teams.indexOf(team) % COLORS.length].bg}`;
+            }
+        }
+
+        function updateScore(amount) {
+            const team = teams.find(t => t.id === selectedId);
+            if (!team) return;
+
+            team.score += amount;
+            saveState();
+            
+            // Animate Score
+            const el = document.getElementById(`score-${team.id}`);
+            el.innerText = team.score;
+            el.classList.remove('animate-pop');
+            void el.offsetWidth; // Trigger reflow
+            el.classList.add('animate-pop');
+        }
+
+        // --- MANAGEMENT ---
+        function addNewTeam() {
+            const newId = Date.now();
+            const num = teams.length + 1;
+            teams.push({ id: newId, name: `Team ${num}`, score: 0 });
+            saveState();
+            renderSettings();
+            renderGrid();
+            // If it's the only team (e.g. after clearing all), select it
+            if(teams.length === 1) selectTeam(newId);
+        }
+
+        function removeTeam(id) {
+            if (teams.length <= 1) {
+                alert("You must have at least one team!");
+                return;
+            }
+            teams = teams.filter(t => t.id !== id);
+            
+            // If deleted selected team, select first available
+            if (selectedId === id) selectedId = teams[0].id;
+            
+            saveState();
+            renderSettings();
+            renderGrid();
+            selectTeam(selectedId);
+        }
+
+        function renameTeam(id, newName) {
+            const team = teams.find(t => t.id === id);
+            if(team) {
+                team.name = newName;
+                saveState();
+                renderGrid();
+                if(selectedId === id) selectTeam(id); // Refresh status bar
+            }
+        }
+
+        function confirmReset() {
+            if(confirm("Are you sure you want to reset all scores to ZERO?")) {
+                teams.forEach(t => t.score = 0);
+                saveState();
+                renderGrid();
+                selectTeam(selectedId); // Refresh UI
+            }
+        }
+
+        // --- KEYPAD ---
+        function openKeypad() {
+            document.getElementById('keypad-modal').classList.remove('hidden');
+            keypadValue = "";
+            updateKeypadDisplay();
+        }
+
+        function closeKeypad() {
+            document.getElementById('keypad-modal').classList.add('hidden');
+        }
+
+        function keypadType(char) {
+            if (char === 'C') {
+                keypadValue = "";
+            } else if (char === '-') {
+                if (keypadValue.startsWith('-')) keypadValue = keypadValue.substring(1);
+                else keypadValue = '-' + keypadValue;
+            } else {
+                keypadValue += char;
+            }
+            updateKeypadDisplay();
+        }
+
+        function updateKeypadDisplay() {
+            const display = document.getElementById('keypad-display');
+            display.innerText = keypadValue || "0";
+        }
+
+        function keypadSubmit() {
+            const val = parseInt(keypadValue);
+            if (!isNaN(val)) {
+                updateScore(val);
+                closeKeypad();
+            }
+        }
+
+        // --- SETTINGS ---
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            if (modal.classList.contains('hidden')) {
+                renderSettings();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // --- STORAGE ---
+        function saveState() {
+            localStorage.setItem('bh_scoreboard_teams', JSON.stringify(teams));
+        }
+
+        function loadState() {
+            const stored = localStorage.getItem('bh_scoreboard_teams');
+            if (stored) {
+                teams = JSON.parse(stored);
+                // Ensure IDs are valid if recovering from old data
+                if(teams.length > 0) selectedId = teams[0].id;
+            }
+        }
+
+    </script>
+</body>
+</html>
