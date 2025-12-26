@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>British Hills: Classroom Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Lato', sans-serif; background-color: #1a1a1a; }
+        .serif-font { font-family: 'Cinzel', serif; }
+        .game-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-color: #fbbf24;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]">
+
+    <div class="max-w-4xl w-full text-center">
+        <img src="https://british-hills.co.jp/common/img/logo_en.svg" alt="British Hills" class="h-24 mx-auto mb-8 invert opacity-90">
+        
+        <h1 class="serif-font text-4xl md:text-5xl text-amber-500 mb-2">Classroom Activities</h1>
+        <p class="text-gray-400 mb-12 text-lg">Select a game engine to begin the lesson.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Game 1 -->
+            <a href="siege.html" class="game-card block p-6 rounded-xl border border-gray-700 text-left group">
+                <div class="h-32 bg-blue-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">🏰</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Team Siege</h2>
+                <p class="text-gray-400 text-sm">Physics-based castle destruction. 2 Teams. Best for Q&A battles.</p>
+            </a>
+
+            <!-- Game 2 -->
+            <a href="quad.html" class="game-card block p-6 rounded-xl border border-gray-700 text-left group">
+                <div class="h-32 bg-red-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">⚔️</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Quad Rivals</h2>
+                <p class="text-gray-400 text-sm">4-way tactical arena. 4 Teams. Steal points and bounce shots.</p>
+            </a>
+
+            <!-- Game 3 -->
+            <a href="snooker.html" class="game-card block p-6 rounded-xl border border-gray-700 text-left group">
+                <div class="h-32 bg-green-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">🎱</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Snooker</h2>
+                <p class="text-gray-400 text-sm">Realistic snooker physics. Ongoing match. High skill ceiling.</p>
+            </a>
+
+        </div>
+        
+        <footer class="mt-12 text-gray-500 text-sm">
+            &copy; British Hills Educational Technology
+        </footer>
+    </div>
+
+</body>
+</html>

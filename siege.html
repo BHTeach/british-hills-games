@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>British Hills Team Siege</title>
+    <!-- Matter.js for Physics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <!-- Tailwind for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:wght@500;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #87CEEB; 
+            font-family: 'Roboto', sans-serif;
+            touch-action: none; /* Prevent scrolling while dragging */
+        }
+        
+        .game-font { font-family: 'Black Ops One', cursive; }
+        
+        /* UI OVERLAYS */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .interactive { pointer-events: auto; }
+        
+        /* Custom Button Styles */
+        .btn-game {
+            border-bottom: 6px solid rgba(0,0,0,0.2);
+            transition: transform 0.1s, border-bottom 0.1s;
+        }
+        .btn-game:active {
+            transform: translateY(4px);
+            border-bottom: 2px solid rgba(0,0,0,0.2);
+        }
+
+        /* Modal Transitions */
+        .modal-enter { opacity: 0; transform: scale(0.9); }
+        .modal-active { opacity: 1; transform: scale(1); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        /* Drag Line (Slingshot) */
+        #aim-line {
+            position: absolute;
+            height: 6px; /* Thicker line */
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 3px;
+            pointer-events: none;
+            transform-origin: left center;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+
+        .team-banner {
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PHYSICS CANVAS -->
+    <div id="game-container" class="absolute inset-0 z-0"></div>
+    
+    <!-- AIM INDICATOR -->
+    <div id="aim-line"></div>
+
+    <!-- HUD -->
+    <div id="ui-layer" class="flex flex-col justify-between p-4 z-20">
+        
+        <!-- Top Bar: Scores -->
+        <div class="flex justify-between items-start w-full max-w-6xl mx-auto">
+            <!-- Team 1 Score -->
+            <div class="flex flex-col items-center">
+                <div class="bg-blue-600 text-white px-8 py-2 team-banner shadow-lg">
+                    <span id="score-label-1" class="game-font text-2xl tracking-widest">TEAM BLUE</span>
+                </div>
+                <div class="bg-white text-blue-800 px-6 py-2 rounded-b-lg font-black text-4xl shadow border-2 border-t-0 border-blue-600 min-w-[120px] text-center" id="score-1">
+                    0
+                </div>
+            </div>
+
+            <!-- Turn Indicator -->
+            <div id="turn-display" class="bg-yellow-400 border-4 border-black px-8 py-3 rounded-full shadow-xl transform translate-y-2">
+                <span class="game-font text-2xl text-black" id="turn-text">WAR BEGINS</span>
+            </div>
+
+            <!-- Team 2 Score -->
+            <div class="flex flex-col items-center">
+                <div class="bg-red-600 text-white px-8 py-2 team-banner shadow-lg">
+                    <span id="score-label-2" class="game-font text-2xl tracking-widest">TEAM RED</span>
+                </div>
+                <div class="bg-white text-red-800 px-6 py-2 rounded-b-lg font-black text-4xl shadow border-2 border-t-0 border-red-600 min-w-[120px] text-center" id="score-2">
+                    0
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="flex justify-between items-end">
+            <button onclick="toggleEditor()" class="interactive p-3 bg-white rounded-full shadow-lg hover:bg-gray-100 text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+            
+            <div id="instruction-text" class="bg-black bg-opacity-70 text-white px-6 py-2 rounded-full mb-4 animate-pulse hidden">
+                Touch ANYWHERE and drag back to aim!
+            </div>
+        </div>
+    </div>
+
+    <!-- START MODAL -->
+    <div id="start-modal" class="absolute inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-xl max-w-lg text-center shadow-2xl border-b-8 border-gray-300">
+            <h1 class="text-5xl md:text-6xl game-font mb-4 text-gray-800">BRITISH HILLS<br><span class="text-red-600">TEAM SIEGE</span></h1>
+            <p class="text-xl text-gray-600 mb-8">Answer correctly to bombard the enemy castle!</p>
+            <button onclick="initGame()" class="interactive btn-game bg-green-500 hover:bg-green-400 text-white text-3xl font-bold py-4 px-12 rounded-lg w-full">START BATTLE</button>
+        </div>
+    </div>
+
+    <!-- QUESTION MODAL -->
+    <div id="question-modal" class="absolute inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center hidden">
+        <div id="question-card" class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 overflow-hidden modal-enter">
+            <!-- Header -->
+            <div class="bg-gray-100 p-6 border-b-2 border-gray-200 flex justify-between items-center">
+                <span class="font-bold text-gray-500 tracking-wider">AMMUNITION CHECK</span>
+                <span id="current-team-badge" class="px-4 py-1 rounded bg-blue-600 text-white font-bold">TEAM BLUE'S TURN</span>
+            </div>
+            
+            <!-- Question Body -->
+            <div class="p-10 text-center">
+                <h2 id="q-text" class="text-4xl md:text-5xl font-bold text-gray-800 mb-10">...</h2>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <button onclick="handleAnswer('A')" class="interactive btn-game bg-blue-500 hover:bg-blue-400 text-white text-2xl font-bold py-6 rounded-lg relative group">
+                        <span class="absolute top-2 left-4 text-xs opacity-50">OPTION A</span>
+                        <span id="opt-a">...</span>
+                    </button>
+                    <button onclick="handleAnswer('B')" class="interactive btn-game bg-blue-500 hover:bg-blue-400 text-white text-2xl font-bold py-6 rounded-lg relative group">
+                        <span class="absolute top-2 left-4 text-xs opacity-50">OPTION B</span>
+                        <span id="opt-b">...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDITOR MODAL -->
+    <div id="editor-modal" class="absolute inset-0 bg-gray-900 bg-opacity-95 z-50 hidden flex flex-col p-8">
+        <h2 class="text-white text-2xl mb-4 font-bold">Game Configuration</h2>
+        
+        <!-- Team Name Editor -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="text-blue-400 text-sm font-bold block mb-1">Left Team Name</label>
+                <input id="team-name-blue" type="text" class="w-full bg-gray-800 text-white p-2 rounded border border-blue-600" placeholder="TEAM BLUE">
+            </div>
+            <div>
+                <label class="text-red-400 text-sm font-bold block mb-1">Right Team Name</label>
+                <input id="team-name-red" type="text" class="w-full bg-gray-800 text-white p-2 rounded border border-red-600" placeholder="TEAM RED">
+            </div>
+        </div>
+
+        <h3 class="text-white text-xl mb-2 font-bold">Questions</h3>
+        <p class="text-gray-400 mb-2 text-sm">Format: Question | Option A | Option B | Correct (A/B)</p>
+        <textarea id="editor-area" class="flex-1 bg-gray-800 text-green-400 font-mono p-4 rounded border border-gray-600 resize-none mb-4"></textarea>
+        
+        <div class="flex justify-end gap-4">
+            <button onclick="toggleEditor()" class="text-gray-400 px-4 py-2 interactive">Cancel</button>
+            <button onclick="saveConfig()" class="bg-green-600 text-white px-8 py-2 rounded font-bold interactive">Save & Reload</button>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        // --- CONFIG & STATE ---
+        const DEFAULT_DATA = `
+Yesterday I ___ to the park. | go | went | B
+She ___ like pizza. | doesn't | don't | A
+We are ___ English now. | study | studying | B
+Where ___ the station? | is | are | A
+I have ___ a movie. | see | seen | B
+He is ___ than me. | tall | taller | B
+___ you play tennis? | Can | Are | A
+This is ___ book. | my | mine | A
+They ___ happy yesterday. | were | was | A
+The cat is ___ the table. | under | down | A
+`.trim();
+
+        const Game = {
+            active: false,
+            turn: 1, // 1 = Blue (Left), 2 = Red (Right)
+            questions: [],
+            teams: { blue: "TEAM BLUE", red: "TEAM RED" },
+            qIndex: 0,
+            mode: 'IDLE', // IDLE, QUESTION, AIMING, FIRING
+            score1: 0,
+            score2: 0,
+            lastShotTime: 0
+        };
+
+        // --- MATTER.JS SETUP ---
+        const Engine = Matter.Engine,
+              Render = Matter.Render,
+              Runner = Matter.Runner,
+              Bodies = Matter.Bodies,
+              Composite = Matter.Composite,
+              Events = Matter.Events,
+              Vector = Matter.Vector,
+              Body = Matter.Body;
+
+        let engine, render, runner;
+        let ground;
+        let pultLeft, pultRight, mountain; 
+        let width, height;
+
+        function initGame() {
+            document.getElementById('start-modal').style.display = 'none';
+            loadConfig(); // Load questions and team names
+            setupPhysics();
+            Game.active = true;
+            startTurn();
+        }
+
+        function loadConfig() {
+            // Load Questions
+            const raw = localStorage.getItem('siege_data') || DEFAULT_DATA;
+            Game.questions = raw.split('\n').filter(l => l.includes('|')).map(l => {
+                const parts = l.split('|').map(s => s.trim());
+                return { q: parts[0], a: parts[1], b: parts[2], cor: parts[3].toUpperCase() };
+            });
+            document.getElementById('editor-area').value = raw;
+
+            // Load Team Names
+            const storedTeams = localStorage.getItem('siege_teams');
+            if (storedTeams) {
+                Game.teams = JSON.parse(storedTeams);
+            }
+            
+            // Update Inputs
+            document.getElementById('team-name-blue').value = Game.teams.blue;
+            document.getElementById('team-name-red').value = Game.teams.red;
+
+            // Update UI
+            document.getElementById('score-label-1').innerText = Game.teams.blue.toUpperCase();
+            document.getElementById('score-label-2').innerText = Game.teams.red.toUpperCase();
+        }
+
+        function saveConfig() {
+            // Save Team Names
+            const blueName = document.getElementById('team-name-blue').value || "TEAM BLUE";
+            const redName = document.getElementById('team-name-red').value || "TEAM RED";
+            
+            Game.teams = { blue: blueName, red: redName };
+            localStorage.setItem('siege_teams', JSON.stringify(Game.teams));
+
+            // Save Questions
+            localStorage.setItem('siege_data', document.getElementById('editor-area').value);
+            
+            loadConfig();
+            toggleEditor();
+        }
+
+        function setupPhysics() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+
+            // FIX: Sleeping enabled + relaxed constraints
+            engine = Engine.create({ 
+                enableSleeping: true,
+                positionIterations: 10,
+                velocityIterations: 10
+            });
+            
+            engine.sleepingThreshold = 60; 
+
+            render = Render.create({
+                element: document.getElementById('game-container'),
+                engine: engine,
+                options: {
+                    width: width,
+                    height: height,
+                    wireframes: false, 
+                    background: '#87CEEB',
+                    pixelRatio: window.devicePixelRatio
+                }
+            });
+
+            // Ground
+            ground = Bodies.rectangle(width/2, height + 40, width, 100, { 
+                isStatic: true,
+                render: { fillStyle: '#2d6a4f' }
+            });
+
+            // Build Complex Castles (Scaled/Zoomed Out)
+            // Left Team (Blue) at 8%
+            buildComplex(width * 0.08, height - 10, 'BLUE');
+            // Right Team (Red) at 92%
+            buildComplex(width * 0.92, height - 10, 'RED');
+
+            // Catapults (Forward Positions)
+            // Blue Catapult at 30%
+            pultLeft = Bodies.trapezoid(width * 0.3, height - 20, 40, 40, 0.7, {
+                isStatic: true,
+                render: { fillStyle: '#444' },
+                label: 'CATAPULT_LEFT'
+            });
+
+            // Red Catapult at 70%
+            pultRight = Bodies.trapezoid(width * 0.7, height - 20, 40, 40, 0.7, {
+                isStatic: true,
+                render: { fillStyle: '#444' },
+                label: 'CATAPULT_RIGHT'
+            });
+
+            // MOUNTAIN (Center Barrier)
+            // Scaled slightly smaller relative to screen to match zoomed out feel
+            mountain = Bodies.trapezoid(width / 2, height - 10, 160, 280, 0.4, {
+                isStatic: true,
+                render: { fillStyle: '#565264' },
+                label: 'MOUNTAIN'
+            });
+
+            Composite.add(engine.world, [ground, pultLeft, pultRight, mountain]);
+
+            Render.run(render);
+            runner = Runner.create();
+            Runner.run(runner, engine);
+
+            // Add Event Listeners for Dragging/Aiming
+            const container = document.getElementById('game-container');
+            container.addEventListener('pointerdown', handleInputStart);
+            container.addEventListener('pointermove', handleInputMove);
+            container.addEventListener('pointerup', handleInputEnd);
+
+            // Loop to check fallen blocks
+            setInterval(checkScore, 500);
+        }
+
+        // --- CASTLE BUILDER V2 (COMPLEX & STABLE) ---
+        function buildComplex(centerX, bottomY, team) {
+            const blockSize = 20; // ZOOMED OUT SIZE
+            const color = team === 'BLUE' ? '#1e3a8a' : '#991b1b';
+            const accent = team === 'BLUE' ? '#60a5fa' : '#f87171';
+            let stack = Composite.create();
+            
+            // Helper to build a tower
+            function buildTower(tx, rows, cols) {
+                const gap = 0.5; // Vertical gap to prevent interpenetration
+                
+                for (let i = 0; i < cols; i++) {
+                    for (let j = 0; j < rows; j++) {
+                        // Adjusted Y calculation to sit flush on ground with gap
+                        const block = Bodies.rectangle(
+                            tx + (i - (cols - 1) / 2) * blockSize, 
+                            bottomY - (blockSize / 2) - (j * (blockSize + gap)), 
+                            blockSize - 1, 
+                            blockSize - 1, 
+                            {
+                                render: { 
+                                    fillStyle: (j % 2 === 0) ? color : accent,
+                                    strokeStyle: '#000',
+                                    lineWidth: 1
+                                },
+                                label: team + '_BLOCK',
+                                // FIX: Physics properties for dynamic destruction (CRUMBLE)
+                                friction: 0.1,       // Very low friction for slipping
+                                frictionStatic: 0.1, // Very low static friction (easy to push)
+                                density: 0.02,       // Light blocks (easier to blast)
+                                restitution: 0.05,   
+                                chamfer: { radius: 0 } 
+                            }
+                        );
+                        Composite.add(stack, block);
+                    }
+                }
+            }
+
+            // 1. Main Keep (Center) - Massive
+            buildTower(centerX, 10, 5); 
+
+            // 2. Satellite Fort (Outer Edge side)
+            const sideOffset = team === 'BLUE' ? -5 * blockSize : 5 * blockSize;
+            buildTower(centerX + sideOffset, 5, 3);
+
+            // 3. Forward Fort (Inner side)
+            const innerOffset = team === 'BLUE' ? 5 * blockSize : -5 * blockSize;
+            buildTower(centerX + innerOffset, 4, 2);
+
+            // King on top of Main Keep
+            const king = Bodies.circle(centerX, bottomY - (10 * 20.5) - 12, 12, {
+                render: { fillStyle: '#FFD700', strokeStyle: '#000', lineWidth: 2 },
+                label: team + '_KING',
+                friction: 0.1,
+                density: 0.02, // Match blocks
+                restitution: 0.2
+            });
+            Composite.add(stack, king);
+
+            Composite.add(engine.world, stack);
+        }
+
+        function checkScore() {
+            const bodies = Composite.allBodies(engine.world);
+            let s1 = 0, s2 = 0;
+
+            bodies.forEach(b => {
+                if (b.label === 'RED_BLOCK' || b.label === 'RED_KING') {
+                    if (Math.abs(b.angle) > 0.5 || b.position.y > height - 30) s1 += 10;
+                    if (b.label === 'RED_KING' && b.position.y > height - 80) s1 += 1000;
+                }
+                if (b.label === 'BLUE_BLOCK' || b.label === 'BLUE_KING') {
+                    if (Math.abs(b.angle) > 0.5 || b.position.y > height - 30) s2 += 10;
+                    if (b.label === 'BLUE_KING' && b.position.y > height - 80) s2 += 1000;
+                }
+            });
+
+            Game.score1 = s1;
+            Game.score2 = s2;
+            document.getElementById('score-1').innerText = Game.score1;
+            document.getElementById('score-2').innerText = Game.score2;
+        }
+
+        // --- GAME LOGIC ---
+
+        function startTurn() {
+            Game.mode = 'QUESTION';
+            
+            const turnDisplay = document.getElementById('turn-display');
+            const turnText = document.getElementById('turn-text');
+            const badge = document.getElementById('current-team-badge');
+            
+            if (Game.turn === 1) {
+                turnDisplay.className = "bg-blue-500 border-4 border-white px-8 py-3 rounded-full shadow-xl transform translate-y-2";
+                turnText.innerText = Game.teams.blue.toUpperCase() + "'S TURN";
+                turnText.style.color = "white";
+                badge.innerText = Game.teams.blue.toUpperCase() + " IS ANSWERING";
+                badge.className = "px-4 py-1 rounded bg-blue-600 text-white font-bold";
+            } else {
+                turnDisplay.className = "bg-red-500 border-4 border-white px-8 py-3 rounded-full shadow-xl transform translate-y-2";
+                turnText.innerText = Game.teams.red.toUpperCase() + "'S TURN";
+                turnText.style.color = "white";
+                badge.innerText = Game.teams.red.toUpperCase() + " IS ANSWERING";
+                badge.className = "px-4 py-1 rounded bg-red-600 text-white font-bold";
+            }
+
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = Game.questions[Game.qIndex % Game.questions.length];
+            Game.currentQ = q;
+            
+            document.getElementById('q-text').innerText = q.q;
+            document.getElementById('opt-a').innerText = q.a;
+            document.getElementById('opt-b').innerText = q.b;
+            
+            const modal = document.getElementById('question-modal');
+            const card = document.getElementById('question-card');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.add('modal-active');
+            }, 10);
+        }
+
+        function handleAnswer(choice) {
+            const modal = document.getElementById('question-modal');
+            const card = document.getElementById('question-card');
+            
+            // Close Modal
+            card.classList.remove('modal-active');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+
+            if (choice === Game.currentQ.cor) {
+                // Correct -> AIM MODE
+                Game.mode = 'AIMING';
+                document.getElementById('turn-text').innerText = "FIRE WHEN READY!";
+                document.getElementById('instruction-text').classList.remove('hidden');
+            } else {
+                // Wrong -> SKIP TURN
+                document.getElementById('turn-text').innerText = "MISSED CHANCE!";
+                setTimeout(switchTurn, 2000);
+            }
+            
+            Game.qIndex++;
+        }
+
+        function switchTurn() {
+            Game.turn = Game.turn === 1 ? 2 : 1;
+            startTurn();
+        }
+
+        // --- INPUT & SHOOTING ---
+        let dragStart = null;
+
+        function handleInputStart(e) {
+            if (Game.mode !== 'AIMING') return;
+            // Record where the user touched to establish a relative "anchor" point
+            dragStart = { x: e.clientX, y: e.clientY };
+        }
+
+        function handleInputMove(e) {
+            if (!dragStart || Game.mode !== 'AIMING') return;
+            
+            const mousePos = { x: e.clientX, y: e.clientY };
+            const line = document.getElementById('aim-line');
+            
+            // Determine Catapult Position (Visual Origin)
+            const pultBody = Game.turn === 1 ? pultLeft : pultRight;
+            const origin = pultBody.position;
+
+            // Calculate Drag Vector relative to the INITIAL TOUCH, not the catapult
+            // This allows "Virtual Joystick" aiming anywhere on screen
+            const dragVectorX = dragStart.x - mousePos.x;
+            const dragVectorY = dragStart.y - mousePos.y;
+
+            const length = Math.sqrt(dragVectorX*dragVectorX + dragVectorY*dragVectorY);
+            const angle = Math.atan2(dragVectorY, dragVectorX);
+
+            // Visual Limit
+            const maxLength = 300;
+            const visualLen = Math.min(length, maxLength);
+            
+            if (length > 10) {
+                line.style.display = 'block';
+                line.style.width = visualLen + 'px';
+                // Anchor line at Catapult
+                line.style.left = origin.x + 'px';
+                line.style.top = (origin.y - 40) + 'px'; // Move up slightly to match spawn
+                line.style.transform = `rotate(${angle}rad)`;
+                // Colorize based on power
+                const powerRatio = visualLen / maxLength;
+                line.style.backgroundColor = `rgba(255, ${255 * (1-powerRatio)}, 0, 0.8)`;
+            }
+        }
+
+        function handleInputEnd(e) {
+            if (!dragStart || Game.mode !== 'AIMING') return;
+            
+            const mousePos = { x: e.clientX, y: e.clientY };
+            
+            // Calculate vector from the Relative Drag
+            const dx = dragStart.x - mousePos.x;
+            const dy = dragStart.y - mousePos.y;
+            
+            // FIX: Drastically increased force to launch the heavy ball
+            // Previous: 0.045 -> New: 0.0225 (halved as requested)
+            const force = 0.0225; 
+            
+            // Spawn Projectile just above catapult
+            const pultBody = Game.turn === 1 ? pultLeft : pultRight;
+            const origin = pultBody.position;
+            const spawnX = origin.x;
+            const spawnY = origin.y - 40;
+
+            // Minimum drag check to prevent accidental clicks
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                dragStart = null;
+                document.getElementById('aim-line').style.display = 'none';
+                return; 
+            }
+
+            // Create Projectile
+            const ball = Bodies.circle(spawnX, spawnY, 12, {
+                // FIX: Optimized density
+                // 0.04 is still 2x heavier than bricks (0.02), ensuring destruction
+                // but light enough to fly over the mountain.
+                density: 0.04, 
+                frictionAir: 0.001,
+                restitution: 0.8,
+                render: { fillStyle: '#333' }
+            });
+
+            Composite.add(engine.world, ball);
+
+            // Apply Force
+            Body.applyForce(ball, ball.position, {
+                x: dx * force,
+                y: dy * force
+            });
+
+            // Cleanup UI
+            document.getElementById('aim-line').style.display = 'none';
+            document.getElementById('instruction-text').classList.add('hidden');
+            document.getElementById('turn-text').innerText = "INCOMING!";
+            
+            dragStart = null;
+            Game.mode = 'FIRING';
+
+            // Wait for impact then switch turn
+            setTimeout(switchTurn, 5000); 
+        }
+
+        // --- EDITOR LOGIC ---
+        function toggleEditor() {
+            const el = document.getElementById('editor-modal');
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+        
+    </script>
+</body>
+</html>
