@@ -22,15 +22,17 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]">
 
-    <div class="max-w-4xl w-full text-center">
+    <div class="max-w-5xl w-full text-center">
+        <!-- Logo (Inverted for dark mode) -->
         <img src="https://british-hills.co.jp/common/img/logo_en.svg" alt="British Hills" class="h-24 mx-auto mb-8 invert opacity-90">
         
         <h1 class="serif-font text-4xl md:text-5xl text-amber-500 mb-2">Classroom Activities</h1>
         <p class="text-gray-400 mb-12 text-lg">Select a game engine to begin the lesson.</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Changed to 2 columns for a balanced 2x2 grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <!-- Game 1 -->
+            <!-- Game 1: Siege -->
             <a href="siege.html" class="game-card block p-6 rounded-xl border border-gray-700 text-left group">
                 <div class="h-32 bg-blue-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
@@ -40,7 +42,7 @@
                 <p class="text-gray-400 text-sm">Physics-based castle destruction. 2 Teams. Best for Q&A battles.</p>
             </a>
 
-            <!-- Game 2 -->
+            <!-- Game 2: Quad Rivals -->
             <a href="quad.html" class="game-card block p-6 rounded-xl border border-gray-700 text-left group">
                 <div class="h-32 bg-red-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
@@ -50,7 +52,7 @@
                 <p class="text-gray-400 text-sm">4-way tactical arena. 4 Teams. Steal points and bounce shots.</p>
             </a>
 
-            <!-- Game 3 -->
+            <!-- Game 3: Snooker -->
             <a href="snooker.html" class="game-card block p-6 rounded-xl border border-gray-700 text-left group">
                 <div class="h-32 bg-green-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
@@ -58,6 +60,16 @@
                 </div>
                 <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Snooker</h2>
                 <p class="text-gray-400 text-sm">Realistic snooker physics. Ongoing match. High skill ceiling.</p>
+            </a>
+
+            <!-- Game 4: Wheel -->
+            <a href="wheel.html" class="game-card block p-6 rounded-xl border border-gray-700 text-left group">
+                <div class="h-32 bg-purple-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">🎡</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Wheel of Points</h2>
+                <p class="text-gray-400 text-sm">Spin the wheel of destiny. Win big, lose it all, or swap scores.</p>
             </a>
 
         </div>
