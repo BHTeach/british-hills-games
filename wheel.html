@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>British Hills: Wheel of Points</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lato:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #1a1a1a; 
+            font-family: 'Lato', sans-serif;
+            touch-action: none; /* Prevent scrolling */
+        }
+        
+        .serif-font { font-family: 'Cinzel', serif; }
+        
+        /* Background Texture */
+        .bg-felt {
+            background-color: #1a1a1a;
+            background-image: url("https://www.transparenttextures.com/patterns/dark-leather.png");
+        }
+
+        /* The Pointer Triangle */
+        .pointer {
+            width: 0; 
+            height: 0; 
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #fbbf24; /* Amber-400 */
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+            z-index: 20;
+        }
+
+        /* Glassmorphism UI */
+        .glass {
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Result Animation */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: popIn 0.4s ease-out forwards; }
+
+    </style>
+</head>
+<body class="bg-felt h-screen w-screen flex flex-col items-center justify-center relative">
+
+    <!-- HEADER -->
+    <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-30 pointer-events-none">
+        <div>
+            <h1 class="serif-font text-3xl md:text-4xl text-amber-500 drop-shadow-md">Wheel of Points</h1>
+        </div>
+        
+        <!-- Settings Button -->
+        <button onclick="toggleEditor()" class="pointer-events-auto p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white border border-gray-600 shadow-lg transition hover:rotate-90">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- WHEEL CONTAINER -->
+    <div class="relative w-[90vw] h-[90vw] max-w-[600px] max-h-[600px]">
+        <!-- The Pointer -->
+        <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 pointer"></div>
+        
+        <!-- The Wheel Canvas -->
+        <canvas id="wheelCanvas" class="w-full h-full filter drop-shadow-2xl"></canvas>
+        
+        <!-- Center Knob (Spin/Stop Button) -->
+        <button id="spinBtn" onclick="toggleSpin()" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-[0_0_20px_rgba(251,191,36,0.6)] border-4 border-white flex items-center justify-center hover:scale-105 active:scale-95 transition group z-10">
+            <span class="serif-font text-xl font-black text-white drop-shadow-md group-hover:tracking-wider transition-all">SPIN</span>
+        </button>
+    </div>
+
+    <!-- RESULT MODAL -->
+    <div id="resultModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 hidden" onclick="closeResult()">
+        <div id="resultCard" class="glass p-8 rounded-2xl max-w-md w-full text-center border-t-4 border-amber-500 transform transition-all duration-300 scale-50 opacity-0">
+            <div class="text-gray-400 font-bold tracking-[0.3em] uppercase text-sm mb-4">The Wheel Has Spoken</div>
+            <h2 id="resultText" class="text-6xl font-black text-white mb-6 drop-shadow-lg leading-tight">+500</h2>
+            <div class="text-amber-400 text-lg animate-pulse">Tap anywhere to close</div>
+        </div>
+    </div>
+
+    <!-- EDITOR MODAL -->
+    <div id="editorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 hidden">
+        <div class="glass p-6 rounded-xl w-full max-w-lg h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-white text-2xl serif-font">Edit Wheel</h2>
+                <button onclick="toggleEditor()" class="text-gray-400 hover:text-white text-xl">✕</button>
+            </div>
+            
+            <p class="text-gray-400 text-xs mb-2">Format: Label | HexColor (Optional)</p>
+            <textarea id="editorArea" class="flex-1 bg-gray-900 text-green-400 font-mono p-4 rounded border border-gray-700 resize-none text-sm leading-relaxed focus:outline-none focus:border-amber-500"></textarea>
+            
+            <div class="flex justify-between mt-4 pt-4 border-t border-gray-700">
+                <button onclick="resetDefaults()" class="text-red-400 text-sm hover:text-red-300">Reset Defaults</button>
+                <button onclick="saveAndClose()" class="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded font-bold shadow-lg">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const DEFAULT_SEGMENTS = [
+            { text: "+10", color: "#22c55e" },  // Green
+            { text: "-10", color: "#ef4444" },  // Red
+            { text: "+50", color: "#16a34a" },  // Darker Green
+            { text: "-50", color: "#dc2626" },  // Darker Red
+            { text: "SWITCH", color: "#8b5cf6" }, // Purple
+            { text: "+100", color: "#15803d" }, // Deep Green
+            { text: "-100", color: "#b91c1c" }, // Deep Red
+            { text: "+500", color: "#f59e0b" }, // Gold
+            { text: "-500", color: "#171717" }  // Black
+        ];
+
+        let segments = [];
+        let currentAngle = 0;
+        let spinState = 'idle'; // 'idle', 'spinning', 'stopping'
+        let speed = 0;
+        let animationId = null;
+        let lastTickAngle = 0;
+        
+        let ctx = null;
+        let canvas = null;
+        let center = 0;
+        let radius = 0;
+
+        // --- AUDIO ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTick() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+            
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playWin() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            
+            // Happy arpeggio
+            const now = audioCtx.currentTime;
+            [440, 554, 659, 880].forEach((freq, i) => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.frequency.value = freq;
+                g.gain.setValueAtTime(0.1, now + i*0.1);
+                g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 0.3);
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                o.start(now + i*0.1);
+                o.stop(now + i*0.1 + 0.3);
+            });
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            canvas = document.getElementById('wheelCanvas');
+            ctx = canvas.getContext('2d');
+            loadSegments();
+            resize();
+            window.addEventListener('resize', resize);
+            draw();
+        };
+
+        function loadSegments() {
+            const stored = localStorage.getItem('wheel_segments');
+            if (stored) {
+                segments = JSON.parse(stored);
+            } else {
+                segments = [...DEFAULT_SEGMENTS];
+            }
+            populateEditor();
+        }
+
+        function resize() {
+            const container = canvas.parentElement;
+            canvas.width = container.offsetWidth * 2; // HiDPI
+            canvas.height = container.offsetHeight * 2;
+            center = canvas.width / 2;
+            radius = (canvas.width / 2) - 20; // Padding
+            draw();
+        }
+
+        // --- DRAWING ---
+        function draw() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const sliceAngle = (2 * Math.PI) / segments.length;
+            
+            // Outer Rim
+            ctx.beginPath();
+            ctx.arc(center, center, radius + 10, 0, 2 * Math.PI);
+            ctx.fillStyle = '#333';
+            ctx.fill();
+            ctx.strokeStyle = '#fbbf24'; // Gold rim
+            ctx.lineWidth = 8;
+            ctx.stroke();
+
+            segments.forEach((seg, i) => {
+                const startAngle = currentAngle + (i * sliceAngle);
+                const endAngle = startAngle + sliceAngle;
+
+                // Slice
+                ctx.beginPath();
+                ctx.moveTo(center, center);
+                ctx.arc(center, center, radius, startAngle, endAngle);
+                ctx.fillStyle = seg.color || generateColor(i);
+                ctx.fill();
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Text
+                ctx.save();
+                ctx.translate(center, center);
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = isLight(ctx.fillStyle) ? "#000" : "#fff";
+                ctx.font = "bold 24px Lato"; // Scaled for HiDPI
+                if (canvas.width > 800) ctx.font = "bold 40px Lato"; // Big screens
+                
+                ctx.fillText(seg.text, radius - 40, 10);
+                ctx.restore();
+            });
+        }
+
+        // --- SPIN LOGIC (CONTINUOUS) ---
+        function toggleSpin() {
+            if (spinState === 'idle') {
+                startSpinning();
+            } else if (spinState === 'spinning') {
+                beginStopping();
+            }
+        }
+
+        function startSpinning() {
+            spinState = 'spinning';
+            lastTickAngle = currentAngle;
+            speed = 0.05; // Starting speed
+            const maxSpeed = 0.4; // Max rotation speed
+
+            // Update UI to STOP button
+            const btn = document.getElementById('spinBtn');
+            const span = btn.querySelector('span');
+            span.innerText = "STOP";
+            // Change color to Red
+            btn.classList.remove('from-amber-400', 'to-amber-600', 'shadow-[0_0_20px_rgba(251,191,36,0.6)]');
+            btn.classList.add('from-red-500', 'to-red-700', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+
+            function loop() {
+                if (spinState !== 'spinning') return;
+
+                // Accelerate
+                if (speed < maxSpeed) speed += 0.005;
+                
+                currentAngle += speed;
+                
+                // Sound
+                const sliceAngle = (2 * Math.PI) / segments.length;
+                if (currentAngle - lastTickAngle > sliceAngle) {
+                    playTick();
+                    lastTickAngle += sliceAngle;
+                }
+
+                draw();
+                animationId = requestAnimationFrame(loop);
+            }
+            animationId = requestAnimationFrame(loop);
+        }
+
+        function beginStopping() {
+            spinState = 'stopping';
+            cancelAnimationFrame(animationId);
+
+            // Update UI to disabled
+            const btn = document.getElementById('spinBtn');
+            btn.classList.add('brightness-50', 'cursor-not-allowed');
+            
+            // Deceleration Setup
+            const duration = 3000 + Math.random() * 1000; // 3-4s braking time
+            let startTime = null;
+            const startAngle = currentAngle;
+            // Add extra rotation for smooth stop (current speed * factor + minimal random)
+            const extraSpins = 4 * Math.PI + (Math.random() * Math.PI); 
+            const finalAngle = startAngle + extraSpins;
+
+            function brake(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = (timestamp - startTime) / duration;
+
+                if (progress < 1) {
+                    // Cubic Ease Out
+                    const ease = 1 - Math.pow(1 - progress, 3);
+                    currentAngle = startAngle + (extraSpins * ease);
+                    
+                    const sliceAngle = (2 * Math.PI) / segments.length;
+                    if (currentAngle - lastTickAngle > sliceAngle) {
+                        playTick();
+                        lastTickAngle += sliceAngle;
+                    }
+
+                    draw();
+                    requestAnimationFrame(brake);
+                } else {
+                    currentAngle = finalAngle;
+                    draw();
+                    finishSpin();
+                }
+            }
+            requestAnimationFrame(brake);
+        }
+
+        function finishSpin() {
+            spinState = 'idle';
+            
+            // Reset Button to SPIN (Amber)
+            const btn = document.getElementById('spinBtn');
+            const span = btn.querySelector('span');
+            span.innerText = "SPIN";
+            btn.classList.remove('brightness-50', 'cursor-not-allowed', 'from-red-500', 'to-red-700', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+            btn.classList.add('from-amber-400', 'to-amber-600', 'shadow-[0_0_20px_rgba(251,191,36,0.6)]');
+            
+            showResult();
+        }
+
+        function showResult() {
+            playWin();
+            
+            // Determine winner based on pointer at 270deg (1.5 PI)
+            const sliceAngle = (2 * Math.PI) / segments.length;
+            const normAngle = currentAngle % (2 * Math.PI);
+            let effectiveAngle = (1.5 * Math.PI) - normAngle;
+            while (effectiveAngle < 0) effectiveAngle += (2 * Math.PI);
+            
+            const index = Math.floor(effectiveAngle / sliceAngle) % segments.length;
+            const result = segments[index];
+
+            // Update UI
+            const modal = document.getElementById('resultModal');
+            const card = document.getElementById('resultCard');
+            const text = document.getElementById('resultText');
+            
+            text.innerText = result.text;
+            
+            if(result.text.includes('-')) text.style.color = '#ef4444';
+            else if(result.text.includes('+')) text.style.color = '#22c55e';
+            else text.style.color = '#8b5cf6';
+
+            modal.classList.remove('hidden');
+            card.classList.remove('scale-50', 'opacity-0');
+            card.classList.add('animate-pop');
+        }
+
+        function closeResult() {
+            const modal = document.getElementById('resultModal');
+            const card = document.getElementById('resultCard');
+            card.classList.remove('animate-pop');
+            card.classList.add('scale-50', 'opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // --- EDITOR LOGIC ---
+        function toggleEditor() {
+            const modal = document.getElementById('editorModal');
+            if (modal.classList.contains('hidden')) {
+                populateEditor();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function populateEditor() {
+            const area = document.getElementById('editorArea');
+            area.value = segments.map(s => `${s.text} | ${s.color}`).join('\n');
+        }
+
+        function saveAndClose() {
+            const raw = document.getElementById('editorArea').value;
+            const lines = raw.split('\n');
+            const newSegments = [];
+            
+            lines.forEach((line, i) => {
+                if(!line.trim()) return;
+                const parts = line.split('|');
+                const text = parts[0].trim();
+                const color = parts[1] ? parts[1].trim() : generateColor(i);
+                newSegments.push({ text, color });
+            });
+
+            if (newSegments.length > 0) {
+                segments = newSegments;
+                localStorage.setItem('wheel_segments', JSON.stringify(segments));
+                draw();
+            }
+            toggleEditor();
+        }
+
+        function resetDefaults() {
+            segments = [...DEFAULT_SEGMENTS];
+            populateEditor();
+        }
+
+        // --- HELPERS ---
+        function generateColor(i) {
+            const colors = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7'];
+            return colors[i % colors.length];
+        }
+
+        function isLight(color) {
+            return false; 
+        }
+
+    </script>
+</body>
+</html>
