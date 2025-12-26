@@ -329,7 +329,7 @@
             // Restrict throwing to bottom 40% of screen
             if (e.clientY < window.innerHeight * 0.6) return;
 
-            document.getElementById('tutorial').style.display = 'none'; // Hide tutorial on first interaction
+            document.getElementById('tutorial').style.display = 'none'; 
             isThrowing = true;
             dragStart = { x: e.clientX, y: e.clientY };
             
@@ -362,7 +362,6 @@
                 rubberBand.style.transform = `rotate(${angle}rad)`;
 
                 // 2. Trajectory Arrow (Start pointing UP)
-                // Opposite direction to drag
                 const aimAngle = angle + Math.PI; 
                 // Cap visual length
                 const power = Math.min(dist, 200) * 1.5; 
@@ -371,14 +370,9 @@
                 trajectory.style.height = power + 'px';
                 trajectory.style.left = dragStart.x + 'px';
                 trajectory.style.top = dragStart.y + 'px';
-                // CSS transform origin is bottom center. We want it to grow UP.
-                // Standard Math 0 is Right. CSS 0 is Up.
-                // To align Math 0 (Right) to CSS 0 (Up), we need to Rotate +90deg
-                // Example: Aim Up (270deg/-90deg). Rotation should be 0.
-                // -90 + 90 = 0. Correct.
+                // Fix arrow direction (+90 deg)
                 trajectory.style.transform = `rotate(${aimAngle + Math.PI/2}rad)`;
 
-                // Visual dart pullback
                 updateDartPos(dragStart.x + dx, dragStart.y + dy, 1.0);
             }
         }
@@ -406,29 +400,44 @@
         }
 
         function fireDart(dx, dy) {
-            // Inverse vector (Pull back -> Throw forward)
-            const power = Math.min(Math.sqrt(dx*dx + dy*dy), 400) / 400; // 0-1
-            const speed = 400; // Flight time ms
+            // RELATIVE TARGETING LOGIC
+            const board = document.getElementById('board-container');
+            const rect = board.getBoundingClientRect();
+            const cx = rect.left + rect.width/2;
+            const cy = rect.top + rect.height/2;
             
-            const throwDist = 300 + (power * 500); // Max throw distance
-            const angle = Math.atan2(dy, dx); // Drag angle
+            // Distance from Drag Start to Board Center
+            const distToCenter = Math.sqrt(Math.pow(cx - dragStart.x, 2) + Math.pow(cy - dragStart.y, 2));
             
-            // Target is opposite to drag
-            const targetX = dragStart.x - (Math.cos(angle) * throwDist);
-            const targetY = dragStart.y - (Math.sin(angle) * throwDist);
+            // Power Calculation (0.0 to 1.0) based on drag length
+            const dragLen = Math.sqrt(dx*dx + dy*dy);
+            const power = Math.min(dragLen, 300) / 300; 
+            
+            // Map Power to Landing Distance (Center relative)
+            // Power 0.5 lands roughly at Center.
+            // Power 0.0 lands ~250px short (Bottom of board)
+            // Power 1.0 lands ~250px long (Top of board)
+            const travelDist = distToCenter + ((power - 0.5) * 500); 
+            
+            // Angle Logic (Drag is opposite to flight)
+            const angle = Math.atan2(dy, dx); 
+            
+            const targetX = dragStart.x - (Math.cos(angle) * travelDist);
+            const targetY = dragStart.y - (Math.sin(angle) * travelDist);
             
             const startTime = performance.now();
-            const startX = dragStart.x + dx; // Start from pulled back position
+            const startX = dragStart.x + dx; 
             const startY = dragStart.y + dy;
+            const speed = 400; // ms
             
             function animate(time) {
                 const elapsed = time - startTime;
                 const progress = Math.min(elapsed / speed, 1);
+                const ease = progress; 
                 
-                const ease = progress; // Linear flight
                 const curX = startX + (targetX - startX) * ease;
                 const curY = startY + (targetY - startY) * ease;
-                const scale = 1.0 - (0.6 * ease); // Shrink as it goes away
+                const scale = 1.0 - (0.6 * ease); 
                 
                 updateDartPos(curX, curY, scale);
 
@@ -457,9 +466,15 @@
             let multiplier = 1;
             let text = "MISS";
 
+            // If it hit board area or rim
             if (logicalR < 6) { score = 50; text = "BULLSEYE"; }
             else if (logicalR < 16) { score = 25; text = "25"; }
-            else if (logicalR > 170) { score = 0; text = "MISS"; }
+            else if (logicalR > 170) { 
+                // Hit the black rim or missed entirely
+                score = 0; 
+                text = "MISS"; 
+                // We still stick it for visual feedback!
+            }
             else {
                 let angle = Math.atan2(dy, dx) * (180 / Math.PI);
                 angle += 90;
@@ -477,14 +492,15 @@
                 else text = `${baseScore}`;
             }
 
+            // Always stick dart, even on 0 score
+            stickDart(x, y);
+            
             if (score > 0) {
                 TEAMS[activeTeam].score += score;
                 updateUI();
                 showPopup(x, y, text);
-                stickDart(x, y);
             } else {
                 showPopup(x, y, "MISS");
-                dartEl.classList.add('hidden');
             }
         }
 
