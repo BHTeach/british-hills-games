@@ -372,10 +372,11 @@
                 trajectory.style.left = dragStart.x + 'px';
                 trajectory.style.top = dragStart.y + 'px';
                 // CSS transform origin is bottom center. We want it to grow UP.
-                // Rotate to match aim angle. Since height grows up, default is -90deg (Up).
-                // Our aimAngle is calculated from X axis (0 is Right).
-                // We need to offset by +90deg (PI/2) to align with CSS bottom-up growth
-                trajectory.style.transform = `rotate(${aimAngle - Math.PI/2}rad)`;
+                // Standard Math 0 is Right. CSS 0 is Up.
+                // To align Math 0 (Right) to CSS 0 (Up), we need to Rotate +90deg
+                // Example: Aim Up (270deg/-90deg). Rotation should be 0.
+                // -90 + 90 = 0. Correct.
+                trajectory.style.transform = `rotate(${aimAngle + Math.PI/2}rad)`;
 
                 // Visual dart pullback
                 updateDartPos(dragStart.x + dx, dragStart.y + dy, 1.0);
