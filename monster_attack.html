@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>British Hills: Monster Attack (Final)</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lato:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Lato', sans-serif;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            touch-action: manipulation;
+        }
+
+        .font-fantasy {
+            font-family: 'Cinzel', serif;
+        }
+
+        .text-shadow-hard {
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .gold-text {
+            color: #d4af37;
+            background: linear-gradient(to bottom, #fcf6ba, #bf953f, #b38728, #fbf5b7, #aa771c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 82, 82, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
+        }
+        
+        .mic-active {
+            animation: pulse-ring 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const INITIAL_STAGES = [
+            {
+                id: 1,
+                name: "The Manor House Gate",
+                monsterName: "Highland Ogre",
+                question: "What is the name of the currency used in the UK?",
+                answers: ["pound", "pounds", "sterling", "pound sterling"],
+                videoSrc: null
+            },
+            {
+                id: 2,
+                name: "The Tea Room",
+                monsterName: "Spectral Knight",
+                question: "What color are the famous double-decker buses in London?",
+                answers: ["red", "it is red", "they are red"],
+                videoSrc: null
+            }
+        ];
+
+        const App = () => {
+            // --- State ---
+            const [gameState, setGameState] = useState('setup');
+            const [stages, setStages] = useState(INITIAL_STAGES);
+            const [currentStageIndex, setCurrentStageIndex] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(45);
+            const [transcript, setTranscript] = useState("");
+            const [isListening, setIsListening] = useState(false);
+            
+            // Debug / Manual Input State
+            const [manualInput, setManualInput] = useState("");
+            const [showManualInput, setShowManualInput] = useState(false);
+            
+            // --- Refs ---
+            const videoRef = useRef(null);
+            const recognitionRef = useRef(null);
+            const timerRef = useRef(null);
+            const currentStageRef = useRef(stages[0]);
+
+            const currentStage = stages[currentStageIndex];
+            
+            useEffect(() => {
+                currentStageRef.current = stages[currentStageIndex];
+            }, [currentStageIndex, stages]);
+
+            // --- Mic Factory ---
+            const createRecognition = () => {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    return null;
+                }
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognition.continuous = false; 
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = () => {
+                    setIsListening(true);
+                };
+
+                recognition.onresult = (event) => {
+                    const result = event.results[event.results.length - 1];
+                    const text = result[0].transcript.toLowerCase();
+                    setTranscript(text);
+                    if (result.isFinal || text.length > 2) {
+                        checkAnswer(text);
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Mic Error:", event.error);
+                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                        setIsListening(false);
+                        // If mic fails (e.g. local file), show manual input automatically
+                        setShowManualInput(true);
+                    }
+                };
+
+                recognition.onend = () => {
+                    setIsListening(false);
+                };
+                
+                return recognition;
+            };
+
+            // --- Handlers ---
+
+            const handleEncounter = () => {
+                // 1. START MIC FIRST
+                try {
+                    if (recognitionRef.current) {
+                        try { recognitionRef.current.abort(); } catch(e){}
+                    }
+                    recognitionRef.current = createRecognition();
+                    if (recognitionRef.current) recognitionRef.current.start();
+                } catch(e) {
+                    console.error("Mic Start Failed (Likely Local File)", e);
+                    setShowManualInput(true); // Fallback
+                }
+
+                // 2. Play Video Sound
+                if (videoRef.current) {
+                    videoRef.current.muted = false;
+                    videoRef.current.play().catch(e => console.log("Video Play Error", e));
+                }
+
+                setGameState('playing');
+                setTimeLeft(45);
+                setTranscript("");
+                setManualInput("");
+                
+                if (timerRef.current) clearInterval(timerRef.current);
+                timerRef.current = setInterval(() => {
+                    setTimeLeft((prev) => {
+                        if (prev <= 1) {
+                            handleTimeOut();
+                            return 0;
+                        }
+                        
+                        // Retry mic if possible
+                        if (recognitionRef.current && !isListening && !showManualInput) {
+                           try { recognitionRef.current.start(); } catch(e){}
+                        }
+                        
+                        return prev - 1;
+                    });
+                }, 1000);
+            };
+
+            // --- Game Logic ---
+            const checkAnswer = (text) => {
+                const possibleAnswers = currentStageRef.current.answers;
+                const isCorrect = possibleAnswers.some(ans => text.includes(ans.toLowerCase()));
+                if (isCorrect) handleVictory();
+            };
+
+            const handleManualSubmit = (e) => {
+                e.preventDefault();
+                checkAnswer(manualInput.toLowerCase());
+                setManualInput(""); // Clear for retry
+            };
+
+            const handleVictory = () => {
+                clearInterval(timerRef.current);
+                if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e){} }
+                setGameState('victory');
+            };
+
+            const handleTimeOut = () => {
+                clearInterval(timerRef.current);
+                if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e){} }
+                setGameState('defeated');
+            };
+
+            const nextStage = () => {
+                if (currentStageIndex + 1 < stages.length) {
+                    setCurrentStageIndex(prev => prev + 1);
+                    setGameState('ready');
+                } else {
+                    setGameState('gameover');
+                }
+            };
+
+            const handleFileUpload = (event, stageIndex) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    const newStages = [...stages];
+                    newStages[stageIndex].videoSrc = url;
+                    setStages(newStages);
+                }
+            };
+
+            // --- Components ---
+
+            if (gameState === 'setup') {
+                return (
+                    <div className="min-h-screen bg-gray-900 text-white p-4 font-fantasy overflow-y-auto">
+                        <h1 className="text-3xl text-center gold-text mb-6">Monster Attack</h1>
+                        
+                        <div className="max-w-xl mx-auto space-y-4">
+                            <div className="bg-gray-800 p-4 rounded border border-gray-700">
+                                <h2 className="text-lg mb-2 text-yellow-400 font-bold">1. Load Videos</h2>
+                                <p className="text-xs text-gray-400 mb-2">Note: To use Voice Recognition, this file must be uploaded to a website (HTTPS). For local testing, use the manual text box.</p>
+                                {stages.map((stage, idx) => (
+                                    <div key={stage.id} className="mb-2 p-3 bg-gray-900 rounded border border-gray-700 flex justify-between items-center">
+                                        <span className="text-sm font-bold truncate mr-2">{stage.name}</span>
+                                        <input 
+                                            type="file" 
+                                            accept="video/*"
+                                            onChange={(e) => handleFileUpload(e, idx)}
+                                            className="text-xs text-gray-400 w-32"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <button 
+                                onClick={() => setGameState('ready')}
+                                className="w-full py-4 bg-gradient-to-r from-red-800 to-red-900 rounded-lg text-2xl font-bold text-white border-2 border-yellow-600 shadow-lg mt-4"
+                            >
+                                Enter Dungeon
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="relative w-screen h-screen overflow-hidden bg-black">
+                    {/* Video */}
+                    {currentStage.videoSrc ? (
+                        <video
+                            ref={videoRef}
+                            src={currentStage.videoSrc}
+                            autoPlay
+                            loop
+                            playsInline
+                            className="absolute top-0 left-0 w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="absolute top-0 left-0 w-full h-full bg-gray-800 flex items-center justify-center">
+                            <h2 className="text-2xl gold-text font-fantasy">No Video Loaded</h2>
+                        </div>
+                    )}
+
+                    {/* Overlay */}
+                    <div className="absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-between pointer-events-none p-4 md:p-6">
+                        
+                        {/* Header */}
+                        <div className="flex justify-between items-start pointer-events-auto">
+                            <div className="glass-panel px-4 py-2 rounded-full">
+                                <h2 className="text-lg text-yellow-100 font-fantasy">{currentStage.name}</h2>
+                            </div>
+                            {gameState === 'playing' && (
+                                <div className={`glass-panel px-4 py-2 rounded-full ${timeLeft < 10 ? 'bg-red-900/80' : ''}`}>
+                                    <span className={`text-2xl font-bold font-mono ${timeLeft < 10 ? 'text-red-500' : 'text-white'}`}>
+                                        {timeLeft}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Center */}
+                        <div className="flex-1 flex items-center justify-center pointer-events-auto">
+                            
+                            {/* READY */}
+                            {gameState === 'ready' && (
+                                <div className="text-center">
+                                    <h1 className="text-6xl font-fantasy text-shadow-hard gold-text mb-6">WARNING</h1>
+                                    <button 
+                                        onClick={handleEncounter}
+                                        className="px-12 py-5 bg-red-700 hover:bg-red-600 text-white text-2xl font-bold rounded-lg border-2 border-yellow-500 shadow-xl"
+                                    >
+                                        ENCOUNTER
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* PLAYING */}
+                            {gameState === 'playing' && (
+                                <div className="w-full max-w-3xl glass-panel p-6 rounded-xl">
+                                    <div className="text-center">
+                                        <h3 className="text-yellow-500 font-bold uppercase text-xs mb-2">Question</h3>
+                                        <p className="text-3xl md:text-5xl text-white font-fantasy leading-tight mb-6">
+                                            {currentStage.question}
+                                        </p>
+                                        
+                                        {/* Mic / Manual Toggle */}
+                                        <div className="flex flex-col items-center gap-2">
+                                            {!showManualInput ? (
+                                                <div className="h-12 w-full bg-black/40 rounded flex items-center justify-center border border-gray-600 relative">
+                                                    {isListening ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-2 h-2 bg-red-500 rounded-full mic-active"></div>
+                                                            <span className="text-gray-300 italic">{transcript || "Listening..."}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-red-400 text-xs">Mic Inactive</span>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => setShowManualInput(true)} 
+                                                        className="absolute right-2 text-xs text-blue-400 hover:text-blue-300 underline"
+                                                    >
+                                                        Use Keyboard
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <form onSubmit={handleManualSubmit} className="flex gap-2 w-full">
+                                                    <input 
+                                                        type="text" 
+                                                        value={manualInput}
+                                                        onChange={(e) => setManualInput(e.target.value)}
+                                                        placeholder="Type answer (e.g. pound)"
+                                                        className="flex-1 bg-black/60 border border-gray-500 rounded px-4 py-2 text-white focus:border-yellow-500 outline-none"
+                                                        autoFocus
+                                                    />
+                                                    <button type="submit" className="px-4 bg-yellow-700 text-white rounded font-bold">></button>
+                                                </form>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* VICTORY */}
+                            {gameState === 'victory' && (
+                                <div className="text-center">
+                                    <h1 className="text-7xl font-fantasy text-green-500 text-shadow-hard mb-4">VICTORY</h1>
+                                    <button onClick={nextStage} className="px-8 py-3 bg-green-700 text-white text-xl font-bold rounded border-2 border-green-400">
+                                        Next ->
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* DEFEATED */}
+                            {gameState === 'defeated' && (
+                                <div className="text-center">
+                                    <h1 className="text-7xl font-fantasy text-red-600 text-shadow-hard mb-4">YOU DIED</h1>
+                                    <div className="flex gap-4 justify-center">
+                                        <button onClick={() => setGameState('setup')} className="px-6 py-2 bg-gray-700 text-white rounded">Menu</button>
+                                        <button onClick={handleEncounter} className="px-6 py-2 bg-red-700 text-white rounded font-bold">Retry</button>
+                                    </div>
+                                </div>
+                            )}
+
+                             {/* GAME OVER */}
+                             {gameState === 'gameover' && (
+                                <div className="text-center">
+                                    <h1 className="text-6xl font-fantasy gold-text text-shadow-hard mb-4">QUEST COMPLETE</h1>
+                                    <button onClick={() => {setCurrentStageIndex(0); setGameState('setup');}} className="px-8 py-3 bg-yellow-700 text-white font-bold rounded">Play Again</button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Teacher Controls */}
+                        <div className="pointer-events-auto pb-4">
+                            {gameState === 'playing' && (
+                                <div className="flex gap-4 justify-center">
+                                    <button onClick={handleTimeOut} className="glass-panel bg-red-900/80 hover:bg-red-800 text-red-200 px-8 py-4 rounded-lg font-bold text-xl border-red-500">XXX</button>
+                                    <button onClick={handleVictory} className="glass-panel bg-green-900/80 hover:bg-green-800 text-green-200 px-8 py-4 rounded-lg font-bold text-xl border-green-500">✓</button>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
