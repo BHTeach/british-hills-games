@@ -69,22 +69,31 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // UPDATED: Now points to relative paths in your GitHub repo
         const INITIAL_STAGES = [
             {
                 id: 1,
-                name: "The Manor House Gate",
+                name: "Reception",
                 monsterName: "Highland Ogre",
                 question: "What is the name of the currency used in the UK?",
                 answers: ["pound", "pounds", "sterling", "pound sterling"],
-                videoSrc: null
+                videoSrc: "./assets/reception.mp4" 
             },
             {
                 id: 2,
-                name: "The Tea Room",
+                name: "Queen's Room",
                 monsterName: "Spectral Knight",
                 question: "What color are the famous double-decker buses in London?",
                 answers: ["red", "it is red", "they are red"],
-                videoSrc: null
+                videoSrc: "./assets/queens.mp4"
+            },
+            {
+                id: 3,
+                name: "Kings Room",
+                monsterName: "Royal Griffin",
+                question: "How many countries are in the United Kingdom?",
+                answers: ["four", "4"],
+                videoSrc: "./assets/kings.mp4"
             }
         ];
 
@@ -251,17 +260,29 @@
                         
                         <div className="max-w-xl mx-auto space-y-4">
                             <div className="bg-gray-800 p-4 rounded border border-gray-700">
-                                <h2 className="text-lg mb-2 text-yellow-400 font-bold">1. Load Videos</h2>
-                                <p className="text-xs text-gray-400 mb-2">Note: To use Voice Recognition, this file must be uploaded to a website (HTTPS). For local testing, use the manual text box.</p>
+                                <h2 className="text-lg mb-2 text-yellow-400 font-bold">1. Game Assets</h2>
+                                <p className="text-xs text-gray-400 mb-2">Videos are loaded automatically from <code>/assets</code> folder. You can override them below if needed.</p>
                                 {stages.map((stage, idx) => (
                                     <div key={stage.id} className="mb-2 p-3 bg-gray-900 rounded border border-gray-700 flex justify-between items-center">
-                                        <span className="text-sm font-bold truncate mr-2">{stage.name}</span>
-                                        <input 
-                                            type="file" 
-                                            accept="video/*"
-                                            onChange={(e) => handleFileUpload(e, idx)}
-                                            className="text-xs text-gray-400 w-32"
-                                        />
+                                        <div>
+                                            <span className="text-sm font-bold block">{stage.name}</span>
+                                            <span className="text-xs text-gray-500 font-mono block">{stage.videoSrc ? stage.videoSrc.split('/').pop() : 'No Source'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {/* Status Indicator */}
+                                            <div className={`w-3 h-3 rounded-full ${stage.videoSrc ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                            
+                                            {/* Override Input */}
+                                            <label className="cursor-pointer bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-xs border border-gray-500">
+                                                <span>Override</span>
+                                                <input 
+                                                    type="file" 
+                                                    accept="video/*"
+                                                    onChange={(e) => handleFileUpload(e, idx)}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
