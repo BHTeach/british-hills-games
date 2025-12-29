@@ -101,13 +101,13 @@
         <!-- Main Game Area -->
         <main class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto p-6 relative">
             
-            <!-- Status Message -->
-            <div id="status-message" class="absolute top-4 w-full text-center text-sm font-semibold text-slate-400 transition-all duration-300 px-4">
+            <!-- Persistent Instructions (New) -->
+            <h2 id="instruction-text" class="w-full text-center text-xl md:text-2xl font-bold text-slate-800 mb-6 px-4 transition-all duration-300">
                 Tap mic and say the word three times
-            </div>
+            </h2>
 
             <!-- The Target Word -->
-            <div class="text-center mb-8 relative z-10 w-full">
+            <div class="text-center mb-4 relative z-10 w-full">
                 <div id="target-word" class="word-display text-4xl md:text-5xl font-semibold text-slate-800 mb-2 transition-all duration-300 leading-tight">
                     Loading...
                 </div>
@@ -117,8 +117,13 @@
                 </div>
             </div>
 
-            <!-- Feedback Area -->
-            <div id="feedback-container" class="min-h-[60px] flex flex-col items-center justify-center mb-8 w-full">
+            <!-- Dynamic Status Message (Listening/Correct/Try Again) -->
+            <div id="status-message" class="h-8 w-full text-center text-lg font-bold text-slate-400 transition-all duration-300 mb-6">
+                &nbsp;
+            </div>
+
+            <!-- Feedback Area (What was heard) -->
+            <div id="feedback-container" class="min-h-[40px] flex flex-col items-center justify-center mb-8 w-full">
                 <p id="heard-label" class="text-xs text-slate-400 uppercase tracking-wide hidden">I heard:</p>
                 <p id="heard-text" class="text-xl text-slate-500 font-medium text-center italic transition-colors duration-200 min-h-[32px]">
                     <!-- Spoken text appears here -->
@@ -149,7 +154,7 @@
 
         </main>
 
-        <!-- Footer for Settings (Only show in Pairs mode logically, but fine here) -->
+        <!-- Footer for Settings -->
         <footer class="w-full p-4 text-center text-slate-300 text-xs bg-white">
             <button id="settings-toggle" class="hover:text-blue-500 p-2">
                 <i class="fa-solid fa-gear"></i>
@@ -211,6 +216,7 @@
         const gameScreen = document.getElementById('game-screen');
         const gameTitle = document.getElementById('game-title');
         
+        const instructionTextEl = document.getElementById('instruction-text');
         const targetWordEl = document.getElementById('target-word');
         const pairHintEl = document.getElementById('pair-hint');
         const heardTextEl = document.getElementById('heard-text');
@@ -267,10 +273,14 @@
             }
         }
 
-        function getInstructions() {
-            if (currentMode === 'pairs') return "Tap mic and say the word three times";
-            if (currentMode === 'twisters') return "Tap mic and say the phrase twice";
-            return "Tap microphone to speak";
+        function updateInstructions() {
+            if (currentMode === 'pairs') {
+                instructionTextEl.textContent = "Tap mic and say the word three times";
+            } else if (currentMode === 'twisters') {
+                instructionTextEl.textContent = "Tap mic and say the phrase twice";
+            } else {
+                instructionTextEl.textContent = "Tap microphone to speak";
+            }
         }
 
         function loadWord() {
@@ -301,8 +311,11 @@
             
             progressDisplay.textContent = `${currentIndex + 1} / ${words.length}`;
             
-            statusMessage.textContent = getInstructions();
-            statusMessage.className = "absolute top-4 w-full text-center text-sm font-semibold text-slate-400 transition-all duration-300 px-4";
+            updateInstructions();
+            
+            // Reset status message
+            statusMessage.innerHTML = "&nbsp;";
+            statusMessage.className = "h-8 w-full text-center text-lg font-bold text-slate-400 transition-all duration-300 mb-6";
         }
 
         // --- 4. SPEECH RECOGNITION ENGINE ---
@@ -367,13 +380,15 @@
                 listeningRing.classList.remove('hidden');
                 statusMessage.textContent = "Listening...";
                 statusMessage.classList.add('text-red-400');
+                // We do NOT change instructionTextEl here
             } else {
                 micButton.classList.remove('border-red-400', 'text-red-500', 'mic-active');
                 micButton.classList.add('border-slate-100', 'text-slate-400');
                 listeningRing.classList.add('hidden');
                 
+                // Clear status only if it says "Listening..."
                 if (statusMessage.textContent === "Listening...") {
-                     statusMessage.textContent = getInstructions();
+                     statusMessage.innerHTML = "&nbsp;";
                      statusMessage.classList.remove('text-red-400');
                 }
             }
@@ -403,17 +418,12 @@
             heardTextEl.textContent = `"${spokenWord}"`;
 
             // Match Level 1: Standard inclusion (sensitive to spaces)
-            // e.g., "red lorry" matches "red lorry"
-            // Also handles repetition: "lip lip lip" includes "lip"
             let isMatch = spoken.includes(target) || target.includes(spoken);
 
             // Match Level 2: Space-insensitive (Fixes "sea shells" vs "seashells")
-            // If Level 1 fails, we strip ALL spaces and compare just the letters.
             if (!isMatch) {
                 const targetNoSpace = target.replace(/\s/g, '');
                 const spokenNoSpace = spoken.replace(/\s/g, '');
-                
-                // Check if the letter sequences match
                 isMatch = spokenNoSpace.includes(targetNoSpace) || targetNoSpace.includes(spokenNoSpace);
             }
 
@@ -429,7 +439,7 @@
             targetWordEl.classList.add('text-green-500');
             
             statusMessage.textContent = "Correct!";
-            statusMessage.className = "absolute top-4 w-full text-center text-sm font-bold text-green-600 px-4";
+            statusMessage.className = "h-8 w-full text-center text-lg font-bold text-green-600 mb-6";
             
             heardTextEl.classList.add('text-green-600');
 
@@ -450,7 +460,7 @@
             setTimeout(() => targetWordEl.classList.remove('animate-shake'), 500);
             
             statusMessage.textContent = "Try again!";
-            statusMessage.className = "absolute top-4 w-full text-center text-sm font-bold text-red-500 px-4";
+            statusMessage.className = "h-8 w-full text-center text-lg font-bold text-red-500 mb-6";
             
             heardTextEl.classList.add('text-red-400');
             setTimeout(() => heardTextEl.classList.remove('text-red-400'), 1000);
@@ -460,7 +470,8 @@
             targetWordEl.textContent = "Well Done!";
             targetWordEl.className = "text-5xl font-bold text-blue-900 mb-4";
             pairHintEl.textContent = "Section completed";
-            statusMessage.textContent = "";
+            instructionTextEl.textContent = "Activity Complete";
+            statusMessage.innerHTML = "&nbsp;";
             heardTextEl.textContent = "";
             heardLabelEl.classList.add('hidden');
             
@@ -500,9 +511,6 @@
         saveSettingsBtn.addEventListener('click', () => {
             const rawText = wordInput.value;
             if (rawText.trim().length > 0) {
-                // Only save to local storage if we are in Pair mode (or standard mode)
-                // We don't really support custom tongue twisters persistence in this simple version easily
-                // So we'll just save it to the generic key
                 localStorage.setItem(STORAGE_KEY, rawText);
                 
                 // Reload current list locally
