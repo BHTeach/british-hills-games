@@ -112,16 +112,11 @@
 
     </main>
 
-    <!-- Debug Log (Visible for troubleshooting) -->
-    <div id="debug-container" class="w-full bg-slate-100 p-2 text-[10px] text-slate-500 font-mono h-24 overflow-y-auto border-t border-slate-200">
-        <div class="font-bold text-slate-700 mb-1">Debug Log (Take a screenshot if it fails):</div>
-        <div id="debug-log"></div>
-    </div>
-
     <!-- Hidden Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <h2 class="text-xl font-bold mb-4 text-slate-800">Edit Word List</h2>
+            <p class="text-xs text-slate-400 mb-2">Separate words with commas. (Note: Editing this clears "Pair" hints).</p>
             <textarea id="word-input" class="w-full h-40 p-3 border border-slate-200 rounded-lg mb-4 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
             <div class="flex justify-end gap-3">
                 <button id="close-settings" class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
@@ -131,8 +126,8 @@
     </div>
 
     <!-- Footer for Settings -->
-    <footer class="w-full p-2 text-center text-slate-300 text-xs bg-white">
-        <button id="settings-toggle" class="hover:text-blue-500">
+    <footer class="w-full p-4 text-center text-slate-300 text-xs bg-white">
+        <button id="settings-toggle" class="hover:text-blue-500 p-2">
             <i class="fa-solid fa-gear"></i>
         </button>
     </footer>
@@ -141,17 +136,11 @@
         // --- 1. CONFIGURATION & DATA ---
         
         // The Sound Pairs (20 words / 10 pairs)
-        // Grouped for logic, but flattened for the array
         const soundPairs = [
-            // Pair 1: L vs R
             { word: "Lip", pair: "L vs R" }, { word: "Rip", pair: "L vs R" },
-            // Pair 2: B vs V
             { word: "Ban", pair: "B vs V" }, { word: "Van", pair: "B vs V" },
-            // Pair 3: Th vs T
             { word: "These", pair: "Th vs T" }, { word: "Teas", pair: "Th vs T" },
-            // Pair 4: Sh vs S
             { word: "She's", pair: "Sh vs S" }, { word: "Sees", pair: "Sh vs S" },
-            // Extended Pairs based on British Hills patterns
             { word: "Light", pair: "L vs R" }, { word: "Right", pair: "L vs R" },
             { word: "Best", pair: "B vs V" }, { word: "Vest", pair: "B vs V" },
             { word: "Three", pair: "Th vs T" }, { word: "Tree", pair: "Th vs T" },
@@ -160,7 +149,7 @@
             { word: "Thank", pair: "Th vs T" }, { word: "Tank", pair: "Th vs T" }
         ];
 
-        let words = []; // Will hold the active list
+        let words = [];
         let currentIndex = 0;
         let recognition;
         let isListening = false;
@@ -177,49 +166,29 @@
         const statusMessage = document.getElementById('status-message');
         const listeningRing = document.getElementById('listening-ring');
         const progressDisplay = document.getElementById('progress-display');
-        const debugLogEl = document.getElementById('debug-log');
         
-        // Settings DOM
         const settingsToggle = document.getElementById('settings-toggle');
         const settingsModal = document.getElementById('settings-modal');
         const wordInput = document.getElementById('word-input');
         const saveSettingsBtn = document.getElementById('save-settings');
         const closeSettingsBtn = document.getElementById('close-settings');
 
-        // --- 3. DEBUGGING UTILITY ---
-        function log(msg) {
-            const timestamp = new Date().toLocaleTimeString();
-            const div = document.createElement('div');
-            div.textContent = `[${timestamp}] ${msg}`;
-            debugLogEl.prepend(div); // Add new logs to top
-            console.log(msg);
-        }
-
-        // --- 4. GAME INITIALIZATION ---
+        // --- 3. GAME INITIALIZATION ---
         function initGame() {
-            // Try to load custom words, otherwise use soundPairs
             const savedRaw = localStorage.getItem(STORAGE_KEY);
             
             if (savedRaw) {
-                // If user customized list, we lose the "Pair Hint" metadata, 
-                // so we just map strings to objects
                 const list = savedRaw.split(',').map(w => w.trim()).filter(w => w.length > 0);
                 words = list.map(w => ({ word: w, pair: "Custom" }));
-                log("Loaded custom word list.");
             } else {
                 words = [...soundPairs];
-                log("Loaded default Sound Pairs list.");
             }
             
             currentIndex = 0;
             loadWord();
             
-            // Check browser support immediately
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                log("CRITICAL: Speech API not supported in this browser.");
                 alert("This browser does not support Speech Recognition. Please use Safari (iOS) or Chrome.");
-            } else {
-                log("Speech API detected.");
             }
         }
 
@@ -248,87 +217,58 @@
             statusMessage.className = "absolute top-4 text-center text-sm font-semibold text-slate-400 transition-all duration-300";
         }
 
-        // --- 5. SPEECH RECOGNITION ENGINE ---
+        // --- 4. SPEECH RECOGNITION ENGINE ---
         function startListening() {
-            // Always recreate the recognition instance to avoid stale states on iOS
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             
-            recognition.lang = 'en-GB'; // British English
-            recognition.interimResults = false; // We only want final results
+            recognition.lang = 'en-GB';
+            recognition.interimResults = false;
             recognition.maxAlternatives = 1;
-            recognition.continuous = false; // Stop after one sentence
+            recognition.continuous = false;
 
-            // Event Handlers
             recognition.onstart = function() {
                 isListening = true;
                 updateListeningUI(true);
-                log("Microphone started. Speak now.");
-            };
-
-            recognition.onaudiostart = function() {
-                log("Audio input detected (hardware working).");
-            };
-
-            recognition.onsoundstart = function() {
-                // Fired when any sound (noise) is detected
-                statusMessage.textContent = "I hear something...";
-            };
-
-            recognition.onspeechstart = function() {
-                // Fired when speech-like sound is detected
-                statusMessage.textContent = "Processing speech...";
-                log("Speech start detected.");
             };
 
             recognition.onend = function() {
                 isListening = false;
                 updateListeningUI(false);
-                log("Listening session ended.");
             };
 
             recognition.onresult = function(event) {
                 if (event.results.length > 0) {
                     const result = event.results[0][0];
                     const transcript = result.transcript;
-                    const confidence = result.confidence;
-                    log(`Result: "${transcript}" (Confidence: ${confidence})`);
                     checkPronunciation(transcript);
-                } else {
-                    log("Result event fired but no results found.");
                 }
             };
 
             recognition.onerror = function(event) {
                 isListening = false;
                 updateListeningUI(false);
-                log(`ERROR: ${event.error}`);
                 
                 if (event.error === 'not-allowed') {
-                    statusMessage.textContent = "Microphone blocked. Check Settings.";
-                    alert("Microphone access was denied. 1. Go to Settings > Safari > Camera & Mic. 2. Set to 'Allow'. 3. Reload.");
+                    alert("Microphone access was denied. Please check your iPad Settings > Safari > Camera & Mic.");
+                    statusMessage.textContent = "Microphone blocked";
                 } else if (event.error === 'no-speech') {
                     statusMessage.textContent = "Didn't hear anything. Try closer?";
-                } else if (event.error === 'network') {
-                    statusMessage.textContent = "Network error. Check WiFi.";
                 } else {
-                    statusMessage.textContent = `Error: ${event.error}`;
+                    statusMessage.textContent = "Try again";
                 }
             };
 
-            // Attempt to start
             try {
                 recognition.start();
-                log("Attempting to start recognition...");
             } catch (e) {
-                log(`Exception starting recognition: ${e.message}`);
+                console.error(e);
             }
         }
 
         function stopListening() {
             if (recognition) {
                 recognition.stop();
-                log("Manual stop triggered.");
             }
         }
 
@@ -344,7 +284,6 @@
                 micButton.classList.add('border-slate-100', 'text-slate-400');
                 listeningRing.classList.add('hidden');
                 
-                // Only reset text if we didn't just succeed/fail
                 if (statusMessage.textContent === "Listening...") {
                      statusMessage.textContent = "Tap microphone to speak";
                      statusMessage.classList.remove('text-red-400');
@@ -362,15 +301,13 @@
             }
         }
 
-        // --- 6. GAME LOGIC ---
+        // --- 5. GAME LOGIC ---
         function checkPronunciation(spokenWord) {
             const target = words[currentIndex].word.toLowerCase().trim();
-            // Clean up spoken word (remove punctuation)
             const cleanSpoken = spokenWord.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
             
             heardTextEl.textContent = `"${spokenWord}"`;
 
-            // Logic: Exact match OR phrase match (e.g. "it is a squirrel")
             if (cleanSpoken === target || cleanSpoken.includes(target)) {
                 handleSuccess();
             } else {
@@ -397,9 +334,6 @@
             micButton.classList.add('hidden');
             skipButton.classList.add('hidden');
             nextButton.classList.remove('hidden');
-            
-            // Auto focus next for keyboard users
-            // nextButton.focus(); 
         }
 
         function handleFailure(spoken) {
@@ -411,8 +345,6 @@
             
             heardTextEl.classList.add('text-red-400');
             setTimeout(() => heardTextEl.classList.remove('text-red-400'), 1000);
-            
-            log(`Failed match. Target: ${words[currentIndex].word}, Spoken: ${spoken}`);
         }
 
         function gameComplete() {
@@ -440,7 +372,7 @@
             loadWord();
         }
 
-        // --- 7. EVENT LISTENERS ---
+        // --- 6. EVENT LISTENERS ---
         micButton.addEventListener('click', toggleListening);
         nextButton.addEventListener('click', nextWord);
         skipButton.addEventListener('click', nextWord);
