@@ -5,41 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pronunciation Skills Review - British Hills</title>
     
-    <!-- Tailwind CSS for styling -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Canvas Confetti for rewards -->
+    <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
-
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body {
             font-family: 'Nunito', sans-serif;
             background-color: #f0f4f8;
-            touch-action: manipulation; /* Improves touch response on iOS */
+            touch-action: manipulation;
         }
+        .word-display { font-family: 'Fredoka', sans-serif; }
         
-        .word-display {
-            font-family: 'Fredoka', sans-serif;
-        }
-
-        /* Pulse animation for the listening state */
+        /* Pulse Animations */
         @keyframes pulse-ring {
             0% { transform: scale(0.33); opacity: 1; }
             80%, 100% { opacity: 0; }
         }
-        
-        @keyframes pulse-dot {
-            0% { transform: scale(0.8); }
-            50% { transform: scale(1); }
-            100% { transform: scale(0.8); }
-        }
-
         .listening-ring {
             position: absolute;
             width: 150px;
@@ -49,17 +37,14 @@
             animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
             z-index: -1;
         }
-
-        .mic-active {
-            animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite;
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
-
-        /* Prevent text selection on game elements */
-        .no-select {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
     </style>
 </head>
@@ -69,10 +54,10 @@
     <header class="w-full p-4 bg-white shadow-sm flex justify-between items-center z-10">
         <div class="flex items-center gap-2">
             <div class="bg-blue-900 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold font-serif">B</div>
-            <h1 class="font-bold text-lg text-blue-900">Pronunciation Skills</h1>
+            <h1 class="font-bold text-lg text-blue-900">Sound Pairs</h1>
         </div>
         <div class="text-sm font-semibold text-slate-500">
-            <span id="progress-display">1 / 10</span>
+            <span id="progress-display">1 / 20</span>
         </div>
     </header>
 
@@ -85,16 +70,20 @@
         </div>
 
         <!-- The Target Word -->
-        <div class="text-center mb-8 relative z-10">
+        <div class="text-center mb-8 relative z-10 w-full">
             <div id="target-word" class="word-display text-5xl md:text-6xl font-semibold text-slate-800 mb-2 transition-all duration-300">
                 Loading...
             </div>
-            <div class="h-1 w-24 bg-blue-200 mx-auto rounded-full"></div>
+            <!-- Phonetic Hint (Optional, showing the pair type) -->
+            <div id="pair-hint" class="text-sm text-blue-400 font-bold uppercase tracking-widest mt-2">
+                L vs R
+            </div>
         </div>
 
-        <!-- Feedback Area (What was heard) -->
-        <div id="feedback-container" class="min-h-[60px] flex items-center justify-center mb-8 w-full">
-            <p id="heard-text" class="text-xl text-slate-500 font-medium text-center italic transition-colors duration-200">
+        <!-- Feedback Area -->
+        <div id="feedback-container" class="min-h-[60px] flex flex-col items-center justify-center mb-8 w-full">
+            <p id="heard-label" class="text-xs text-slate-400 uppercase tracking-wide hidden">I heard:</p>
+            <p id="heard-text" class="text-2xl text-slate-500 font-medium text-center italic transition-colors duration-200 min-h-[32px]">
                 <!-- Spoken text appears here -->
             </p>
         </div>
@@ -102,7 +91,6 @@
         <!-- Controls -->
         <div class="relative flex flex-col items-center justify-center gap-6">
             
-            <!-- Listening Ring Animation -->
             <div id="listening-ring" class="listening-ring hidden"></div>
 
             <!-- Mic Button -->
@@ -110,12 +98,12 @@
                 <i class="fa-solid fa-microphone"></i>
             </button>
 
-            <!-- Next Button (Hidden initially) -->
+            <!-- Next Button -->
             <button id="next-button" class="hidden px-8 py-3 bg-green-500 text-white rounded-full font-bold shadow-lg hover:bg-green-600 active:scale-95 transition-all animate-bounce">
                 Next Word <i class="fa-solid fa-arrow-right ml-2"></i>
             </button>
             
-            <!-- Skip Button (Small) -->
+            <!-- Skip -->
             <button id="skip-button" class="text-slate-400 text-sm mt-4 hover:text-slate-600 underline">
                 Skip Word
             </button>
@@ -124,69 +112,72 @@
 
     </main>
 
-    <!-- Footer / Settings Toggle -->
-    <footer class="w-full p-4 text-center text-slate-400 text-xs">
-        <button id="settings-toggle" class="hover:text-blue-500">
-            <i class="fa-solid fa-gear mr-1"></i> Edit Word List
-        </button>
-    </footer>
+    <!-- Debug Log (Visible for troubleshooting) -->
+    <div id="debug-container" class="w-full bg-slate-100 p-2 text-[10px] text-slate-500 font-mono h-24 overflow-y-auto border-t border-slate-200">
+        <div class="font-bold text-slate-700 mb-1">Debug Log (Take a screenshot if it fails):</div>
+        <div id="debug-log"></div>
+    </div>
 
-    <!-- Settings Modal -->
+    <!-- Hidden Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <h2 class="text-xl font-bold mb-4 text-slate-800">Classroom Word List</h2>
-            <p class="text-sm text-slate-500 mb-2">Enter words separated by commas.</p>
-            <textarea id="word-input" class="w-full h-40 p-3 border border-slate-200 rounded-lg mb-4 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Squirrel, Comfortable, Wednesday..."></textarea>
+            <h2 class="text-xl font-bold mb-4 text-slate-800">Edit Word List</h2>
+            <textarea id="word-input" class="w-full h-40 p-3 border border-slate-200 rounded-lg mb-4 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
             <div class="flex justify-end gap-3">
                 <button id="close-settings" class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
-                <button id="save-settings" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Save & Restart</button>
+                <button id="save-settings" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Save</button>
             </div>
         </div>
     </div>
 
+    <!-- Footer for Settings -->
+    <footer class="w-full p-2 text-center text-slate-300 text-xs bg-white">
+        <button id="settings-toggle" class="hover:text-blue-500">
+            <i class="fa-solid fa-gear"></i>
+        </button>
+    </footer>
+
     <script>
-        // --- Game State ---
-        // Updated words based on British Hills Sound Pairs PDF (L/R, B/V, Th/T, Sh/S)
-        const defaultWords = [
-            // Pair 1: L vs R
-            "Lip", "Rip",
-            // Pair 2: B vs V
-            "Ban", "Van",
-            // Pair 3: Th vs T (Voiced/Unvoiced)
-            "These", "Teas",
-            // Pair 4: Sh vs S
-            "She's", "Sees",
-            // Pair 5: L vs R (Extended)
-            "Light", "Right",
-            // Pair 6: B vs V (Extended)
-            "Best", "Vest",
-            // Pair 7: Th vs T (Extended)
-            "Three", "Tree",
-            // Pair 8: Sh vs S (Extended)
-            "Ship", "Sip",
-            // Pair 9: B vs V (Extended)
-            "Boat", "Vote",
-            // Pair 10: Th vs T (Extended)
-            "Thank", "Tank"
-        ];
+        // --- 1. CONFIGURATION & DATA ---
         
-        let words = [];
+        // The Sound Pairs (20 words / 10 pairs)
+        // Grouped for logic, but flattened for the array
+        const soundPairs = [
+            // Pair 1: L vs R
+            { word: "Lip", pair: "L vs R" }, { word: "Rip", pair: "L vs R" },
+            // Pair 2: B vs V
+            { word: "Ban", pair: "B vs V" }, { word: "Van", pair: "B vs V" },
+            // Pair 3: Th vs T
+            { word: "These", pair: "Th vs T" }, { word: "Teas", pair: "Th vs T" },
+            // Pair 4: Sh vs S
+            { word: "She's", pair: "Sh vs S" }, { word: "Sees", pair: "Sh vs S" },
+            // Extended Pairs based on British Hills patterns
+            { word: "Light", pair: "L vs R" }, { word: "Right", pair: "L vs R" },
+            { word: "Best", pair: "B vs V" }, { word: "Vest", pair: "B vs V" },
+            { word: "Three", pair: "Th vs T" }, { word: "Tree", pair: "Th vs T" },
+            { word: "Ship", pair: "Sh vs S" }, { word: "Sip", pair: "Sh vs S" },
+            { word: "Boat", pair: "B vs V" }, { word: "Vote", pair: "B vs V" },
+            { word: "Thank", pair: "Th vs T" }, { word: "Tank", pair: "Th vs T" }
+        ];
+
+        let words = []; // Will hold the active list
         let currentIndex = 0;
         let recognition;
         let isListening = false;
-        
-        // Storage key updated to ensure new sound pairs load for the user
-        const STORAGE_KEY = 'britishHillsSoundPairs_v1';
+        const STORAGE_KEY = 'britishHills_v2';
 
-        // --- DOM Elements ---
+        // --- 2. DOM ELEMENTS ---
         const targetWordEl = document.getElementById('target-word');
+        const pairHintEl = document.getElementById('pair-hint');
         const heardTextEl = document.getElementById('heard-text');
+        const heardLabelEl = document.getElementById('heard-label');
         const micButton = document.getElementById('mic-button');
         const nextButton = document.getElementById('next-button');
         const skipButton = document.getElementById('skip-button');
         const statusMessage = document.getElementById('status-message');
         const listeningRing = document.getElementById('listening-ring');
         const progressDisplay = document.getElementById('progress-display');
+        const debugLogEl = document.getElementById('debug-log');
         
         // Settings DOM
         const settingsToggle = document.getElementById('settings-toggle');
@@ -195,35 +186,58 @@
         const saveSettingsBtn = document.getElementById('save-settings');
         const closeSettingsBtn = document.getElementById('close-settings');
 
-        // --- Initialization ---
+        // --- 3. DEBUGGING UTILITY ---
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.textContent = `[${timestamp}] ${msg}`;
+            debugLogEl.prepend(div); // Add new logs to top
+            console.log(msg);
+        }
+
+        // --- 4. GAME INITIALIZATION ---
         function initGame() {
-            // Load words from localStorage or use default
-            const savedWords = localStorage.getItem(STORAGE_KEY);
-            if (savedWords) {
-                words = savedWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
+            // Try to load custom words, otherwise use soundPairs
+            const savedRaw = localStorage.getItem(STORAGE_KEY);
+            
+            if (savedRaw) {
+                // If user customized list, we lose the "Pair Hint" metadata, 
+                // so we just map strings to objects
+                const list = savedRaw.split(',').map(w => w.trim()).filter(w => w.length > 0);
+                words = list.map(w => ({ word: w, pair: "Custom" }));
+                log("Loaded custom word list.");
             } else {
-                words = [...defaultWords];
+                words = [...soundPairs];
+                log("Loaded default Sound Pairs list.");
             }
             
             currentIndex = 0;
             loadWord();
-            setupSpeechRecognition();
+            
+            // Check browser support immediately
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                log("CRITICAL: Speech API not supported in this browser.");
+                alert("This browser does not support Speech Recognition. Please use Safari (iOS) or Chrome.");
+            } else {
+                log("Speech API detected.");
+            }
         }
 
         function loadWord() {
             if (currentIndex >= words.length) {
-                // End of game
                 gameComplete();
                 return;
             }
 
-            // Reset UI
-            targetWordEl.textContent = words[currentIndex];
-            targetWordEl.classList.remove('text-green-500', 'text-red-500');
-            targetWordEl.classList.add('text-slate-800');
+            const currentItem = words[currentIndex];
+            
+            targetWordEl.textContent = currentItem.word;
+            targetWordEl.className = "word-display text-5xl md:text-6xl font-semibold text-slate-800 mb-2 transition-all duration-300";
+            
+            pairHintEl.textContent = currentItem.pair;
             
             heardTextEl.textContent = "";
-            heardTextEl.className = "text-xl text-slate-500 font-medium text-center italic transition-colors duration-200";
+            heardLabelEl.classList.add('hidden');
             
             nextButton.classList.add('hidden');
             micButton.classList.remove('hidden');
@@ -231,52 +245,91 @@
             
             progressDisplay.textContent = `${currentIndex + 1} / ${words.length}`;
             statusMessage.textContent = "Tap microphone to speak";
-            statusMessage.classList.remove('text-red-500', 'text-green-600');
-            statusMessage.classList.add('text-slate-400');
+            statusMessage.className = "absolute top-4 text-center text-sm font-semibold text-slate-400 transition-all duration-300";
         }
 
-        // --- Speech Recognition Setup ---
-        function setupSpeechRecognition() {
-            // Check for browser support
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Sorry, your browser doesn't support speech recognition. Please use Safari on iOS or Chrome.");
-                return;
-            }
-
+        // --- 5. SPEECH RECOGNITION ENGINE ---
+        function startListening() {
+            // Always recreate the recognition instance to avoid stale states on iOS
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             
-            // CRITICAL for "British Hills": Set language to British English
-            recognition.lang = 'en-GB'; 
+            recognition.lang = 'en-GB'; // British English
             recognition.interimResults = false; // We only want final results
             recognition.maxAlternatives = 1;
+            recognition.continuous = false; // Stop after one sentence
 
+            // Event Handlers
             recognition.onstart = function() {
                 isListening = true;
                 updateListeningUI(true);
+                log("Microphone started. Speak now.");
+            };
+
+            recognition.onaudiostart = function() {
+                log("Audio input detected (hardware working).");
+            };
+
+            recognition.onsoundstart = function() {
+                // Fired when any sound (noise) is detected
+                statusMessage.textContent = "I hear something...";
+            };
+
+            recognition.onspeechstart = function() {
+                // Fired when speech-like sound is detected
+                statusMessage.textContent = "Processing speech...";
+                log("Speech start detected.");
             };
 
             recognition.onend = function() {
                 isListening = false;
                 updateListeningUI(false);
+                log("Listening session ended.");
             };
 
             recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript;
-                const confidence = event.results[0][0].confidence;
-                
-                checkPronunciation(speechResult);
+                if (event.results.length > 0) {
+                    const result = event.results[0][0];
+                    const transcript = result.transcript;
+                    const confidence = result.confidence;
+                    log(`Result: "${transcript}" (Confidence: ${confidence})`);
+                    checkPronunciation(transcript);
+                } else {
+                    log("Result event fired but no results found.");
+                }
             };
 
             recognition.onerror = function(event) {
                 isListening = false;
                 updateListeningUI(false);
-                statusMessage.textContent = "Error: " + event.error;
+                log(`ERROR: ${event.error}`);
                 
                 if (event.error === 'not-allowed') {
-                    alert("Microphone access is blocked. Please check your browser settings.");
+                    statusMessage.textContent = "Microphone blocked. Check Settings.";
+                    alert("Microphone access was denied. 1. Go to Settings > Safari > Camera & Mic. 2. Set to 'Allow'. 3. Reload.");
+                } else if (event.error === 'no-speech') {
+                    statusMessage.textContent = "Didn't hear anything. Try closer?";
+                } else if (event.error === 'network') {
+                    statusMessage.textContent = "Network error. Check WiFi.";
+                } else {
+                    statusMessage.textContent = `Error: ${event.error}`;
                 }
             };
+
+            // Attempt to start
+            try {
+                recognition.start();
+                log("Attempting to start recognition...");
+            } catch (e) {
+                log(`Exception starting recognition: ${e.message}`);
+            }
+        }
+
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+                log("Manual stop triggered.");
+            }
         }
 
         function updateListeningUI(listening) {
@@ -290,81 +343,85 @@
                 micButton.classList.remove('border-red-400', 'text-red-500', 'mic-active');
                 micButton.classList.add('border-slate-100', 'text-slate-400');
                 listeningRing.classList.add('hidden');
+                
+                // Only reset text if we didn't just succeed/fail
+                if (statusMessage.textContent === "Listening...") {
+                     statusMessage.textContent = "Tap microphone to speak";
+                     statusMessage.classList.remove('text-red-400');
+                }
             }
         }
 
         function toggleListening() {
             if (isListening) {
-                recognition.stop();
+                stopListening();
             } else {
-                // Clear previous feedback
                 heardTextEl.textContent = "...";
-                recognition.start();
+                heardLabelEl.classList.remove('hidden');
+                startListening();
             }
         }
 
-        // --- Logic & Comparison ---
+        // --- 6. GAME LOGIC ---
         function checkPronunciation(spokenWord) {
-            const target = words[currentIndex].toLowerCase().trim();
-            // Remove punctuation from spoken word just in case
+            const target = words[currentIndex].word.toLowerCase().trim();
+            // Clean up spoken word (remove punctuation)
             const cleanSpoken = spokenWord.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
             
             heardTextEl.textContent = `"${spokenWord}"`;
 
-            // Comparison Logic
-            // We check for exact match OR if the spoken phrase contains the target word
+            // Logic: Exact match OR phrase match (e.g. "it is a squirrel")
             if (cleanSpoken === target || cleanSpoken.includes(target)) {
                 handleSuccess();
             } else {
-                handleFailure();
+                handleFailure(cleanSpoken);
             }
         }
 
         function handleSuccess() {
-            // UI Feedback
             targetWordEl.classList.remove('text-slate-800');
             targetWordEl.classList.add('text-green-500');
             
-            statusMessage.textContent = "Excellent!";
-            statusMessage.classList.remove('text-slate-400', 'text-red-400');
-            statusMessage.classList.add('text-green-600');
+            statusMessage.textContent = "Correct!";
+            statusMessage.className = "absolute top-4 text-center text-sm font-bold text-green-600";
             
             heardTextEl.classList.add('text-green-600');
 
-            // Play Sound (Optional, browser policies might block auto-audio)
-            
-            // Confetti!
             confetti({
                 particleCount: 100,
                 spread: 70,
                 origin: { y: 0.6 },
-                colors: ['#2563EB', '#EF4444', '#FFFFFF'] // British/Union Jack colours
+                colors: ['#2563EB', '#EF4444', '#FFFFFF']
             });
 
-            // Switch Buttons
             micButton.classList.add('hidden');
             skipButton.classList.add('hidden');
             nextButton.classList.remove('hidden');
-            nextButton.focus();
+            
+            // Auto focus next for keyboard users
+            // nextButton.focus(); 
         }
 
-        function handleFailure() {
+        function handleFailure(spoken) {
             targetWordEl.classList.add('animate-shake');
             setTimeout(() => targetWordEl.classList.remove('animate-shake'), 500);
             
             statusMessage.textContent = "Try again!";
-            statusMessage.classList.remove('text-slate-400');
-            statusMessage.classList.add('text-red-500');
+            statusMessage.className = "absolute top-4 text-center text-sm font-bold text-red-500";
             
             heardTextEl.classList.add('text-red-400');
             setTimeout(() => heardTextEl.classList.remove('text-red-400'), 1000);
+            
+            log(`Failed match. Target: ${words[currentIndex].word}, Spoken: ${spoken}`);
         }
 
         function gameComplete() {
             targetWordEl.textContent = "Well Done!";
             targetWordEl.className = "text-5xl font-bold text-blue-900 mb-4";
-            statusMessage.textContent = "All words completed.";
+            pairHintEl.textContent = "All pairs completed";
+            statusMessage.textContent = "";
             heardTextEl.textContent = "";
+            heardLabelEl.classList.add('hidden');
             
             micButton.classList.add('hidden');
             skipButton.classList.add('hidden');
@@ -372,7 +429,6 @@
             nextButton.innerHTML = `<i class="fa-solid fa-rotate-right mr-2"></i> Restart`;
             nextButton.onclick = function() {
                 currentIndex = 0;
-                // Reset button functionality
                 nextButton.onclick = nextWord;
                 nextButton.innerHTML = `Next Word <i class="fa-solid fa-arrow-right ml-2"></i>`;
                 loadWord();
@@ -384,14 +440,15 @@
             loadWord();
         }
 
-        // --- Event Listeners ---
+        // --- 7. EVENT LISTENERS ---
         micButton.addEventListener('click', toggleListening);
         nextButton.addEventListener('click', nextWord);
         skipButton.addEventListener('click', nextWord);
 
-        // --- Settings Logic ---
+        // Settings
         settingsToggle.addEventListener('click', () => {
-            wordInput.value = words.join(', ');
+            const currentList = words.map(w => w.word).join(', ');
+            wordInput.value = currentList;
             settingsModal.classList.remove('hidden');
         });
 
@@ -401,10 +458,9 @@
 
         saveSettingsBtn.addEventListener('click', () => {
             const rawText = wordInput.value;
-            // Basic validation
             if (rawText.trim().length > 0) {
                 localStorage.setItem(STORAGE_KEY, rawText);
-                initGame(); // Restart with new words
+                initGame();
                 settingsModal.classList.add('hidden');
             } else {
                 alert("Please enter at least one word.");
