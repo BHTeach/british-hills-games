@@ -44,6 +44,15 @@
             box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
         }
 
+        /* Updated for better visibility on dark backgrounds */
+        .gold-text-bright {
+            background: linear-gradient(to bottom, #fffbeb, #fcd34d, #d97706);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.6));
+        }
+
         .gold-text {
             color: #d4af37;
             background: linear-gradient(to bottom, #fcf6ba, #bf953f, #b38728, #fbf5b7, #aa771c);
@@ -280,7 +289,9 @@
             if (gameState === 'setup') {
                 return (
                     <div className="min-h-screen bg-gray-900 text-white p-4 font-fantasy overflow-y-auto flex flex-col items-center justify-center">
-                        <h1 className="text-5xl md:text-7xl text-center gold-text mb-12 text-shadow-hard">Manor House Monsters</h1>
+                        <h1 className="text-6xl md:text-8xl text-center gold-text-bright mb-12 font-bold tracking-wider">
+                            Manor House Monsters
+                        </h1>
                         
                         <div className="max-w-xl w-full mx-auto space-y-8">
                             <button 
@@ -335,10 +346,9 @@
                             {/* READY */}
                             {gameState === 'ready' && (
                                 <div className="text-center">
-                                    <h1 className="text-6xl font-fantasy text-shadow-hard gold-text mb-6">WARNING</h1>
                                     <button 
                                         onClick={handleEncounter}
-                                        className="px-12 py-5 bg-red-700 hover:bg-red-600 text-white text-2xl font-bold rounded-lg border-2 border-yellow-500 shadow-xl"
+                                        className="px-16 py-8 bg-red-700 hover:bg-red-600 text-white text-4xl md:text-6xl font-fantasy font-bold rounded-lg border-4 border-yellow-500 shadow-[0_0_50px_rgba(220,38,38,0.5)] transition-transform hover:scale-105 active:scale-95"
                                     >
                                         ENCOUNTER
                                     </button>
