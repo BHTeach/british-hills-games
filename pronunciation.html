@@ -391,25 +391,36 @@
 
         // --- 5. GAME LOGIC ---
         function checkPronunciation(spokenWord) {
-            const target = words[currentIndex].word.toLowerCase().trim();
-            // Remove punctuation from spoken word for better matching
-            const cleanSpoken = spokenWord.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+            const rawTarget = words[currentIndex].word;
             
-            // For feedback display, show what was heard
+            // Helper: Lowercase + remove punctuation (but keep spaces for first check)
+            const clean = (str) => str.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+
+            const target = clean(rawTarget);
+            const spoken = clean(spokenWord);
+            
+            // For feedback display, show what was heard (raw input)
             heardTextEl.textContent = `"${spokenWord}"`;
 
-            // Logic: 
-            // 1. Exact match of the full string
-            // 2. OR if the target is found inside the spoken string (e.g. "say lip three times" -> "lip lip lip")
-            // 3. OR if the spoken string is found inside the target (helps with long tongue twisters if they get most of it right)
-            
-            // Note: For tongue twisters, we check if they said the majority of the words
-            const isMatch = cleanSpoken.includes(target.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")) || target.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").includes(cleanSpoken);
+            // Match Level 1: Standard inclusion (sensitive to spaces)
+            // e.g., "red lorry" matches "red lorry"
+            // Also handles repetition: "lip lip lip" includes "lip"
+            let isMatch = spoken.includes(target) || target.includes(spoken);
+
+            // Match Level 2: Space-insensitive (Fixes "sea shells" vs "seashells")
+            // If Level 1 fails, we strip ALL spaces and compare just the letters.
+            if (!isMatch) {
+                const targetNoSpace = target.replace(/\s/g, '');
+                const spokenNoSpace = spoken.replace(/\s/g, '');
+                
+                // Check if the letter sequences match
+                isMatch = spokenNoSpace.includes(targetNoSpace) || targetNoSpace.includes(spokenNoSpace);
+            }
 
             if (isMatch) {
                 handleSuccess();
             } else {
-                handleFailure(cleanSpoken);
+                handleFailure(spoken);
             }
         }
 
