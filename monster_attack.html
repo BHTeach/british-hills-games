@@ -424,9 +424,16 @@
 
                              {/* GAME OVER */}
                              {gameState === 'gameover' && (
-                                <div className="text-center">
-                                    <h1 className="text-6xl font-fantasy gold-text text-shadow-hard mb-4">QUEST COMPLETE</h1>
-                                    <button onClick={() => {setCurrentStageIndex(0); setGameState('setup');}} className="px-8 py-3 bg-yellow-700 text-white font-bold rounded">Play Again</button>
+                                <div className="text-center animate-in zoom-in duration-500">
+                                    <h1 className="text-6xl md:text-8xl font-fantasy gold-text-bright mb-8 font-bold tracking-wider leading-tight">
+                                        You saved the<br/>Manor House!
+                                    </h1>
+                                    <button 
+                                        onClick={() => {setCurrentStageIndex(0); setGameState('setup');}} 
+                                        className="px-12 py-4 bg-gradient-to-r from-yellow-700 to-yellow-900 text-white text-2xl font-bold rounded-lg border-2 border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.4)] hover:scale-105 transition-transform"
+                                    >
+                                        Play Again
+                                    </button>
                                 </div>
                             )}
                         </div>
