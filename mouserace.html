@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Classroom Maze</title>
     
     <!-- Tailwind CSS -->
@@ -24,42 +26,55 @@
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior: none;
+            background-color: #000;
         }
+        
         .maze-grid {
             display: grid;
             gap: 2px;
-            background-color: #333;
-            border: 4px solid #333;
+            background-color: #000;
+            border: 4px solid #1e293b; /* slate-800 */
         }
+        
         .cell {
             position: relative;
-            background-color: #e5e7eb; /* gray-200 */
+            background-color: #e2e8f0; /* slate-200 (Path) */
             aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+        
         .wall {
-            background-color: #1f2937; /* gray-800 */
+            background-color: #0f172a; /* slate-900 (Wall) */
         }
+        
         .start {
-            background-color: #bfdbfe; /* blue-200 */
+            background-color: #60a5fa; /* blue-400 */
         }
+        
         .end {
-            background-color: #bbf7d0; /* green-200 */
+            background-color: #4ade80; /* green-400 */
         }
         
         /* Smooth transition for movement */
         .character {
             transition: all 0.3s ease-in-out;
         }
+
+        /* Safe area for iPhone/iPad notch/home bar */
+        .safe-padding {
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
     </style>
 </head>
-<body class="bg-slate-100 h-screen w-screen overflow-hidden">
-    <div id="root"></div>
+<body class="h-[100dvh] w-screen overflow-hidden text-white">
+    <div id="root" class="h-full w-full"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback } = React;
+        const { useState, useEffect, useRef } = React;
 
         // --- Game Constants ---
         const GRID_SIZE = 7;
@@ -131,23 +146,21 @@
             const [transcript, setTranscript] = useState("");
             const [errorMsg, setErrorMsg] = useState("");
 
-            // Refs for State (needed for Event Listeners)
+            // Refs for State
             const recognitionRef = useRef(null);
             const playerRef = useRef(player);
             const gridRef = useRef(grid);
             const gameStateRef = useRef(gameState);
-            
-            // Should Listen Ref to handle auto-restarts if desired
             const shouldListenRef = useRef(false);
 
-            // Keep refs synced with state
+            // Keep refs synced
             useEffect(() => { playerRef.current = player; }, [player]);
             useEffect(() => { gridRef.current = grid; }, [grid]);
             useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
             // --- Game Logic ---
             const resetGame = () => {
-                setPlayer({ x: 1, y: 1, dir: 1 }); // Reset to start
+                setPlayer({ x: 1, y: 1, dir: 1 }); 
                 setGameState('PLAYING');
                 setTranscript("Ready!");
                 initAudio();
@@ -169,10 +182,7 @@
                 }
             };
 
-            // Use a ref for processCommand so the useEffect closure is stable,
-            // but the logic inside always uses fresh data/refs.
             const processCommandRef = useRef();
-
             processCommandRef.current = (text) => {
                 if (gameStateRef.current !== 'PLAYING') return;
 
@@ -183,8 +193,7 @@
                 let commandFound = false;
                 let action = "";
 
-                // Strict Matching Logic
-                // clean text: remove punctuation, lowercase, trim
+                // Strict Matching
                 const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim().toLowerCase();
 
                 if (cleanText === "go forward") {
@@ -209,7 +218,6 @@
 
                 if (commandFound) {
                     setTranscript(`Cmd: ${action}`);
-                    
                     if (action.includes("Turn")) {
                         setPlayer({ ...p, dir: newDir });
                         playMoveSound();
@@ -224,10 +232,9 @@
                         }
                     }
                 } else {
-                    // Show what was heard if it wasn't a command, for debugging/teaching
-                    // limit length to avoid UI overflow
+                     // Debug: show rejected words (helpful for teacher)
                     const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
-                    setTranscript(`Heard: "${display}"`);
+                    setTranscript(`Ignored: "${display}"`);
                 }
             };
 
@@ -237,7 +244,7 @@
                 
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
-                    recognition.continuous = true; // CHANGED: Try continuous
+                    recognition.continuous = true;
                     recognition.interimResults = false;
                     recognition.lang = 'en-US';
 
@@ -249,19 +256,12 @@
 
                     recognition.onend = () => {
                         setIsListening(false);
-                        // If we intend to keep listening but it stopped (iOS timeout), restart it
                         if (shouldListenRef.current && gameStateRef.current === 'PLAYING') {
-                            console.log("Auto-restarting speech recognition...");
-                            try {
-                                recognition.start();
-                            } catch (e) {
-                                console.log("Restart failed", e);
-                            }
+                            try { recognition.start(); } catch (e) { console.log("Restart failed", e); }
                         }
                     };
 
                     recognition.onerror = (event) => {
-                        console.error("Speech Error", event.error);
                         if (event.error === 'not-allowed') {
                             setErrorMsg("Microphone access denied.");
                             shouldListenRef.current = false;
@@ -270,24 +270,21 @@
                     };
 
                     recognition.onresult = (event) => {
-                        // In continuous mode, we look at the latest result
                         const latestResult = event.results[event.results.length - 1];
                         if (latestResult.isFinal) {
-                            const text = latestResult[0].transcript;
-                            processCommandRef.current(text);
+                            processCommandRef.current(latestResult[0].transcript);
                         }
                     };
-
                     recognitionRef.current = recognition;
                 } else {
-                    setErrorMsg("Browser not supported. Use Safari/Chrome.");
+                    setErrorMsg("Browser not supported.");
                 }
 
                 return () => {
                     shouldListenRef.current = false;
                     if (recognitionRef.current) recognitionRef.current.abort();
                 };
-            }, []); // Empty dependency array ensures we don't restart mic on every render
+            }, []);
 
             // --- Manual Controls ---
             const toggleListen = () => {
@@ -300,92 +297,64 @@
                 } else {
                     shouldListenRef.current = true;
                     playListenSound();
-                    try {
-                        recognitionRef.current.start();
-                    } catch (e) {
-                        console.log("Mic start error", e);
-                    }
+                    try { recognitionRef.current.start(); } catch (e) {}
                 }
             };
 
             // --- Icons ---
             const getMouseRotation = () => player.dir * 90;
-
             const MouseIcon = () => (
-                <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: `rotate(${getMouseRotation()}deg)`, transition: 'transform 0.3s' }}>
-                    <path d="M12 2L19 22L12 18L5 22L12 2Z" fill="#3b82f6" />
+                <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: `rotate(${getMouseRotation()}deg)`, transition: 'transform 0.3s' }}>
+                    <path d="M12 2L19 22L12 18L5 22L12 2Z" fill="#ef4444" /> {/* Red Mouse for Visibility */}
                 </svg>
             );
-
             const CheeseIcon = () => (
-                 <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                 <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2C8 2 4 6 4 10V18C4 20 6 22 10 22H14C18 22 20 20 20 18V10C20 6 16 2 12 2Z" />
-                    <circle cx="10" cy="10" r="2" fill="#eab308"/>
-                    <circle cx="14" cy="14" r="2" fill="#eab308"/>
+                    <circle cx="10" cy="10" r="2" fill="#16a34a"/>
+                    <circle cx="14" cy="14" r="2" fill="#16a34a"/>
                 </svg>
             );
 
             return (
-                <div className="flex flex-col h-full items-center justify-center p-4 max-w-4xl mx-auto">
+                <div className="safe-padding flex flex-col md:flex-row h-full w-full items-center justify-center p-4 gap-6 bg-black">
                     
-                    {/* Header */}
-                    <div className="w-full flex justify-between items-center mb-4 bg-white p-4 rounded-xl shadow-sm">
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-800">EFL Maze</h1>
-                            <p className="text-xs text-slate-500 hidden sm:block">"Go forward", "Go back", "Turn left", "Turn right"</p>
-                        </div>
-                        <div className={`px-4 py-2 rounded-lg font-bold ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
-                            {isListening ? "Listening..." : "Mic Off"}
-                        </div>
-                    </div>
-
-                    {/* Game Area */}
-                    <div className="relative mb-6">
+                    {/* LEFT SIDE: MAZE */}
+                    <div className="flex-1 h-full max-h-[90vh] aspect-square flex items-center justify-center relative">
+                        
+                        {/* Overlays */}
                         {gameState === 'START' && (
-                            <div className="absolute inset-0 z-20 bg-slate-900/80 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
-                                <h2 className="text-white text-3xl font-bold mb-4">Classroom Maze</h2>
-                                <button 
-                                    onClick={resetGame}
-                                    className="px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-xl shadow-lg transform transition active:scale-95"
-                                >
-                                    Start Game
+                            <div className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm border border-slate-700">
+                                <h2 className="text-white text-4xl font-bold mb-6">Classroom Maze</h2>
+                                <button onClick={resetGame} className="px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-2xl shadow-lg">
+                                    Load Level 1
                                 </button>
-                                <p className="text-slate-300 mt-4 text-center max-w-xs text-sm">
-                                    Teacher: Ensure volume is up.
-                                </p>
                             </div>
                         )}
 
                         {gameState === 'WON' && (
-                            <div className="absolute inset-0 z-20 bg-green-900/90 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
-                                <h2 className="text-white text-4xl font-bold mb-4">Great Job! 🎉</h2>
-                                <button 
-                                    onClick={resetGame}
-                                    className="px-8 py-4 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-xl shadow-lg"
-                                >
+                            <div className="absolute inset-0 z-20 bg-green-900/90 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm border border-green-500">
+                                <h2 className="text-white text-5xl font-bold mb-6">Great Job! 🎉</h2>
+                                <button onClick={resetGame} className="px-10 py-5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-2xl shadow-lg">
                                     Play Again
                                 </button>
                             </div>
                         )}
 
-                        {/* Maze Grid */}
                         <div 
-                            className="maze-grid rounded-lg overflow-hidden shadow-2xl"
-                            style={{ 
-                                gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                                width: 'min(90vw, 500px)', 
-                            }}
+                            className="maze-grid rounded-lg overflow-hidden shadow-2xl w-full h-full"
+                            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
                         >
                             {grid.map((row, y) => (
                                 row.map((cell, x) => (
                                     <div key={`${x}-${y}`} className={`cell ${cell === 1 ? 'wall' : cell === 2 ? 'start' : cell === 3 ? 'end' : ''}`}>
                                         {player.x === x && player.y === y && (
-                                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                                            <div className="absolute inset-0 flex items-center justify-center z-10 text-red-600">
                                                 <MouseIcon />
                                             </div>
                                         )}
                                         {cell === 3 && (
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-50">
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-70">
                                                 <CheeseIcon />
                                             </div>
                                         )}
@@ -395,32 +364,44 @@
                         </div>
                     </div>
 
-                    {/* Teacher Controls */}
-                    <div className="w-full max-w-md flex flex-col gap-4">
+                    {/* RIGHT SIDE: CONTROLS */}
+                    <div className="w-full md:w-1/3 flex flex-col gap-6 justify-center">
                         
-                        {/* Feedback Display */}
-                        <div className="bg-white p-3 rounded-lg shadow text-center min-h-[60px] flex items-center justify-center">
-                            <span className="text-lg font-medium text-slate-700">
-                                {transcript || "Waiting for command..."}
-                            </span>
+                        {/* Status Box */}
+                        <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl text-center">
+                            <h2 className="text-slate-400 text-sm uppercase tracking-wider mb-2">Command Heard</h2>
+                            <div className="text-2xl font-mono font-bold text-yellow-400 min-h-[40px]">
+                                {transcript || "..."}
+                            </div>
                         </div>
                         
-                        {/* Big Button */}
+                        {/* Big Start/Stop Button */}
                         <button 
-                            className={`w-full py-6 rounded-2xl font-bold text-2xl shadow-lg transition-all touch-manipulation ${
+                            className={`w-full py-8 rounded-2xl font-bold text-3xl shadow-lg transition-all border-4 ${
                                 isListening 
-                                    ? 'bg-red-500 text-white active:bg-red-600 shadow-red-200' 
-                                    : 'bg-green-500 text-white active:bg-green-600 shadow-green-200'
+                                    ? 'bg-red-600 border-red-800 text-white animate-pulse' 
+                                    : 'bg-green-600 border-green-800 text-white hover:bg-green-500'
                             }`}
                             onMouseDown={toggleListen}
                             onTouchStart={toggleListen}
                             disabled={gameState === 'WON'}
                         >
-                            {isListening ? "STOP LISTENING" : "Start Game"}
+                            {isListening ? "STOP LISTENING" : "START GAME"}
                         </button>
                         
-                        <p className="text-center text-slate-400 text-xs mt-2">
-                            {errorMsg || "Teacher: Tap button to toggle voice recognition"}
+                        {/* Cheat Sheet */}
+                        <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl">
+                            <h3 className="text-slate-500 text-xs uppercase mb-2">Valid Commands</h3>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-slate-300 font-mono">
+                                <div className="bg-slate-800 p-2 rounded">Go forward</div>
+                                <div className="bg-slate-800 p-2 rounded">Go back</div>
+                                <div className="bg-slate-800 p-2 rounded">Turn left</div>
+                                <div className="bg-slate-800 p-2 rounded">Turn right</div>
+                            </div>
+                        </div>
+
+                        <p className="text-center text-slate-500 text-xs">
+                            {errorMsg || "Tap START GAME to enable microphone"}
                         </p>
                     </div>
 
