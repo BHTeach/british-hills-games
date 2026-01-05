@@ -20,104 +20,118 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]">
+<body class="min-h-screen flex flex-col items-center p-6 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]">
 
-    <div class="max-w-6xl w-full text-center">
+    <div class="max-w-6xl w-full text-center mb-12">
         <!-- Logo -->
         <img src="logo.png" alt="British Hills" class="h-24 mx-auto mb-8 invert opacity-90">
         
         <h1 class="serif-font text-4xl md:text-5xl text-amber-500 mb-2">Classroom Activities</h1>
-        <p class="text-gray-400 mb-12 text-lg">Select a game engine to begin the lesson.</p>
+        <p class="text-gray-400 text-lg">Select a tool to begin the lesson.</p>
+    </div>
 
-        <!-- Grid Layout -->
+    <!-- CATEGORY 1: POINTS -->
+    <div class="max-w-6xl w-full mb-12">
+        <h2 class="serif-font text-3xl text-gray-300 mb-6 border-b border-gray-700 pb-2 text-left pl-2">Points & Scoring</h2>
+        
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
             
-            <!-- Game 2: Quad Rivals -->
-            <a href="quad.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
-                <div class="h-32 bg-red-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
-                    <span class="text-4xl">⚔️</span>
-                </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Quad Rivals</h2>
-                <p class="text-gray-400 text-sm">4-way tactical arena. 4 Teams. Steal points and bounce shots.</p>
-            </a>
-
-            <!-- Game 3: Snooker -->
-            <a href="snooker.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
-                <div class="h-32 bg-green-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
-                    <span class="text-4xl">🎱</span>
-                </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Snooker</h2>
-                <p class="text-gray-400 text-sm">Realistic snooker physics. Ongoing match. High skill ceiling.</p>
-            </a>
-
-            <!-- Game 4: Wheel -->
-            <a href="wheel.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
-                <div class="h-32 bg-purple-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
-                    <span class="text-4xl">🎡</span>
-                </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Wheel of Points</h2>
-                <p class="text-gray-400 text-sm">Spin the wheel of destiny. Win big, lose it all, or swap scores.</p>
-            </a>
-
-            <!-- Game 5: Scoreboard -->
+            <!-- 1. Scoreboard -->
             <a href="scoreboard.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
                 <div class="h-32 bg-yellow-700 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
                     <span class="text-4xl">🏆</span>
                 </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Scoreboard</h2>
-                <p class="text-gray-400 text-sm">Universal scoring utility. Unlimited teams, custom points, dynamic grid.</p>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Scoreboard</h2>
             </a>
 
-            <!-- Game 6: Darts -->
+            <!-- 2. Wheel of Points -->
+            <a href="wheel.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
+                <div class="h-32 bg-purple-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">🎡</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Wheel of Points</h2>
+            </a>
+
+            <!-- 3. Snooker -->
+            <a href="snooker.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
+                <div class="h-32 bg-green-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">🎱</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Snooker</h2>
+            </a>
+
+            <!-- 4. Classroom Darts -->
             <a href="darts.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
                 <div class="h-32 bg-red-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
                     <span class="text-4xl">🎯</span>
                 </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Classroom Darts</h2>
-                <p class="text-gray-400 text-sm">Flick to throw. Automatic scoring. 4 Teams.</p>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Classroom Darts</h2>
             </a>
 
-            <!-- Game 7: Assault the Castle -->
+            <!-- 5. Quad Rivals -->
+            <a href="quad.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
+                <div class="h-32 bg-red-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">⚔️</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Quad Rivals</h2>
+            </a>
+
+            <!-- 6. Assault the Castle -->
             <a href="assault/" class="game-card block p-6 rounded-xl border border-gray-700 group">
                 <div class="h-32 bg-gray-800 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
                     <span class="text-4xl">🛡️</span>
                 </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Assault the Castle</h2>
-                <p class="text-gray-400 text-sm">New advanced engine. Defend your fortress in this interactive battle.</p>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Assault the Castle</h2>
             </a>
 
-            <!-- Game 8: Manor House Monsters -->
+        </div>
+    </div>
+
+    <!-- CATEGORY 2: SPECIFIC ACTIVITIES -->
+    <div class="max-w-6xl w-full mb-12">
+        <h2 class="serif-font text-3xl text-gray-300 mb-6 border-b border-gray-700 pb-2 text-left pl-2">Activities for Specific Classes/Events</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+
+            <!-- 1. Manor House Monsters -->
             <a href="https://bhteach.github.io/british-hills-games/monster_attack.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
                 <div class="h-32 bg-indigo-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
                     <span class="text-4xl">👹</span>
                 </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Manor House Monsters</h2>
-                <p class="text-gray-400 text-sm">Battle against the monsters invading the British Hills Manor.</p>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Manor House Monsters</h2>
             </a>
 
-            <!-- Game 9: Pronunciation Skills -->
+            <!-- 2. Pronunciation Skills -->
             <a href="pronunciation.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
                 <div class="h-32 bg-teal-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                     <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
                     <span class="text-4xl">🗣️</span>
                 </div>
-                <h2 class="serif-font text-2xl text-white mb-2 group-hover:text-amber-400 transition">Pronunciation Skills</h2>
-                <p class="text-gray-400 text-sm">Master your English pronunciation with interactive audio challenges.</p>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Pronunciation Skills</h2>
+            </a>
+
+            <!-- 3. Mouse Race -->
+            <a href="mouserace.html" class="game-card block p-6 rounded-xl border border-gray-700 group">
+                <div class="h-32 bg-orange-900 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black opacity-30 group-hover:opacity-10 transition"></div>
+                    <span class="text-4xl">🐭</span>
+                </div>
+                <h2 class="serif-font text-2xl text-white group-hover:text-amber-400 transition text-center">Mouse Race</h2>
             </a>
 
         </div>
-        
-        <footer class="mt-12 text-gray-500 text-sm">
-            &copy; British Hills Education Department
-        </footer>
     </div>
+    
+    <footer class="mt-12 text-gray-500 text-sm text-center w-full">
+        &copy; British Hills Education Department
+    </footer>
 
 </body>
 </html>
