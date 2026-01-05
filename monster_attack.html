@@ -78,7 +78,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // UPDATED: Now points to relative paths in your GitHub repo
+        // UPDATED: Now includes defeat videos
         const INITIAL_STAGES = [
             {
                 id: 1,
@@ -86,7 +86,8 @@
                 monsterName: "Highland Ogre",
                 question: "What is the name of the currency used in the UK?",
                 answers: ["pound", "pounds", "sterling", "pound sterling"],
-                videoSrc: "./assets/reception.mp4" 
+                videoSrc: "./assets/reception.mp4",
+                defeatVideoSrc: "./assets/receptiondefeat.mp4"
             },
             {
                 id: 2,
@@ -94,7 +95,8 @@
                 monsterName: "Spectral Knight",
                 question: "Who was the longest reigning queen of the UK?",
                 answers: ["elizabeth", "elizabeth the second"],
-                videoSrc: "./assets/queens.mp4"
+                videoSrc: "./assets/queens.mp4",
+                defeatVideoSrc: "./assets/queensdefeat.mp4"
             },
             {
                 id: 3,
@@ -102,7 +104,8 @@
                 monsterName: "Royal Griffin",
                 question: "How many countries are in the United Kingdom?",
                 answers: ["four", "4"],
-                videoSrc: "./assets/kings.mp4"
+                videoSrc: "./assets/kings.mp4",
+                defeatVideoSrc: "./assets/kingsdefeat.mp4"
             },
             {
                 id: 4,
@@ -110,7 +113,8 @@
                 monsterName: "Ancient Lich",
                 question: "Who wrote 'Romeo and Juliet'?",
                 answers: ["shakespeare", "william shakespeare"],
-                videoSrc: "./assets/library.mp4"
+                videoSrc: "./assets/library.mp4",
+                defeatVideoSrc: "./assets/librarydefeat.mp4"
             },
             {
                 id: 5,
@@ -118,7 +122,8 @@
                 monsterName: "Goblin Cook",
                 question: "What is the traditional British dish of fish and...?",
                 answers: ["chips", "chip"],
-                videoSrc: "./assets/refectory.mp4"
+                videoSrc: "./assets/refectory.mp4",
+                defeatVideoSrc: "./assets/refectorydefeat.mp4"
             },
             {
                 id: 6,
@@ -126,13 +131,14 @@
                 monsterName: "Portrait Ghost",
                 question: "Which city is the capital of Scotland?",
                 answers: ["edinburgh"],
-                videoSrc: "./assets/drawing.mp4"
+                videoSrc: "./assets/drawing.mp4",
+                defeatVideoSrc: "./assets/drawingroomdefeat.mp4"
             }
         ];
 
         const App = () => {
             // --- State ---
-            const [gameState, setGameState] = useState('setup');
+            const [gameState, setGameState] = useState('setup'); // setup, ready, playing, defeating, victory, defeated, gameover
             const [stages, setStages] = useState(INITIAL_STAGES);
             const [currentStageIndex, setCurrentStageIndex] = useState(0);
             const [timeLeft, setTimeLeft] = useState(45);
@@ -244,7 +250,7 @@
             const checkAnswer = (text) => {
                 const possibleAnswers = currentStageRef.current.answers;
                 const isCorrect = possibleAnswers.some(ans => text.includes(ans.toLowerCase()));
-                if (isCorrect) handleVictory();
+                if (isCorrect) triggerDefeatSequence();
             };
 
             const handleManualSubmit = (e) => {
@@ -253,10 +259,24 @@
                 setManualInput(""); // Clear for retry
             };
 
-            const handleVictory = () => {
+            const triggerDefeatSequence = () => {
+                // Stop everything
                 clearInterval(timerRef.current);
                 if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e){} }
-                setGameState('victory');
+                
+                // Check if defeat video exists
+                if (currentStage.defeatVideoSrc) {
+                    setGameState('defeating');
+                } else {
+                    // Fallback if no defeat video
+                    setGameState('victory');
+                }
+            };
+
+            const handleVideoEnded = () => {
+                if (gameState === 'defeating') {
+                    setGameState('victory');
+                }
             };
 
             const handleTimeOut = () => {
@@ -271,16 +291,6 @@
                     setGameState('ready');
                 } else {
                     setGameState('gameover');
-                }
-            };
-
-            const handleFileUpload = (event, stageIndex) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const url = URL.createObjectURL(file);
-                    const newStages = [...stages];
-                    newStages[stageIndex].videoSrc = url;
-                    setStages(newStages);
                 }
             };
 
@@ -305,28 +315,30 @@
                 );
             }
 
+            // Determine Video Properties based on State
+            const isDefeating = gameState === 'defeating';
+            const currentVideoSrc = isDefeating ? currentStage.defeatVideoSrc : currentStage.videoSrc;
+
             return (
                 <div className="relative w-screen h-screen overflow-hidden bg-black">
-                    {/* Video */}
-                    {currentStage.videoSrc ? (
-                        <video
-                            ref={videoRef}
-                            src={currentStage.videoSrc}
-                            autoPlay
-                            loop
-                            playsInline
-                            className="absolute top-0 left-0 w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="absolute top-0 left-0 w-full h-full bg-gray-800 flex items-center justify-center">
-                            <h2 className="text-2xl gold-text font-fantasy">No Video Loaded</h2>
-                        </div>
-                    )}
+                    {/* Video Player */}
+                    {/* Key forces re-mount when source changes, ensuring it plays from start */}
+                    <video
+                        key={currentVideoSrc}
+                        ref={videoRef}
+                        src={currentVideoSrc}
+                        autoPlay
+                        loop={!isDefeating} // Loop normal video, don't loop defeat video
+                        onEnded={isDefeating ? handleVideoEnded : undefined}
+                        playsInline
+                        className="absolute top-0 left-0 w-full h-full object-cover"
+                    />
 
                     {/* Overlay */}
                     <div className="absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-between pointer-events-none p-4 md:p-6">
                         
-                        {/* Header */}
+                        {/* Header (Hidden during defeat animation) */}
+                        {!isDefeating && (
                         <div className="flex justify-between items-start pointer-events-auto">
                             <div className="glass-panel px-4 py-2 rounded-full">
                                 <h2 className="text-lg text-yellow-100 font-fantasy">{currentStage.name}</h2>
@@ -339,6 +351,8 @@
                                 </div>
                             )}
                         </div>
+                        )}
+                        {isDefeating && <div></div>} {/* Spacer */}
 
                         {/* Center */}
                         <div className="flex-1 flex items-center justify-center pointer-events-auto">
@@ -401,9 +415,12 @@
                                 </div>
                             )}
 
+                            {/* DEFEATING (Empty center to watch video) */}
+                            {gameState === 'defeating' && null}
+
                             {/* VICTORY */}
                             {gameState === 'victory' && (
-                                <div className="text-center">
+                                <div className="text-center animate-in zoom-in duration-300">
                                     <h1 className="text-7xl font-fantasy text-green-500 text-shadow-hard mb-4">VICTORY</h1>
                                     <button onClick={nextStage} className="px-8 py-3 bg-green-700 text-white text-xl font-bold rounded border-2 border-green-400">
                                         Next ->
@@ -443,7 +460,7 @@
                             {gameState === 'playing' && (
                                 <div className="flex gap-4 justify-center">
                                     <button onClick={handleTimeOut} className="glass-panel bg-red-900/80 hover:bg-red-800 text-red-200 px-8 py-4 rounded-lg font-bold text-xl border-red-500">XXX</button>
-                                    <button onClick={handleVictory} className="glass-panel bg-green-900/80 hover:bg-green-800 text-green-200 px-8 py-4 rounded-lg font-bold text-xl border-green-500">✓</button>
+                                    <button onClick={triggerDefeatSequence} className="glass-panel bg-green-900/80 hover:bg-green-800 text-green-200 px-8 py-4 rounded-lg font-bold text-xl border-green-500">✓</button>
                                 </div>
                             )}
                         </div>
