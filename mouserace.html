@@ -59,7 +59,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         // --- Game Constants ---
         const GRID_SIZE = 7;
@@ -83,7 +83,7 @@
             { dx: -1, dy: 0, label: 'West' },
         ];
 
-        // --- Audio Helpers (Synthesized to avoid external assets) ---
+        // --- Audio Helpers ---
         const audioCtxRef = { current: null };
 
         const initAudio = () => {
@@ -129,21 +129,116 @@
             // Speech State
             const [isListening, setIsListening] = useState(false);
             const [transcript, setTranscript] = useState("");
-            const [lastCommand, setLastCommand] = useState(null);
             const [errorMsg, setErrorMsg] = useState("");
 
-            // Refs
+            // Refs for State (needed for Event Listeners)
             const recognitionRef = useRef(null);
+            const playerRef = useRef(player);
+            const gridRef = useRef(grid);
+            const gameStateRef = useRef(gameState);
+            
+            // Should Listen Ref to handle auto-restarts if desired
+            const shouldListenRef = useRef(false);
 
-            // --- Initialization ---
+            // Keep refs synced with state
+            useEffect(() => { playerRef.current = player; }, [player]);
+            useEffect(() => { gridRef.current = grid; }, [grid]);
+            useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
+            // --- Game Logic ---
+            const resetGame = () => {
+                setPlayer({ x: 1, y: 1, dir: 1 }); // Reset to start
+                setGameState('PLAYING');
+                setTranscript("Ready!");
+                initAudio();
+            };
+
+            const isValidMove = (x, y) => {
+                if (x < 0 || y < 0 || x >= GRID_SIZE || y >= GRID_SIZE) return false;
+                return gridRef.current[y][x] !== 1; // 1 is Wall
+            };
+
+            const checkWin = (x, y) => {
+                if (gridRef.current[y][x] === 3) { // 3 is End
+                    setGameState('WON');
+                    playWinSound();
+                    if ('speechSynthesis' in window) {
+                         const utterance = new SpeechSynthesisUtterance("You won!");
+                         window.speechSynthesis.speak(utterance);
+                    }
+                }
+            };
+
+            // Use a ref for processCommand so the useEffect closure is stable,
+            // but the logic inside always uses fresh data/refs.
+            const processCommandRef = useRef();
+
+            processCommandRef.current = (text) => {
+                if (gameStateRef.current !== 'PLAYING') return;
+
+                const p = playerRef.current;
+                let newX = p.x;
+                let newY = p.y;
+                let newDir = p.dir;
+                let commandFound = false;
+                let action = "";
+
+                // Strict Matching Logic
+                // clean text: remove punctuation, lowercase, trim
+                const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim().toLowerCase();
+
+                if (cleanText === "go forward") {
+                    newX += DIRECTIONS[p.dir].dx;
+                    newY += DIRECTIONS[p.dir].dy;
+                    action = "Forward";
+                    commandFound = true;
+                } else if (cleanText === "go back") {
+                    newX -= DIRECTIONS[p.dir].dx;
+                    newY -= DIRECTIONS[p.dir].dy;
+                    action = "Back";
+                    commandFound = true;
+                } else if (cleanText === "turn left") {
+                    newDir = (p.dir - 1 + 4) % 4;
+                    action = "Turn Left";
+                    commandFound = true;
+                } else if (cleanText === "turn right") {
+                    newDir = (p.dir + 1) % 4;
+                    action = "Turn Right";
+                    commandFound = true;
+                }
+
+                if (commandFound) {
+                    setTranscript(`Cmd: ${action}`);
+                    
+                    if (action.includes("Turn")) {
+                        setPlayer({ ...p, dir: newDir });
+                        playMoveSound();
+                    } else {
+                        if (isValidMove(newX, newY)) {
+                            setPlayer({ ...p, x: newX, y: newY });
+                            playMoveSound();
+                            checkWin(newX, newY);
+                        } else {
+                            playBumpSound();
+                            setTranscript("Bonk! Wall.");
+                        }
+                    }
+                } else {
+                    // Show what was heard if it wasn't a command, for debugging/teaching
+                    // limit length to avoid UI overflow
+                    const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
+                    setTranscript(`Heard: "${display}"`);
+                }
+            };
+
+            // --- Speech Initialization ---
             useEffect(() => {
-                // Initialize Speech Recognition
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
-                    recognition.continuous = false; // iOS requires this to be false for stability
-                    recognition.interimResults = false; // We only want final results
+                    recognition.continuous = true; // CHANGED: Try continuous
+                    recognition.interimResults = false;
                     recognition.lang = 'en-US';
 
                     recognition.onstart = () => {
@@ -154,167 +249,71 @@
 
                     recognition.onend = () => {
                         setIsListening(false);
-                        // Do not auto-restart on iOS - user must click again
+                        // If we intend to keep listening but it stopped (iOS timeout), restart it
+                        if (shouldListenRef.current && gameStateRef.current === 'PLAYING') {
+                            console.log("Auto-restarting speech recognition...");
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log("Restart failed", e);
+                            }
+                        }
                     };
 
                     recognition.onerror = (event) => {
                         console.error("Speech Error", event.error);
-                        setIsListening(false);
                         if (event.error === 'not-allowed') {
-                            setErrorMsg("Microphone access denied. Please check settings.");
-                        } else {
-                            setErrorMsg(`Error: ${event.error}`);
+                            setErrorMsg("Microphone access denied.");
+                            shouldListenRef.current = false;
+                            setIsListening(false);
                         }
                     };
 
                     recognition.onresult = (event) => {
-                        const text = event.results[0][0].transcript.toLowerCase();
-                        setTranscript(`"${text}"`);
-                        processCommand(text);
+                        // In continuous mode, we look at the latest result
+                        const latestResult = event.results[event.results.length - 1];
+                        if (latestResult.isFinal) {
+                            const text = latestResult[0].transcript;
+                            processCommandRef.current(text);
+                        }
                     };
 
                     recognitionRef.current = recognition;
                 } else {
-                    setErrorMsg("Browser not supported. Please use Safari or Chrome.");
+                    setErrorMsg("Browser not supported. Use Safari/Chrome.");
                 }
 
                 return () => {
+                    shouldListenRef.current = false;
                     if (recognitionRef.current) recognitionRef.current.abort();
                 };
-            }, [player, gameState]); // Re-bind if player state changes? No, processCommand needs latest state
+            }, []); // Empty dependency array ensures we don't restart mic on every render
 
-            // --- Game Logic ---
-
-            // We use a ref for player state inside the speech callback to avoid stale closures 
-            // without complex dependency management, or we pass current state to command processor
-            // Since onresult is a closure, let's use a Ref for current player state to be safe
-            const playerRef = useRef(player);
-            useEffect(() => { playerRef.current = player; }, [player]);
-            
-            const gameStateRef = useRef(gameState);
-            useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
-
-
-            const resetGame = () => {
-                setPlayer({ x: 1, y: 1, dir: 1 }); // Reset to start
-                setGameState('PLAYING');
-                setTranscript("Ready!");
-                setLastCommand(null);
-                initAudio();
-            };
-
-            const processCommand = (text) => {
-                if (gameStateRef.current !== 'PLAYING') return;
-
-                const p = playerRef.current;
-                let newX = p.x;
-                let newY = p.y;
-                let newDir = p.dir;
-                let commandFound = false;
-                let action = "";
-
-                // Fuzzy Matching Commands
-                if (text.includes("forward") || text.includes("go") || text.includes("straight") || text.includes("move")) {
-                    // Move Forward based on current direction
-                    newX += DIRECTIONS[p.dir].dx;
-                    newY += DIRECTIONS[p.dir].dy;
-                    action = "Forward";
-                    commandFound = true;
-                } else if (text.includes("back")) {
-                    // Move Backward based on current direction
-                    newX -= DIRECTIONS[p.dir].dx;
-                    newY -= DIRECTIONS[p.dir].dy;
-                    action = "Back";
-                    commandFound = true;
-                } else if (text.includes("left")) {
-                    // Turn Left
-                    newDir = (p.dir - 1 + 4) % 4;
-                    action = "Turn Left";
-                    commandFound = true;
-                } else if (text.includes("right")) {
-                    // Turn Right
-                    newDir = (p.dir + 1) % 4;
-                    action = "Turn Right";
-                    commandFound = true;
-                }
-
-                if (commandFound) {
-                    setLastCommand(action);
-                    speak(action); // TTS Feedback
-                    
-                    if (action.includes("Turn")) {
-                        // Just rotation
-                        setPlayer({ ...p, dir: newDir });
-                        playMoveSound();
-                    } else {
-                        // Movement
-                        if (isValidMove(newX, newY)) {
-                            setPlayer({ ...p, x: newX, y: newY });
-                            playMoveSound();
-                            checkWin(newX, newY);
-                        } else {
-                            playBumpSound();
-                            setTranscript("Bonk! Wall.");
-                            speak("Wall");
-                        }
-                    }
-                } else {
-                    setTranscript(`Unknown: "${text}"`);
-                }
-            };
-
-            const isValidMove = (x, y) => {
-                if (x < 0 || y < 0 || x >= GRID_SIZE || y >= GRID_SIZE) return false;
-                return grid[y][x] !== 1; // 1 is Wall
-            };
-
-            const checkWin = (x, y) => {
-                if (grid[y][x] === 3) { // 3 is End
-                    setGameState('WON');
-                    playWinSound();
-                    speak("You won!");
-                }
-            };
-
-            const speak = (text) => {
-                if ('speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.rate = 1.2;
-                    window.speechSynthesis.speak(utterance);
-                }
-            };
-
-            // --- Manual Controls (for Voice Fallback) ---
+            // --- Manual Controls ---
             const toggleListen = () => {
                 if (!recognitionRef.current) return;
-                initAudio(); // Ensure audio context is ready on click
+                initAudio();
                 
                 if (isListening) {
+                    shouldListenRef.current = false;
                     recognitionRef.current.stop();
                 } else {
+                    shouldListenRef.current = true;
                     playListenSound();
                     try {
                         recognitionRef.current.start();
                     } catch (e) {
-                        // Sometimes fails if already started, just ignore
                         console.log("Mic start error", e);
                     }
                 }
             };
 
-            // --- Render Helpers ---
-            const getMouseRotation = () => {
-                // 0: Up (0deg), 1: Right (90deg), 2: Down (180deg), 3: Left (270deg)
-                // Default icon points Up? No, icons usually upright.
-                // Let's assume we use an Arrow or Mouse icon that points UP by default.
-                // Rotation: 0->0, 1->90, 2->180, 3->270
-                return player.dir * 90;
-            };
-
             // --- Icons ---
+            const getMouseRotation = () => player.dir * 90;
+
             const MouseIcon = () => (
                 <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: `rotate(${getMouseRotation()}deg)`, transition: 'transform 0.3s' }}>
-                    <path d="M12 2L19 22L12 18L5 22L12 2Z" fill="#3b82f6" /> {/* Arrow style mouse */}
+                    <path d="M12 2L19 22L12 18L5 22L12 2Z" fill="#3b82f6" />
                 </svg>
             );
 
@@ -329,11 +328,11 @@
             return (
                 <div className="flex flex-col h-full items-center justify-center p-4 max-w-4xl mx-auto">
                     
-                    {/* Header / Scoreboard */}
+                    {/* Header */}
                     <div className="w-full flex justify-between items-center mb-4 bg-white p-4 rounded-xl shadow-sm">
                         <div>
                             <h1 className="text-xl font-bold text-slate-800">EFL Maze</h1>
-                            <p className="text-sm text-slate-500">Commands: Forward, Back, Left, Right</p>
+                            <p className="text-xs text-slate-500 hidden sm:block">"Go forward", "Go back", "Turn left", "Turn right"</p>
                         </div>
                         <div className={`px-4 py-2 rounded-lg font-bold ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
                             {isListening ? "Listening..." : "Mic Off"}
@@ -351,8 +350,8 @@
                                 >
                                     Start Game
                                 </button>
-                                <p className="text-slate-300 mt-4 text-center max-w-xs">
-                                    Teacher: Tap to start. Ensure volume is up.
+                                <p className="text-slate-300 mt-4 text-center max-w-xs text-sm">
+                                    Teacher: Ensure volume is up.
                                 </p>
                             </div>
                         )}
@@ -374,19 +373,17 @@
                             className="maze-grid rounded-lg overflow-hidden shadow-2xl"
                             style={{ 
                                 gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                                width: 'min(90vw, 500px)', // Responsive width
+                                width: 'min(90vw, 500px)', 
                             }}
                         >
                             {grid.map((row, y) => (
                                 row.map((cell, x) => (
                                     <div key={`${x}-${y}`} className={`cell ${cell === 1 ? 'wall' : cell === 2 ? 'start' : cell === 3 ? 'end' : ''}`}>
-                                        {/* Render Player if position matches */}
                                         {player.x === x && player.y === y && (
                                             <div className="absolute inset-0 flex items-center justify-center z-10">
                                                 <MouseIcon />
                                             </div>
                                         )}
-                                        {/* Render Goal */}
                                         {cell === 3 && (
                                             <div className="absolute inset-0 flex items-center justify-center opacity-50">
                                                 <CheeseIcon />
@@ -408,18 +405,18 @@
                             </span>
                         </div>
                         
-                        {/* Big Mic Button */}
+                        {/* Big Button */}
                         <button 
                             className={`w-full py-6 rounded-2xl font-bold text-2xl shadow-lg transition-all touch-manipulation ${
                                 isListening 
                                     ? 'bg-red-500 text-white active:bg-red-600 shadow-red-200' 
-                                    : 'bg-blue-500 text-white active:bg-blue-600 shadow-blue-200'
+                                    : 'bg-green-500 text-white active:bg-green-600 shadow-green-200'
                             }`}
                             onMouseDown={toggleListen}
-                            onTouchStart={toggleListen} // Better latency on iOS
-                            disabled={gameState === 'START' || gameState === 'WON'}
+                            onTouchStart={toggleListen}
+                            disabled={gameState === 'WON'}
                         >
-                            {isListening ? "STOP LISTENING" : "TAP TO LISTEN"}
+                            {isListening ? "STOP LISTENING" : "Start Game"}
                         </button>
                         
                         <p className="text-center text-slate-400 text-xs mt-2">
