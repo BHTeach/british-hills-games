@@ -318,12 +318,22 @@
             // Determine Video Properties based on State
             const isDefeating = gameState === 'defeating';
             const isVictory = gameState === 'victory';
+            const isGameOver = gameState === 'gameover';
             
-            // Show defeat video during the animation AND the victory screen
-            // If no defeat video exists (fallback), we stick to normal video
-            const showDefeatVideo = (isDefeating || isVictory) && currentStage.defeatVideoSrc;
-            
-            const currentVideoSrc = showDefeatVideo ? currentStage.defeatVideoSrc : currentStage.videoSrc;
+            // Logic for video source and looping behavior
+            let currentVideoSrc;
+            let shouldLoop = true;
+
+            if (isGameOver) {
+                currentVideoSrc = "./assets/victory.mp4";
+                shouldLoop = true;
+            } else if ((isDefeating || isVictory) && currentStage.defeatVideoSrc) {
+                currentVideoSrc = currentStage.defeatVideoSrc;
+                shouldLoop = false; // Don't loop defeat video so it pauses on last frame
+            } else {
+                currentVideoSrc = currentStage.videoSrc;
+                shouldLoop = true;
+            }
 
             return (
                 <div className="relative w-screen h-screen overflow-hidden bg-black">
@@ -334,8 +344,7 @@
                         ref={videoRef}
                         src={currentVideoSrc}
                         autoPlay
-                        // Loop only if we are NOT showing the defeat video
-                        loop={!showDefeatVideo} 
+                        loop={shouldLoop}
                         onEnded={isDefeating ? handleVideoEnded : undefined}
                         playsInline
                         className="absolute top-0 left-0 w-full h-full object-cover"
