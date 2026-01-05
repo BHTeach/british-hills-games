@@ -78,73 +78,66 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // UPDATED: Now includes defeat videos
-        const INITIAL_STAGES = [
-            {
-                id: 1,
-                name: "Reception",
-                monsterName: "Highland Ogre",
-                question: "What is the name of the currency used in the UK?",
-                answers: ["pound", "pounds", "sterling", "pound sterling"],
-                videoSrc: "./assets/reception.mp4",
-                defeatVideoSrc: "./assets/receptiondefeat.mp4"
-            },
-            {
-                id: 2,
-                name: "Queen's Room",
-                monsterName: "Spectral Knight",
-                question: "Who was the longest reigning queen of the UK?",
-                answers: ["elizabeth", "elizabeth the second"],
-                videoSrc: "./assets/queens.mp4",
-                defeatVideoSrc: "./assets/queensdefeat.mp4"
-            },
-            {
-                id: 3,
-                name: "Kings Room",
-                monsterName: "Royal Griffin",
-                question: "How many countries are in the United Kingdom?",
-                answers: ["four", "4"],
-                videoSrc: "./assets/kings.mp4",
-                defeatVideoSrc: "./assets/kingsdefeat.mp4"
-            },
-            {
-                id: 4,
-                name: "The Library",
-                monsterName: "Ancient Lich",
-                question: "Who wrote 'Romeo and Juliet'?",
-                answers: ["shakespeare", "william shakespeare"],
-                videoSrc: "./assets/library.mp4",
-                defeatVideoSrc: "./assets/librarydefeat.mp4"
-            },
-            {
-                id: 5,
-                name: "The Refectory",
-                monsterName: "Goblin Cook",
-                question: "What is the traditional British dish of fish and...?",
-                answers: ["chips", "chip"],
-                videoSrc: "./assets/refectory.mp4",
-                defeatVideoSrc: "./assets/refectorydefeat.mp4"
-            },
-            {
-                id: 6,
-                name: "Drawing Room",
-                monsterName: "Portrait Ghost",
-                question: "Which city is the capital of Scotland?",
-                answers: ["edinburgh"],
-                videoSrc: "./assets/drawing.mp4",
-                defeatVideoSrc: "./assets/drawingroomdefeat.mp4"
-            }
+        // --- DATA STRUCTURES ---
+
+        // 1. Base Room Configuration (Fixed Video/Monster sequence)
+        const ROOM_CONFIG = [
+            { id: 1, name: "Reception", monsterName: "Bogart", videoSrc: "./assets/reception.mp4", defeatVideoSrc: "./assets/receptiondefeat.mp4" },
+            { id: 2, name: "Drawing Room", monsterName: "Demon", videoSrc: "./assets/drawing.mp4", defeatVideoSrc: "./assets/drawingroomdefeat.mp4" },
+            { id: 3, name: "The Refectory", monsterName: "Ghost", videoSrc: "./assets/refectory.mp4", defeatVideoSrc: "./assets/refectorydefeat.mp4" },
+            { id: 4, name: "The Library", monsterName: "Dragon", videoSrc: "./assets/library.mp4", defeatVideoSrc: "./assets/librarydefeat.mp4" },
+            { id: 5, name: "Queen's Room", monsterName: "Unicorn", videoSrc: "./assets/queens.mp4", defeatVideoSrc: "./assets/queensdefeat.mp4" },
+            { id: 6, name: "Kings Room", monsterName: "Bear", videoSrc: "./assets/kings.mp4", defeatVideoSrc: "./assets/kingsdefeat.mp4" }
         ];
+
+        // 2. Question Sets
+        const QUESTION_SETS = {
+            1: [
+                { q: "What is the name of the currency used in the UK?", a: ["pound", "pounds", "sterling", "pound sterling"] },
+                { q: "Which city is the capital of Scotland?", a: ["edinburgh"] },
+                { q: "What is the traditional British dish of fish and...?", a: ["chips", "chip"] },
+                { q: "Who wrote 'Romeo and Juliet'?", a: ["shakespeare", "william shakespeare"] },
+                { q: "Who was the longest reigning queen of the UK?", a: ["elizabeth", "elizabeth the second"] },
+                { q: "How many countries are in the United Kingdom?", a: ["four", "4"] }
+            ],
+            2: [
+                { q: "What is the capital city of England?", a: ["london"] },
+                { q: "What musical instrument is famous in Scotland?", a: ["bagpipes", "bagpipe"] },
+                { q: "What comes with scones: jam and...?", a: ["cream", "clotted cream"] },
+                { q: "Who is the famous detective who lives at 221B Baker Street?", a: ["sherlock", "sherlock holmes", "holmes"] },
+                { q: "Where does the King live in London?", a: ["buckingham palace", "the palace"] },
+                { q: "What is the name of the famous clock tower in London?", a: ["big ben", "elizabeth tower"] }
+            ],
+            3: [
+                { q: "What colour are the post boxes in the UK?", a: ["red"] },
+                { q: "What is the famous tennis tournament in London?", a: ["wimbledon"] },
+                { q: "What hot drink do British people love the most?", a: ["tea"] },
+                { q: "Who wrote the Harry Potter books?", a: ["rowling", "jk rowling", "j.k. rowling"] },
+                { q: "What does a King or Queen wear on their head?", a: ["crown", "a crown"] },
+                { q: "Who is the current King of the UK?", a: ["charles", "king charles", "charles the third"] }
+            ],
+            4: [
+                { q: "Which side of the road do cars drive on in the UK?", a: ["left", "the left"] },
+                { q: "What is the national flower of England?", a: ["rose", "a rose", "the rose"] },
+                { q: "What British person discovered gravity?", a: ["newton", "isaac newton"] },
+                { q: "What is the most popular sport in the UK?", a: ["football"] },
+                { q: "What is the name of the British Flag?", a: ["union jack", "union flag"] },
+                { q: "Name one country in the United Kingdom.", a: ["england", "scotland", "wales", "northern ireland"] }
+            ]
+        };
 
         const App = () => {
             // --- State ---
             const [gameState, setGameState] = useState('setup'); // setup, ready, playing, defeating, victory, defeated, gameover
-            const [stages, setStages] = useState(INITIAL_STAGES);
             const [currentStageIndex, setCurrentStageIndex] = useState(0);
             const [timeLeft, setTimeLeft] = useState(45);
             const [transcript, setTranscript] = useState("");
             const [isListening, setIsListening] = useState(false);
             
+            // Question Set Logic
+            const [selectedSet, setSelectedSet] = useState(null);
+            const [gameStages, setGameStages] = useState([]); // Will combine ROOM_CONFIG + Selected Questions
+
             // Debug / Manual Input State
             const [manualInput, setManualInput] = useState("");
             const [showManualInput, setShowManualInput] = useState(false);
@@ -153,13 +146,15 @@
             const videoRef = useRef(null);
             const recognitionRef = useRef(null);
             const timerRef = useRef(null);
-            const currentStageRef = useRef(stages[0]);
+            // We use a ref for stages so the mic callback always reads fresh data
+            const gameStagesRef = useRef([]);
 
-            const currentStage = stages[currentStageIndex];
+            const currentStage = gameStages[currentStageIndex] || ROOM_CONFIG[0]; // Fallback for safety
             
+            // Sync Ref
             useEffect(() => {
-                currentStageRef.current = stages[currentStageIndex];
-            }, [currentStageIndex, stages]);
+                gameStagesRef.current = gameStages;
+            }, [gameStages]);
 
             // --- Mic Factory ---
             const createRecognition = () => {
@@ -190,7 +185,6 @@
                     console.error("Mic Error:", event.error);
                     if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                         setIsListening(false);
-                        // If mic fails (e.g. local file), show manual input automatically
                         setShowManualInput(true);
                     }
                 };
@@ -203,6 +197,21 @@
             };
 
             // --- Handlers ---
+            
+            const handleSetSelect = (setNumber) => {
+                setSelectedSet(setNumber);
+                
+                // Merge Room Config with Questions
+                const questions = QUESTION_SETS[setNumber];
+                const mergedStages = ROOM_CONFIG.map((room, index) => ({
+                    ...room,
+                    question: questions[index].q,
+                    answers: questions[index].a
+                }));
+                
+                setGameStages(mergedStages);
+                // Don't set state to ready yet, just hide selector
+            };
 
             const handleEncounter = () => {
                 // 1. START MIC FIRST
@@ -214,7 +223,7 @@
                     if (recognitionRef.current) recognitionRef.current.start();
                 } catch(e) {
                     console.error("Mic Start Failed (Likely Local File)", e);
-                    setShowManualInput(true); // Fallback
+                    setShowManualInput(true);
                 }
 
                 // 2. Play Video Sound
@@ -248,7 +257,11 @@
 
             // --- Game Logic ---
             const checkAnswer = (text) => {
-                const possibleAnswers = currentStageRef.current.answers;
+                // Access via Ref to avoid closure staleness
+                const current = gameStagesRef.current[currentStageIndex];
+                if (!current) return;
+                
+                const possibleAnswers = current.answers;
                 const isCorrect = possibleAnswers.some(ans => text.includes(ans.toLowerCase()));
                 if (isCorrect) triggerDefeatSequence();
             };
@@ -256,19 +269,16 @@
             const handleManualSubmit = (e) => {
                 e.preventDefault();
                 checkAnswer(manualInput.toLowerCase());
-                setManualInput(""); // Clear for retry
+                setManualInput("");
             };
 
             const triggerDefeatSequence = () => {
-                // Stop everything
                 clearInterval(timerRef.current);
                 if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e){} }
                 
-                // Check if defeat video exists
                 if (currentStage.defeatVideoSrc) {
                     setGameState('defeating');
                 } else {
-                    // Fallback if no defeat video
                     setGameState('victory');
                 }
             };
@@ -286,7 +296,7 @@
             };
 
             const nextStage = () => {
-                if (currentStageIndex + 1 < stages.length) {
+                if (currentStageIndex + 1 < gameStages.length) {
                     setCurrentStageIndex(prev => prev + 1);
                     setGameState('ready');
                 } else {
@@ -304,23 +314,43 @@
                         </h1>
                         
                         <div className="max-w-xl w-full mx-auto space-y-8">
-                            <button 
-                                onClick={() => setGameState('ready')}
-                                className="w-full py-6 bg-gradient-to-r from-red-800 to-red-900 rounded-lg text-2xl md:text-3xl font-bold text-white border-2 border-yellow-600 shadow-lg hover:scale-[1.02] transition-transform"
-                            >
-                                Enter the Manor House
-                            </button>
+                            
+                            {!selectedSet ? (
+                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-5 fade-in duration-500">
+                                    {[1, 2, 3, 4].map(num => (
+                                        <button 
+                                            key={num}
+                                            onClick={() => handleSetSelect(num)}
+                                            className="py-6 bg-gray-800 hover:bg-gray-700 border-2 border-yellow-600/50 hover:border-yellow-500 rounded-lg text-xl font-bold transition-all hover:scale-105 shadow-lg"
+                                        >
+                                            Question Set {num}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="animate-in zoom-in duration-300 space-y-8">
+                                    <div className="text-center text-yellow-500 font-sans tracking-widest uppercase text-sm font-bold">
+                                        Selected: Question Set {selectedSet}
+                                    </div>
+                                    <button 
+                                        onClick={() => setGameState('ready')}
+                                        className="w-full py-6 bg-gradient-to-r from-red-800 to-red-900 rounded-lg text-2xl md:text-3xl font-bold text-white border-2 border-yellow-600 shadow-lg hover:scale-[1.02] transition-transform"
+                                    >
+                                        Enter the Manor House
+                                    </button>
+                                </div>
+                            )}
+                            
                         </div>
                     </div>
                 );
             }
 
-            // Determine Video Properties based on State
+            // Determine Video Properties
             const isDefeating = gameState === 'defeating';
             const isVictory = gameState === 'victory';
             const isGameOver = gameState === 'gameover';
             
-            // Logic for video source and looping behavior
             let currentVideoSrc;
             let shouldLoop = true;
 
@@ -329,7 +359,7 @@
                 shouldLoop = true;
             } else if ((isDefeating || isVictory) && currentStage.defeatVideoSrc) {
                 currentVideoSrc = currentStage.defeatVideoSrc;
-                shouldLoop = false; // Don't loop defeat video so it pauses on last frame
+                shouldLoop = false;
             } else {
                 currentVideoSrc = currentStage.videoSrc;
                 shouldLoop = true;
@@ -338,7 +368,6 @@
             return (
                 <div className="relative w-screen h-screen overflow-hidden bg-black">
                     {/* Video Player */}
-                    {/* Key forces re-mount when source changes, ensuring it plays from start */}
                     <video
                         key={currentVideoSrc}
                         ref={videoRef}
@@ -353,7 +382,7 @@
                     {/* Overlay */}
                     <div className="absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-between pointer-events-none p-4 md:p-6">
                         
-                        {/* Header (Hidden during defeat animation) */}
+                        {/* Header */}
                         {!isDefeating && (
                         <div className="flex justify-between items-start pointer-events-auto">
                             <div className="glass-panel px-4 py-2 rounded-full">
@@ -368,7 +397,7 @@
                             )}
                         </div>
                         )}
-                        {isDefeating && <div></div>} {/* Spacer */}
+                        {isDefeating && <div></div>}
 
                         {/* Center */}
                         <div className="flex-1 flex items-center justify-center pointer-events-auto">
@@ -394,7 +423,6 @@
                                             {currentStage.question}
                                         </p>
                                         
-                                        {/* Mic / Manual Toggle */}
                                         <div className="flex flex-col items-center gap-2">
                                             {!showManualInput ? (
                                                 <div className="h-12 w-full bg-black/40 rounded flex items-center justify-center border border-gray-600 relative">
@@ -406,12 +434,7 @@
                                                     ) : (
                                                         <span className="text-red-400 text-xs">Mic Inactive</span>
                                                     )}
-                                                    <button 
-                                                        onClick={() => setShowManualInput(true)} 
-                                                        className="absolute right-2 text-xs text-blue-400 hover:text-blue-300 underline"
-                                                    >
-                                                        Use Keyboard
-                                                    </button>
+                                                    <button onClick={() => setShowManualInput(true)} className="absolute right-2 text-xs text-blue-400 hover:text-blue-300 underline">Use Keyboard</button>
                                                 </div>
                                             ) : (
                                                 <form onSubmit={handleManualSubmit} className="flex gap-2 w-full">
@@ -419,8 +442,8 @@
                                                         type="text" 
                                                         value={manualInput}
                                                         onChange={(e) => setManualInput(e.target.value)}
-                                                        placeholder="Type answer (e.g. pound)"
-                                                        className="flex-1 bg-black/60 border border-gray-500 rounded px-4 py-2 text-white focus:border-yellow-500 outline-none"
+                                                        placeholder="Type answer..."
+                                                        className="flex-1 bg-black/60 border border-gray-500 rounded px-4 py-2 text-white outline-none focus:border-yellow-500"
                                                         autoFocus
                                                     />
                                                     <button type="submit" className="px-4 bg-yellow-700 text-white rounded font-bold">></button>
@@ -431,7 +454,7 @@
                                 </div>
                             )}
 
-                            {/* DEFEATING (Empty center to watch video) */}
+                            {/* DEFEATING */}
                             {gameState === 'defeating' && null}
 
                             {/* VICTORY */}
@@ -462,7 +485,7 @@
                                         You saved the<br/>Manor House!
                                     </h1>
                                     <button 
-                                        onClick={() => {setCurrentStageIndex(0); setGameState('setup');}} 
+                                        onClick={() => {setCurrentStageIndex(0); setGameState('setup'); setSelectedSet(null);}} 
                                         className="px-12 py-4 bg-gradient-to-r from-yellow-700 to-yellow-900 text-white text-2xl font-bold rounded-lg border-2 border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.4)] hover:scale-105 transition-transform"
                                     >
                                         Play Again
