@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Magic Words</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom aesthetics */
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            overscroll-behavior: none; /* Prevent bounce on iPad */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* iPad specific interaction tweaks */
+        button {
+            touch-action: manipulation;
+        }
+
+        .hidden-word {
+            background-image: repeating-linear-gradient(
+                45deg,
+                #3b82f6,
+                #3b82f6 10px,
+                #2563eb 10px,
+                #2563eb 20px
+            );
+        }
+
+        .mic-pulse {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .grid-square {
+            aspect-ratio: 1 / 1;
+        }
+
+        /* Animations */
+        .pop-in { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-gray-800 flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-white p-2 shadow-md z-10 flex justify-between items-center h-16 shrink-0">
+        <div class="text-xl md:text-2xl font-bold text-blue-600 pl-4 flex items-center gap-2">
+            <i class="fas fa-magic"></i> Magic Words
+        </div>
+        <div id="scoreboard" class="flex space-x-4 pr-4">
+            <!-- Team scores injected here -->
+        </div>
+        <div class="flex gap-2">
+            <button onclick="app.resetGameData()" class="text-gray-400 hover:text-red-500 p-2 text-xs" title="Reset All Data">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+            <button onclick="app.showSetup()" class="text-gray-400 hover:text-gray-600 p-2">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow relative overflow-hidden">
+        
+        <!-- SETUP VIEW -->
+        <div id="view-setup" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center z-50 p-4">
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg">
+                <h2 class="text-3xl font-bold mb-6 text-center text-blue-600">Game Setup</h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-bold mb-2">Number of Teams</label>
+                    <div class="flex space-x-2">
+                        <button onclick="app.setTeams(2)" class="flex-1 py-3 bg-gray-100 rounded-lg hover:bg-blue-100 font-bold team-btn transition-colors" data-count="2">2</button>
+                        <button onclick="app.setTeams(3)" class="flex-1 py-3 bg-gray-100 rounded-lg hover:bg-blue-100 font-bold team-btn transition-colors" data-count="3">3</button>
+                        <button onclick="app.setTeams(4)" class="flex-1 py-3 bg-gray-100 rounded-lg hover:bg-blue-100 font-bold team-btn transition-colors" data-count="4">4</button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-bold mb-2">Team Names</label>
+                    <div id="team-inputs" class="space-y-2"></div>
+                </div>
+
+                <button onclick="app.startGame()" class="w-full py-4 bg-green-500 text-white rounded-xl font-bold text-xl shadow-lg hover:bg-green-600 active:scale-95 transform transition">Start Game</button>
+            </div>
+        </div>
+
+        <!-- GRID VIEW -->
+        <div id="view-grid" class="absolute inset-0 p-4 overflow-y-auto hidden">
+            <div id="category-grid" class="grid grid-cols-5 gap-2 md:gap-4 h-full max-h-full w-full max-w-5xl mx-auto content-center">
+                <!-- Categories injected here -->
+            </div>
+        </div>
+
+        <!-- QUESTION VIEW -->
+        <div id="view-question" class="absolute inset-0 bg-white hidden flex flex-col">
+            <!-- Nav Bar -->
+            <div class="flex items-center justify-between p-3 border-b bg-gray-50 shrink-0">
+                <button onclick="app.closeQuestion()" class="text-gray-500 hover:text-blue-600 font-bold px-4 py-2 rounded-lg border border-gray-300">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </button>
+                <h2 id="current-category-title" class="text-xl md:text-3xl font-bold text-center flex-grow text-blue-800 truncate px-4">Category</h2>
+                <button onclick="app.toggleEditMode()" class="text-gray-400 hover:text-blue-600 p-2 rounded-full border border-gray-200">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+            </div>
+
+            <!-- Game Area -->
+            <div class="flex-grow flex flex-col lg:flex-row p-2 md:p-4 gap-4 overflow-hidden">
+                
+                <!-- Left: Answers Board (Scrollable if needed) -->
+                <div class="flex-grow overflow-y-auto lg:overflow-visible">
+                    <div id="answers-container" class="space-y-2 md:space-y-3 max-w-3xl mx-auto w-full pb-4">
+                        <!-- Answer Cards injected here -->
+                    </div>
+                    
+                    <!-- EDIT FORM (Hidden by default) -->
+                    <div id="edit-container" class="hidden space-y-2 max-w-3xl mx-auto w-full bg-yellow-50 p-4 rounded-xl border-2 border-yellow-200">
+                        <h3 class="font-bold text-yellow-700 mb-2">Editing Content</h3>
+                        <div class="mb-2">
+                            <label class="text-xs font-bold text-gray-500">Category Title</label>
+                            <input type="text" id="edit-title" class="w-full p-2 border rounded">
+                        </div>
+                        <div id="edit-rows" class="space-y-2">
+                            <!-- Inputs for 5 words -->
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <button onclick="app.saveEdits()" class="flex-1 bg-green-500 text-white py-2 rounded font-bold">Save Changes</button>
+                            <button onclick="app.toggleEditMode()" class="px-4 py-2 text-gray-500 font-bold">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Controls -->
+                <div class="lg:w-80 w-full bg-gray-100 rounded-xl p-3 md:p-4 flex flex-col gap-3 shadow-inner shrink-0">
+                    
+                    <!-- Turn Selector -->
+                    <div>
+                        <div class="flex justify-between items-end mb-1">
+                            <h3 class="text-xs font-bold text-gray-500 uppercase">Who is speaking?</h3>
+                            <span class="text-xs text-blue-400" id="turn-indicator">Auto-rotating</span>
+                        </div>
+                        <div id="turn-selector" class="grid grid-cols-2 gap-2">
+                            <!-- Team buttons -->
+                        </div>
+                    </div>
+
+                    <!-- Transcript -->
+                    <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200 h-24 lg:h-32 overflow-y-auto">
+                        <p class="text-xs text-gray-400 mb-1">I heard:</p>
+                        <p id="transcript-display" class="text-lg font-medium text-gray-800 leading-tight">...</p>
+                    </div>
+
+                    <!-- Mic Button -->
+                    <button id="mic-btn" onclick="app.toggleMic()" class="w-full py-4 md:py-6 rounded-2xl bg-blue-600 text-white font-bold text-xl md:text-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all">
+                        <i class="fas fa-microphone"></i> <span>LISTEN</span>
+                    </button>
+
+                    <!-- Admin Controls -->
+                    <button onclick="app.revealAll()" class="w-full py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-gray-700 font-bold text-sm">
+                        Reveal Remaining
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- DEFAULT DATA (125 Answers) ---
+        const DEFAULT_CATEGORIES = [
+            { t: "Kitchen", a: ["Spoon", "Fork", "Knife", "Plate", "Fridge"] },
+            { t: "Animals", a: ["Dog", "Cat", "Lion", "Elephant", "Monkey"] },
+            { t: "Colors", a: ["Red", "Blue", "Green", "Yellow", "Purple"] },
+            { t: "Jobs", a: ["Teacher", "Doctor", "Police", "Chef", "Farmer"] },
+            { t: "Fruits", a: ["Apple", "Banana", "Orange", "Grape", "Lemon"] },
+            { t: "Sports", a: ["Soccer", "Basketball", "Tennis", "Swimming", "Baseball"] },
+            { t: "School", a: ["Pencil", "Book", "Desk", "Teacher", "Eraser"] },
+            { t: "Clothes", a: ["T-shirt", "Jeans", "Shoes", "Hat", "Jacket"] },
+            { t: "Body", a: ["Head", "Arm", "Leg", "Hand", "Foot"] },
+            { t: "Transport", a: ["Car", "Bus", "Train", "Plane", "Bike"] },
+            { t: "Family", a: ["Mother", "Father", "Sister", "Brother", "Baby"] },
+            { t: "Weather", a: ["Sunny", "Rainy", "Cloudy", "Snowy", "Windy"] },
+            { t: "Holidays", a: ["Christmas", "Halloween", "Easter", "New Year", "Birthday"] },
+            { t: "Furniture", a: ["Chair", "Table", "Sofa", "Bed", "Lamp"] },
+            { t: "Verbs", a: ["Run", "Jump", "Eat", "Sleep", "Play"] },
+            { t: "Countries", a: ["USA", "UK", "Japan", "China", "France"] }, // Generic, can be edited
+            { t: "Drinks", a: ["Water", "Milk", "Juice", "Tea", "Coffee"] },
+            { t: "Shapes", a: ["Circle", "Square", "Triangle", "Star", "Heart"] },
+            { t: "Adjectives", a: ["Big", "Small", "Happy", "Sad", "Fast"] },
+            { t: "Numbers", a: ["One", "Ten", "Hundred", "Thousand", "Zero"] },
+            { t: "Rooms", a: ["Bedroom", "Kitchen", "Bathroom", "Living Room", "Garden"] },
+            { t: "Time", a: ["Morning", "Afternoon", "Night", "Week", "Year"] },
+            { t: "Feelings", a: ["Happy", "Sad", "Angry", "Tired", "Hungry"] },
+            { t: "Hobbies", a: ["Reading", "Gaming", "Dancing", "Drawing", "Singing"] },
+            { t: "Nature", a: ["Tree", "Flower", "Sun", "Moon", "River"] }
+        ];
+
+        // --- APP STATE ---
+        const app = {
+            data: [],
+            teams: [],
+            currentTeamIndex: 0,
+            teamCount: 2,
+            currentCategory: null,
+            recognition: null,
+            isListening: false,
+            isEditing: false,
+
+            // --- INIT ---
+            init: () => {
+                app.loadData();
+                app.setTeams(2);
+                app.initSpeech();
+            },
+
+            loadData: () => {
+                const saved = localStorage.getItem('magicWordsData');
+                if (saved) {
+                    app.data = JSON.parse(saved);
+                } else {
+                    // Populate from default
+                    app.data = DEFAULT_CATEGORIES.map((cat, idx) => ({
+                        id: idx,
+                        title: cat.t,
+                        solved: false,
+                        answers: cat.a.map((word, wIdx) => ({
+                            word: word,
+                            points: wIdx + 1, // Points 1-5
+                            revealed: false
+                        }))
+                    }));
+                }
+            },
+
+            saveDataToStorage: () => {
+                localStorage.setItem('magicWordsData', JSON.stringify(app.data));
+            },
+
+            resetGameData: () => {
+                if(confirm("Reset all categories and answers to default? Teams scores will remain.")) {
+                    localStorage.removeItem('magicWordsData');
+                    app.loadData();
+                    if(app.currentCategory) {
+                        // Reload current view if open
+                        app.currentCategory = app.data.find(c => c.id === app.currentCategory.id);
+                        app.renderAnswers();
+                        document.getElementById('current-category-title').innerText = app.currentCategory.title;
+                    } else {
+                        app.renderGrid();
+                    }
+                }
+            },
+
+            // --- SETUP ---
+            setTeams: (count) => {
+                app.teamCount = count;
+                const container = document.getElementById('team-inputs');
+                container.innerHTML = '';
+                
+                document.querySelectorAll('.team-btn').forEach(btn => {
+                    const isActive = parseInt(btn.dataset.count) === count;
+                    btn.className = isActive 
+                        ? "flex-1 py-3 bg-blue-600 text-white rounded-lg shadow-md font-bold team-btn transition-colors" 
+                        : "flex-1 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-blue-100 font-bold team-btn transition-colors";
+                });
+
+                for (let i = 1; i <= count; i++) {
+                    container.innerHTML += `
+                        <input type="text" id="team-name-${i}" value="Team ${i}" 
+                        class="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 outline-none" placeholder="Team Name">
+                    `;
+                }
+            },
+
+            startGame: () => {
+                app.teams = [];
+                for (let i = 1; i <= app.teamCount; i++) {
+                    const name = document.getElementById(`team-name-${i}`).value || `Team ${i}`;
+                    app.teams.push({ id: i-1, name: name, score: 0, color: app.getTeamColor(i-1) });
+                }
+                app.updateScoreboard();
+                app.renderGrid();
+                document.getElementById('view-setup').classList.add('hidden');
+                document.getElementById('view-grid').classList.remove('hidden');
+            },
+
+            getTeamColor: (index) => {
+                const colors = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500'];
+                return colors[index % colors.length];
+            },
+
+            // --- GRID & NAV ---
+            renderGrid: () => {
+                const grid = document.getElementById('category-grid');
+                grid.innerHTML = '';
+                app.data.forEach(cat => {
+                    const btn = document.createElement('button');
+                    let bgClass = cat.solved ? 'bg-gray-200 text-gray-400' : 'bg-white hover:bg-blue-50 text-blue-600';
+                    
+                    btn.className = `${bgClass} rounded-xl shadow-md flex items-center justify-center p-1 text-center font-bold text-xs md:text-lg lg:text-xl transition-transform transform active:scale-95 grid-square border-2 border-transparent select-none`;
+                    btn.innerText = cat.title;
+                    btn.disabled = cat.solved;
+                    if (!cat.solved) {
+                        btn.onclick = () => app.openCategory(cat.id);
+                    }
+                    grid.appendChild(btn);
+                });
+            },
+
+            openCategory: (id) => {
+                app.currentCategory = app.data.find(c => c.id === id);
+                document.getElementById('current-category-title').innerText = app.currentCategory.title;
+                document.getElementById('view-grid').classList.add('hidden');
+                document.getElementById('view-question').classList.remove('hidden');
+                app.isEditing = false;
+                document.getElementById('edit-container').classList.add('hidden');
+                document.getElementById('answers-container').classList.remove('hidden');
+                
+                app.renderAnswers();
+                app.renderTurnSelector();
+                document.getElementById('transcript-display').innerText = "Tap Listen...";
+            },
+
+            closeQuestion: () => {
+                const allRevealed = app.currentCategory.answers.every(a => a.revealed);
+                if (allRevealed) app.currentCategory.solved = true;
+                if (app.isListening) app.toggleMic();
+
+                app.saveDataToStorage(); // Ensure state is saved
+                document.getElementById('view-question').classList.add('hidden');
+                document.getElementById('view-grid').classList.remove('hidden');
+                app.renderGrid();
+                
+                // Rotate team on exit? Or let teacher decide. 
+                // Let's simple rotate team index for next round to be fair
+                app.currentTeamIndex = (app.currentTeamIndex + 1) % app.teamCount;
+            },
+
+            // --- EDITING ---
+            toggleEditMode: () => {
+                app.isEditing = !app.isEditing;
+                const view = document.getElementById('answers-container');
+                const edit = document.getElementById('edit-container');
+
+                if (app.isEditing) {
+                    view.classList.add('hidden');
+                    edit.classList.remove('hidden');
+                    // Populate inputs
+                    document.getElementById('edit-title').value = app.currentCategory.title;
+                    const rows = document.getElementById('edit-rows');
+                    rows.innerHTML = '';
+                    app.currentCategory.answers.forEach((ans, idx) => {
+                        rows.innerHTML += `
+                            <div class="flex gap-2">
+                                <span class="p-2 font-bold w-8">${idx+1}</span>
+                                <input type="text" class="edit-word flex-grow p-2 border rounded" value="${ans.word}" placeholder="Word">
+                                <input type="number" class="edit-points w-16 p-2 border rounded" value="${ans.points}" placeholder="Pts">
+                            </div>
+                        `;
+                    });
+                } else {
+                    view.classList.remove('hidden');
+                    edit.classList.add('hidden');
+                }
+            },
+
+            saveEdits: () => {
+                // Update Title
+                app.currentCategory.title = document.getElementById('edit-title').value;
+                document.getElementById('current-category-title').innerText = app.currentCategory.title;
+
+                // Update Answers
+                const wordInputs = document.querySelectorAll('.edit-word');
+                const pointInputs = document.querySelectorAll('.edit-points');
+                
+                app.currentCategory.answers.forEach((ans, idx) => {
+                    ans.word = wordInputs[idx].value;
+                    ans.points = parseInt(pointInputs[idx].value) || 1;
+                });
+
+                app.saveDataToStorage();
+                app.toggleEditMode(); // Close edit mode
+                app.renderAnswers();
+            },
+
+            // --- GAMEPLAY UI ---
+            renderAnswers: () => {
+                const container = document.getElementById('answers-container');
+                container.innerHTML = '';
+                
+                app.currentCategory.answers.forEach((ans, idx) => {
+                    const div = document.createElement('div');
+                    
+                    if (ans.revealed) {
+                        div.className = "flex items-center justify-between bg-green-100 border-2 border-green-500 rounded-lg p-3 md:p-4 shadow-sm pop-in";
+                        div.innerHTML = `
+                            <span class="text-xl md:text-2xl font-bold text-green-900">${ans.word}</span>
+                            <span class="text-lg font-bold bg-white text-green-700 px-3 py-1 rounded-full shadow-sm min-w-[3rem] text-center">${ans.points}</span>
+                        `;
+                    } else {
+                        div.className = "flex items-center justify-between hidden-word rounded-lg p-3 md:p-4 shadow-md cursor-pointer hover:opacity-90 active:scale-98 transition select-none";
+                        div.onclick = () => app.revealAnswer(idx); 
+                        div.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-800 text-white flex items-center justify-center font-bold shadow">${idx + 1}</div>
+                                <span class="text-white font-bold opacity-0">SECRET</span>
+                            </div>
+                            <span class="text-lg font-bold text-white drop-shadow-md">${ans.points} pts</span>
+                        `;
+                    }
+                    container.appendChild(div);
+                });
+            },
+
+            renderTurnSelector: () => {
+                const container = document.getElementById('turn-selector');
+                container.innerHTML = '';
+                app.teams.forEach((team, idx) => {
+                    const btn = document.createElement('button');
+                    const isActive = app.currentTeamIndex === idx;
+                    
+                    const activeClasses = "ring-4 ring-offset-1 ring-blue-400 opacity-100 transform scale-105 shadow-lg z-10";
+                    const inactiveClasses = "opacity-40 hover:opacity-80 scale-95 grayscale";
+                    
+                    btn.className = `${team.color} text-white py-2 px-1 rounded-lg font-bold text-xs md:text-sm truncate transition-all duration-300 ${isActive ? activeClasses : inactiveClasses}`;
+                    btn.innerHTML = `${team.name}`;
+                    btn.onclick = () => {
+                        app.currentTeamIndex = idx;
+                        app.renderTurnSelector();
+                    };
+                    container.appendChild(btn);
+                });
+            },
+
+            updateScoreboard: () => {
+                const board = document.getElementById('scoreboard');
+                board.innerHTML = '';
+                app.teams.forEach(team => {
+                    const div = document.createElement('div');
+                    div.className = "flex flex-col items-center min-w-[3rem]";
+                    div.innerHTML = `
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${team.name}</div>
+                        <div class="text-xl font-bold ${team.color.replace('bg-', 'text-')}">${team.score}</div>
+                    `;
+                    board.appendChild(div);
+                });
+            },
+
+            // --- ACTIONS ---
+            revealAnswer: (index) => {
+                const ans = app.currentCategory.answers[index];
+                if (ans.revealed) return;
+
+                ans.revealed = true;
+                app.teams[app.currentTeamIndex].score += ans.points;
+                app.playSound('correct');
+                app.renderAnswers();
+                app.updateScoreboard();
+                app.saveDataToStorage();
+            },
+
+            revealAll: () => {
+                // When revealing remaining, do we give points? 
+                // Usually no points for reveal all at end of round.
+                app.currentCategory.answers.forEach((ans) => {
+                    if (!ans.revealed) ans.revealed = true;
+                });
+                app.renderAnswers();
+                app.currentCategory.solved = true;
+                app.saveDataToStorage();
+            },
+
+            // --- SPEECH ---
+            initSpeech: () => {
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    app.recognition = new SpeechRecognition();
+                    app.recognition.continuous = false;
+                    app.recognition.lang = 'en-US';
+                    app.recognition.interimResults = true;
+
+                    app.recognition.onstart = () => {
+                        app.isListening = true;
+                        const btn = document.getElementById('mic-btn');
+                        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Listening...`;
+                        btn.classList.add('bg-red-500', 'mic-pulse');
+                        btn.classList.remove('bg-blue-600');
+                    };
+
+                    app.recognition.onend = () => {
+                        app.isListening = false;
+                        const btn = document.getElementById('mic-btn');
+                        btn.innerHTML = `<i class="fas fa-microphone"></i> LISTEN`;
+                        btn.classList.remove('bg-red-500', 'mic-pulse');
+                        btn.classList.add('bg-blue-600');
+                    };
+
+                    app.recognition.onresult = (event) => {
+                        let transcript = '';
+                        for (let i = event.resultIndex; i < event.results.length; ++i) {
+                            transcript += event.results[i][0].transcript;
+                        }
+                        
+                        document.getElementById('transcript-display').innerText = transcript;
+
+                        if (event.results[0].isFinal) {
+                            app.checkMatch(transcript);
+                        }
+                    };
+
+                    app.recognition.onerror = (event) => {
+                        // iOS often throws 'no-speech' if silent, ignore it visually
+                        if(event.error !== 'no-speech') {
+                            document.getElementById('transcript-display').innerText = "Try again.";
+                        }
+                        app.isListening = false;
+                    };
+                } else {
+                    document.getElementById('mic-btn').innerHTML = "Mic Not Supported";
+                    document.getElementById('mic-btn').disabled = true;
+                    document.getElementById('mic-btn').classList.add('bg-gray-400');
+                }
+            },
+
+            toggleMic: () => {
+                if (!app.recognition) return;
+                if (app.isListening) {
+                    app.recognition.stop();
+                } else {
+                    try {
+                        app.recognition.start();
+                    } catch(e) {
+                        // Handle restart too quickly
+                        console.log("Mic restart error", e);
+                    }
+                }
+            },
+
+            checkMatch: (spokenText) => {
+                if (!app.currentCategory || app.isEditing) return;
+
+                const cleanSpoken = spokenText.trim().toLowerCase();
+                let matchFound = false;
+
+                app.currentCategory.answers.forEach((ans, idx) => {
+                    if (ans.revealed) return;
+
+                    const cleanAnswer = ans.word.toLowerCase();
+                    
+                    // FUZZY LOGIC
+                    // 1. Direct includes: "I see a blue bird" matches "bird"
+                    // 2. Exact match for short words: "Bat" != "Battery"
+                    
+                    let isMatch = false;
+                    if (cleanAnswer.length <= 3) {
+                         // Strict for short words
+                        if (cleanSpoken.split(' ').includes(cleanAnswer)) isMatch = true;
+                    } else {
+                        // Loose for longer words
+                        if (cleanSpoken.includes(cleanAnswer)) isMatch = true;
+                        
+                        // Handle plural 's' simply
+                        if (cleanSpoken.includes(cleanAnswer + 's')) isMatch = true;
+                        if (cleanAnswer.endsWith('s') && cleanSpoken.includes(cleanAnswer.slice(0, -1))) isMatch = true;
+                    }
+
+                    if (isMatch) {
+                        app.revealAnswer(idx);
+                        matchFound = true;
+                    }
+                });
+            },
+
+            playSound: (type) => {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                if (type === 'correct') {
+                    // Happy ping
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.5);
+                }
+            }
+        };
+
+        window.onload = app.init;
+
+    </script>
+</body>
+</html>
