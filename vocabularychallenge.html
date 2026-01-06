@@ -140,11 +140,6 @@
         const GAME_DURATION = 45; // Seconds
         
         // --- DATA STRUCTURE ---
-        // To add a new category:
-        // 1. Add a new key (e.g., 'farm_animals')
-        // 2. Add an array of objects inside it.
-        // 3. For images, use type: 'image' and val: 'assets/filename.png'
-        
         const GAME_DATA = {
             colors: [
                 { id: 'red', keywords: ['red', 'read'], type: 'color', val: '#EF4444' }, 
@@ -165,13 +160,6 @@
                 { id: 'cow', keywords: ['cow'], type: 'image', val: 'assets/cow.jpg' },
                 { id: 'duck', keywords: ['duck'], type: 'image', val: 'assets/duck.jpg' },
                 { id: 'fox', keywords: ['fox'], type: 'image', val: 'assets/fox.jpg' }
-            ],
-            // Placeholder category for testing without assets
-            shapes: [
-                { id: 'circle', keywords: ['circle'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Circle' },
-                { id: 'square', keywords: ['square'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Square' },
-                { id: 'triangle', keywords: ['triangle'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Triangle' },
-                { id: 'star', keywords: ['star'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Star' }
             ]
         };
 
@@ -193,17 +181,26 @@
         let timerInterval;
 
         // --- INITIALIZATION ---
-        window.onload = () => {
-            // Populate Dropdown
+        
+        // 1. Populate Dropdown IMMEDIATELY (Fixes iPad "No Categories" issue)
+        // We do this before window.onload to ensure options exist when page renders.
+        try {
             const select = document.getElementById('categorySelect');
-            Object.keys(GAME_DATA).forEach(key => {
-                const opt = document.createElement('option');
-                opt.value = key;
-                // Capitalize first letter
-                opt.textContent = key.charAt(0).toUpperCase() + key.slice(1);
-                select.appendChild(opt);
-            });
+            if (select) {
+                Object.keys(GAME_DATA).forEach(key => {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    // Capitalize first letter
+                    opt.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+                    select.appendChild(opt);
+                });
+            }
+        } catch (e) {
+            console.error("Error populating dropdown:", e);
+        }
 
+        // 2. Browser Checks on Load
+        window.onload = () => {
             // Check Support
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert("Sorry, your browser doesn't support Voice Control. Please use Chrome or Safari.");
@@ -249,7 +246,9 @@
 
         function startGame() {
             // Get selected category
-            const selectedCat = document.getElementById('categorySelect').value;
+            const selectEl = document.getElementById('categorySelect');
+            const selectedCat = selectEl.value || 'colors'; // Fallback if empty
+            
             state.currentCategory = selectedCat;
             document.getElementById('currentLevelName').textContent = selectedCat.toUpperCase();
 
