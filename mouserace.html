@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Classroom Maze</title>
+    <title>Mouse Maze 3 (Forest Edition)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,8 +17,8 @@
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Retro Font -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 
     <style>
         /* iOS Safari Specific Tweaks */
@@ -26,39 +26,111 @@
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior: none;
-            background-color: #000;
+            background-color: #7dd3fc; /* Sky Blue */
+            font-family: 'VT323', monospace;
+            color: #451a03; /* Dark Brown Text */
         }
         
+        /* Pixel Art Rendering */
+        canvas, img, svg {
+            image-rendering: pixelated;
+            shape-rendering: crispEdges;
+        }
+
+        .maze-container {
+            position: relative;
+            background-color: #22c55e;
+            border: 8px solid #713f12; /* Wood border */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
         .maze-grid {
             display: grid;
-            gap: 1px; /* Tighter gap for larger grid */
-            background-color: #000;
-            border: 4px solid #1e293b;
+            gap: 0px; 
+            width: 100%;
+            height: 100%;
         }
         
         .cell {
             position: relative;
-            background-color: #e2e8f0; /* Path */
             aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+
+        /* --- FOREST TEXTURES --- */
         
+        /* Grass Floor */
+        .floor {
+            background-color: #86efac; /* Light Green */
+            /* Random grass tufts pattern using gradients */
+            background-image: 
+                radial-gradient(#4ade80 15%, transparent 16%),
+                radial-gradient(#4ade80 15%, transparent 16%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        
+        /* Hedge/Tree Wall */
         .wall {
-            background-color: #0f172a; /* Wall */
+            background-color: #14532d; /* Dark Green */
+            /* Leafy texture */
+            background-image: 
+                radial-gradient(circle at 50% 50%, #166534 40%, transparent 41%),
+                radial-gradient(circle at 0% 0%, #166534 30%, transparent 31%),
+                radial-gradient(circle at 100% 100%, #166534 30%, transparent 31%),
+                radial-gradient(circle at 0% 100%, #166534 30%, transparent 31%),
+                radial-gradient(circle at 100% 0%, #166534 30%, transparent 31%);
+            background-size: 20px 20px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+            border-radius: 4px; /* Slightly rounded for bushes */
         }
         
-        .start {
-            background-color: #60a5fa; /* Start Zone (Blue) */
+        /* Dirt Path (Start) */
+        .start { 
+            background-color: #d97706; /* Amber/Dirt */
+            background-image: repeating-linear-gradient(45deg, #b45309 0, #b45309 2px, transparent 2px, transparent 8px);
+            opacity: 0.9;
         }
         
-        .end {
-            background-color: #fef9c3; /* End Zone (Pale Yellow) */
+        /* Cheese Zone (End) - Reverted from Lake */
+        .end { 
+            background-color: #fef9c3; /* Light Yellow */
+            opacity: 0.5;
+        }
+
+        /* --- JUICE ANIMATIONS --- */
+        
+        @keyframes idle-bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
         
-        .character {
-            transition: all 0.3s ease-in-out;
+        @keyframes hop {
+            0% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.2) translateY(-10%); }
+            100% { transform: scale(1) translateY(0); }
+        }
+
+        @keyframes bonk {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-5deg); }
+            75% { transform: translateX(5px) rotate(5deg); }
+            100% { transform: translateX(0); }
+        }
+
+        .animate-idle {
+            animation: idle-bounce 2s infinite ease-in-out;
+        }
+
+        .animate-hop {
+            animation: hop 0.3s ease-out;
+        }
+
+        .animate-bonk {
+            animation: bonk 0.2s ease-in-out;
         }
 
         .safe-padding {
@@ -66,9 +138,17 @@
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
         }
+
+        /* Wood UI Panel */
+        .ui-panel {
+            background-color: #fef3c7; /* Parchment */
+            border: 4px solid #78350f; /* Wood */
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
     </style>
 </head>
-<body class="h-[100dvh] w-screen overflow-hidden text-white">
+<body class="h-[100dvh] w-screen overflow-hidden">
     <div id="root" class="h-full w-full"></div>
 
     <script type="text/babel">
@@ -77,10 +157,9 @@
         // --- Game Constants ---
         const GRID_SIZE = 11;
         
-        // 0: Empty, 1: Wall, 2: Start, 3: End
         const LEVEL_1 = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 0, 1, 0, 0, 0, 1, 0, 0, 1], // Start at 1,1
+            [1, 2, 0, 1, 0, 0, 0, 1, 0, 0, 1],
             [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
             [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
             [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
@@ -88,15 +167,13 @@
             [1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
             [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
             [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1], // End at 9,9
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         ];
 
-        // Initial Positions
         const INITIAL_PLAYER = { x: 1, y: 1, dir: 1 };
-        const INITIAL_CAT = { x: 9, y: 1 }; // Top right corner
+        const INITIAL_CAT = { x: 9, y: 1 };
 
-        // Directions: 0: Up, 1: Right, 2: Down, 3: Left
         const DIRECTIONS = [
             { dx: 0, dy: -1, label: 'North' },
             { dx: 1, dy: 0, label: 'East' },
@@ -121,30 +198,33 @@
             if (!audioCtxRef.current) return;
             const osc = audioCtxRef.current.createOscillator();
             const gain = audioCtxRef.current.createGain();
-            osc.type = type;
+            osc.type = type; 
             osc.frequency.setValueAtTime(freq, audioCtxRef.current.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtxRef.current.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtxRef.current.currentTime + duration);
+            
+            // Softer envelope for forest vibes
+            gain.gain.setValueAtTime(0.05, audioCtxRef.current.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtxRef.current.currentTime + duration);
+            
             osc.connect(gain);
             gain.connect(audioCtxRef.current.destination);
             osc.start();
             osc.stop(audioCtxRef.current.currentTime + duration);
         };
 
-        const playMoveSound = () => playTone(300, 'sine', 0.1);
+        const playMoveSound = () => playTone(400, 'sine', 0.1); 
         const playBumpSound = () => playTone(150, 'sawtooth', 0.2);
         const playWinSound = () => {
-            playTone(400, 'sine', 0.1);
-            setTimeout(() => playTone(600, 'sine', 0.1), 100);
-            setTimeout(() => playTone(800, 'sine', 0.2), 200);
+            playTone(523.25, 'sine', 0.1); // C5
+            setTimeout(() => playTone(659.25, 'sine', 0.1), 100); // E5
+            setTimeout(() => playTone(783.99, 'sine', 0.2), 200); // G5
         };
         const playLoseSound = () => {
             playTone(300, 'sawtooth', 0.2);
             setTimeout(() => playTone(200, 'sawtooth', 0.4), 200);
         };
-        const playListenSound = () => playTone(800, 'sine', 0.05);
+        const playListenSound = () => playTone(880, 'sine', 0.1);
 
-        // --- Logic: BFS for Cat Pathfinding ---
+        // --- Cat Logic (BFS) ---
         const getNextCatMove = (catPos, playerPos, grid) => {
             const queue = [{ x: catPos.x, y: catPos.y, path: [] }];
             const visited = new Set();
@@ -156,14 +236,9 @@
                 const current = queue.shift();
                 const { x, y, path } = current;
 
-                if (x === playerPos.x && y === playerPos.y) {
-                    return path.length > 0 ? path[0] : catPos;
-                }
+                if (x === playerPos.x && y === playerPos.y) return path.length > 0 ? path[0] : catPos;
 
-                const moves = [
-                    {dx: 0, dy: -1}, {dx: 0, dy: 1}, 
-                    {dx: -1, dy: 0}, {dx: 1, dy: 0}
-                ];
+                const moves = [{dx: 0, dy: -1}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 1, dy: 0}];
 
                 for (const move of moves) {
                     const nx = x + move.dx;
@@ -173,11 +248,7 @@
                         const posKey = `${nx},${ny}`;
                         if (cell !== 1 && !visited.has(posKey)) {
                             visited.add(posKey);
-                            queue.push({
-                                x: nx,
-                                y: ny,
-                                path: [...path, {x: nx, y: ny}]
-                            });
+                            queue.push({ x: nx, y: ny, path: [...path, {x: nx, y: ny}] });
                         }
                     }
                 }
@@ -185,59 +256,52 @@
             return catPos;
         };
 
-
         // --- Main Component ---
         function App() {
-            // Game State
-            const [gameState, setGameState] = useState('START'); // START, PLAYING, WON, LOST
+            const [gameState, setGameState] = useState('START');
             const [player, setPlayer] = useState(INITIAL_PLAYER);
             const [cat, setCat] = useState(INITIAL_CAT);
-            const [grid, setGrid] = useState(LEVEL_1);
-            
-            // Speech State
             const [isListening, setIsListening] = useState(false);
             const [transcript, setTranscript] = useState("");
-            const [errorMsg, setErrorMsg] = useState("");
-
-            // Refs
+            
+            // Animation States
+            const [playerAnim, setPlayerAnim] = useState(""); 
+            
             const recognitionRef = useRef(null);
             const playerRef = useRef(player);
             const catRef = useRef(cat);
-            const gridRef = useRef(grid);
             const gameStateRef = useRef(gameState);
             const shouldListenRef = useRef(false);
 
-            // Sync Refs
             useEffect(() => { playerRef.current = player; }, [player]);
             useEffect(() => { catRef.current = cat; }, [cat]);
-            useEffect(() => { gridRef.current = grid; }, [grid]);
             useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
-            // --- Game Logic ---
+            const triggerAnim = (type) => {
+                setPlayerAnim(""); 
+                setTimeout(() => setPlayerAnim(type), 10);
+            };
+
             const resetGame = () => {
                 setPlayer(INITIAL_PLAYER);
                 setCat(INITIAL_CAT);
                 setGameState('PLAYING');
                 setTranscript("Ready!");
+                setPlayerAnim("");
                 initAudio();
             };
 
-            const isValidMove = (x, y) => {
-                if (x < 0 || y < 0 || x >= GRID_SIZE || y >= GRID_SIZE) return false;
-                return gridRef.current[y][x] !== 1; // 1 is Wall
-            };
-
             const checkGameStatus = (pPos, cPos) => {
-                if (gridRef.current[pPos.y][pPos.x] === 3) {
+                if (LEVEL_1[pPos.y][pPos.x] === 3) {
                     setGameState('WON');
                     playWinSound();
-                    speak("You won!");
+                    speak("Yummy! You found the cheese!");
                     return true;
                 }
                 if (pPos.x === cPos.x && pPos.y === cPos.y) {
                     setGameState('LOST');
                     playLoseSound();
-                    speak("Oh no! The cat caught you.");
+                    speak("Oh no! The cat caught you!");
                     return true;
                 }
                 return false;
@@ -250,17 +314,13 @@
                 }
             };
 
-            const processCommandRef = useRef();
-            processCommandRef.current = (text) => {
+            const processCommand = (text) => {
                 if (gameStateRef.current !== 'PLAYING') return;
 
                 const p = playerRef.current;
                 const c = catRef.current;
-                
-                // Cleanup text: Remove punctuation, force lowercase
                 const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase();
                 
-                // Commands Configuration
                 const commands = [
                     { phrase: "go forward", action: "Forward", type: "move", dx: DIRECTIONS[p.dir].dx, dy: DIRECTIONS[p.dir].dy },
                     { phrase: "go back", action: "Back", type: "move", dx: -DIRECTIONS[p.dir].dx, dy: -DIRECTIONS[p.dir].dy },
@@ -268,8 +328,7 @@
                     { phrase: "turn right", action: "Turn Right", type: "turn", change: 1 }
                 ];
 
-                // FIND FIRST OCCURRENCE Logic
-                // We search for which command appears *earliest* in the string
+                // First Match Logic
                 let bestCommand = null;
                 let minIndex = Infinity;
 
@@ -282,95 +341,84 @@
                 });
 
                 if (bestCommand) {
-                    setTranscript(`Cmd: ${bestCommand.action}`);
+                    setTranscript(`${bestCommand.action}`);
                     
                     let newX = p.x;
                     let newY = p.y;
                     let newDir = p.dir;
-                    let didMove = false;
+                    let nextPlayerPos = { ...p }; // Default to current state if no move success or just turn
 
+                    // 1. EXECUTE PLAYER ACTION
                     if (bestCommand.type === "turn") {
                         newDir = (p.dir + bestCommand.change + 4) % 4;
-                        setPlayer({ ...p, dir: newDir });
+                        nextPlayerPos = { ...p, dir: newDir };
+                        setPlayer(nextPlayerPos);
                         playMoveSound();
+                        triggerAnim("animate-hop");
                     } else if (bestCommand.type === "move") {
                         newX += bestCommand.dx;
                         newY += bestCommand.dy;
-                        didMove = true;
                         
-                        if (isValidMove(newX, newY)) {
-                             const nextPlayerPos = { ...p, x: newX, y: newY };
+                        // Check Wall
+                        if (newX >= 0 && newY >= 0 && newX < GRID_SIZE && newY < GRID_SIZE && LEVEL_1[newY][newX] !== 1) {
+                            nextPlayerPos = { ...p, x: newX, y: newY };
                             setPlayer(nextPlayerPos);
                             playMoveSound();
+                            triggerAnim("animate-hop");
 
-                            // Check collisions immediately
+                            // Check immediate Win before Cat moves
                             if (checkGameStatus(nextPlayerPos, c)) return;
-
-                            // Move Cat (Only if player moved)
-                            const nextCatPos = getNextCatMove(c, nextPlayerPos, gridRef.current);
-                            setCat(nextCatPos);
-
-                            // Check collisions after cat moves
-                            setTimeout(() => {
-                                checkGameStatus(nextPlayerPos, nextCatPos);
-                            }, 50);
 
                         } else {
                             playBumpSound();
-                            setTranscript("Bonk! Wall.");
+                            triggerAnim("animate-bonk");
+                            setTranscript("BONK!");
+                            // Player pos remains same (p), but we still trigger Cat
                         }
                     }
+
+                    // 2. CAT MOVES EVERY TURN (Unless player already won above)
+                    // Note: We use nextPlayerPos (the state AFTER player action)
+                    const nextCatPos = getNextCatMove(c, nextPlayerPos, LEVEL_1);
+                    setCat(nextCatPos);
+                    
+                    // 3. CHECK LOSS (Did cat catch player?)
+                    setTimeout(() => checkGameStatus(nextPlayerPos, nextCatPos), 50);
+
                 } else {
-                    // Just show a snippet of what was heard for debugging
                     const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
-                    setTranscript(`Ignored: "${display}"`);
+                    setTranscript(`? "${display}"`);
                 }
             };
 
-            // --- Speech Initialization ---
+            // Speech Setup
             useEffect(() => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
                     recognition.continuous = true;
                     recognition.interimResults = false;
                     recognition.lang = 'en-US';
 
-                    recognition.onstart = () => { setIsListening(true); setTranscript("Listening..."); setErrorMsg(""); };
+                    recognition.onstart = () => { setIsListening(true); setTranscript("Listening..."); };
                     recognition.onend = () => {
                         setIsListening(false);
                         if (shouldListenRef.current && gameStateRef.current === 'PLAYING') {
                             try { recognition.start(); } catch (e) {}
                         }
                     };
-                    recognition.onerror = (event) => {
-                        if (event.error === 'not-allowed') {
-                            setErrorMsg("Microphone denied.");
-                            shouldListenRef.current = false;
-                            setIsListening(false);
-                        }
-                    };
                     recognition.onresult = (event) => {
                         const latestResult = event.results[event.results.length - 1];
-                        if (latestResult.isFinal) processCommandRef.current(latestResult[0].transcript);
+                        if (latestResult.isFinal) processCommand(latestResult[0].transcript);
                     };
                     recognitionRef.current = recognition;
-                } else {
-                    setErrorMsg("Browser not supported.");
                 }
-
-                return () => {
-                    shouldListenRef.current = false;
-                    if (recognitionRef.current) recognitionRef.current.abort();
-                };
+                return () => { shouldListenRef.current = false; if (recognitionRef.current) recognitionRef.current.abort(); };
             }, []);
 
-            // --- Manual Controls ---
             const toggleListen = () => {
                 if (!recognitionRef.current) return;
                 initAudio();
-                
                 if (isListening) {
                     shouldListenRef.current = false;
                     recognitionRef.current.stop();
@@ -381,141 +429,140 @@
                 }
             };
 
-            // --- Icons ---
-            const getMouseRotation = () => player.dir * 90;
-            
-            const MouseIcon = () => (
-                <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: `rotate(${getMouseRotation()}deg)`, transition: 'transform 0.3s' }}>
-                    <path d="M12 2L19 22L12 18L5 22L12 2Z" fill="#3b82f6" />
-                </svg>
-            );
-            
-            const CatIcon = () => (
-                <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" fill="#ef4444" opacity="0.8" />
-                    <path d="M8 8L16 16M16 8L8 16" stroke="white" strokeWidth="3" />
-                    <circle cx="9" cy="9" r="1.5" fill="black"/>
-                    <circle cx="15" cy="9" r="1.5" fill="black"/>
-                    <path d="M10 16 Q12 18 14 16" stroke="black" fill="transparent"/>
+            // --- Pixel Art SVGs (Same shapes, different context) ---
+            const PixelMouse = () => (
+                <svg viewBox="0 0 16 16" width="80%" height="80%" style={{ transform: `rotate(${player.dir * 90}deg)`, transition: 'transform 0.2s' }}>
+                    <rect x="5" y="4" width="6" height="8" fill="#e2e8f0" /> {/* White/Grey Mouse */}
+                    <rect x="4" y="2" width="3" height="3" fill="#94a3b8" />
+                    <rect x="9" y="2" width="3" height="3" fill="#94a3b8" />
+                    <rect x="7" y="12" width="2" height="3" fill="#f472b6" />
+                    <rect x="6" y="5" width="1" height="1" fill="#000" />
+                    <rect x="9" y="5" width="1" height="1" fill="#000" />
                 </svg>
             );
 
-            const CheeseIcon = () => (
-                 <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" fill="#facc15" stroke="none"/>
-                    <circle cx="8" cy="8" r="1.5" fill="#ca8a04"/>
-                    <circle cx="16" cy="14" r="2" fill="#ca8a04"/>
-                    <circle cx="10" cy="16" r="1" fill="#ca8a04"/>
-                    <circle cx="15" cy="7" r="1" fill="#ca8a04"/>
-                    <circle cx="12" cy="12" r="10" fill="none" stroke="#ca8a04" strokeWidth="2"/>
+            const PixelCat = () => (
+                <svg viewBox="0 0 16 16" width="80%" height="80%">
+                    <rect x="4" y="4" width="8" height="7" fill="#f97316" /> {/* Orange Tabby */}
+                    <path d="M4 4 L4 1 L7 4 Z" fill="#c2410c" />
+                    <path d="M12 4 L12 1 L9 4 Z" fill="#c2410c" />
+                    <rect x="5" y="6" width="2" height="1" fill="#fff" />
+                    <rect x="9" y="6" width="2" height="1" fill="#fff" />
+                    <rect x="6" y="6" width="1" height="1" fill="#000" />
+                    <rect x="9" y="6" width="1" height="1" fill="#000" />
+                    <rect x="7" y="8" width="2" height="1" fill="#000" />
+                </svg>
+            );
+
+            const PixelCheese = () => (
+                <svg viewBox="0 0 16 16" width="80%" height="80%">
+                    <rect x="4" y="6" width="8" height="6" fill="#facc15" />
+                    <rect x="6" y="4" width="4" height="2" fill="#facc15" />
+                    <rect x="5" y="7" width="1" height="1" fill="#ca8a04" />
+                    <rect x="8" y="9" width="1" height="1" fill="#ca8a04" />
+                    <rect x="10" y="7" width="1" height="1" fill="#ca8a04" />
                 </svg>
             );
 
             return (
-                <div className="safe-padding flex flex-col md:flex-row h-full w-full items-center justify-center p-4 gap-6 bg-black">
+                <div className="safe-padding flex flex-col md:flex-row h-full w-full items-center justify-center p-4 gap-6">
                     
-                    {/* LEFT SIDE: MAZE */}
+                    {/* Left: Maze */}
                     <div className="flex-1 h-full max-h-[95vh] aspect-square flex items-center justify-center relative">
                         
-                        {/* Overlays */}
+                        {/* Start Screen */}
                         {gameState === 'START' && (
-                            <div className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm border border-slate-700">
-                                <h2 className="text-white text-4xl font-bold mb-6">Classroom Maze</h2>
-                                <button onClick={resetGame} className="px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-2xl shadow-lg">
-                                    Start Game
+                            <div className="absolute inset-0 z-20 bg-green-800/90 flex flex-col items-center justify-center rounded-lg border-4 border-amber-300 shadow-2xl">
+                                <h1 className="text-6xl text-amber-300 mb-2 tracking-widest text-shadow">FOREST MAZE</h1>
+                                <p className="text-xl text-green-100 mb-8 font-mono">PIXEL FOREST EDITION</p>
+                                <button onClick={resetGame} className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-amber-900 text-2xl font-bold border-b-4 border-amber-800 active:border-b-0 active:translate-y-1 transition-all rounded">
+                                    START ADVENTURE
                                 </button>
                             </div>
                         )}
 
+                        {/* End Screens */}
                         {gameState === 'WON' && (
-                            <div className="absolute inset-0 z-20 bg-green-900/90 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm border border-green-500">
-                                <h2 className="text-white text-5xl font-bold mb-6">Great Job! 🎉</h2>
-                                <button onClick={resetGame} className="px-10 py-5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-2xl shadow-lg">
-                                    Play Again
+                            <div className="absolute inset-0 z-20 bg-yellow-500/90 flex flex-col items-center justify-center rounded-lg border-4 border-white">
+                                <h2 className="text-6xl text-white mb-4 animate-bounce">YUMMY!</h2>
+                                <p className="text-xl text-yellow-100 mb-6">You found the cheese!</p>
+                                <button onClick={resetGame} className="px-8 py-4 bg-white text-yellow-600 text-2xl font-bold border-b-4 border-yellow-200 active:border-b-0 active:translate-y-1 rounded">
+                                    PLAY AGAIN
                                 </button>
                             </div>
                         )}
-
                         {gameState === 'LOST' && (
-                            <div className="absolute inset-0 z-20 bg-red-900/90 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm border border-red-500">
-                                <h2 className="text-white text-5xl font-bold mb-6">Cat Caught You! 🙀</h2>
-                                <button onClick={resetGame} className="px-10 py-5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-2xl shadow-lg">
-                                    Try Again
+                            <div className="absolute inset-0 z-20 bg-red-800/90 flex flex-col items-center justify-center rounded-lg border-4 border-red-400">
+                                <h2 className="text-6xl text-red-200 mb-4">OH NO!</h2>
+                                <button onClick={resetGame} className="px-8 py-4 bg-red-500 hover:bg-red-400 text-white text-2xl font-bold border-b-4 border-red-800 active:border-b-0 active:translate-y-1 rounded">
+                                    TRY AGAIN
                                 </button>
                             </div>
                         )}
 
-                        <div 
-                            className="maze-grid rounded-lg overflow-hidden shadow-2xl w-full h-full"
-                            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
-                        >
-                            {grid.map((row, y) => (
-                                row.map((cell, x) => (
-                                    <div key={`${x}-${y}`} className={`cell ${cell === 1 ? 'wall' : cell === 2 ? 'start' : cell === 3 ? 'end' : ''}`}>
-                                        
-                                        {/* Player */}
-                                        {player.x === x && player.y === y && (
-                                            <div className="absolute inset-0 flex items-center justify-center z-10 text-blue-500">
-                                                <MouseIcon />
-                                            </div>
-                                        )}
-                                        
-                                        {/* Cat */}
-                                        {cat.x === x && cat.y === y && (
-                                            <div className="absolute inset-0 flex items-center justify-center z-10 text-red-500">
-                                                <CatIcon />
-                                            </div>
-                                        )}
+                        <div className="maze-container w-full h-full">
+                            <div className="maze-grid" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
+                                {LEVEL_1.map((row, y) => (
+                                    row.map((cell, x) => (
+                                        <div key={`${x}-${y}`} className={`cell ${cell === 1 ? 'wall' : 'floor'} ${cell === 2 ? 'start' : cell === 3 ? 'end' : ''}`}>
+                                            
+                                            {/* Player */}
+                                            {player.x === x && player.y === y && (
+                                                <div className={`absolute inset-0 z-10 flex items-center justify-center ${playerAnim || 'animate-idle'}`}>
+                                                    <PixelMouse />
+                                                </div>
+                                            )}
+                                            
+                                            {/* Cat */}
+                                            {cat.x === x && cat.y === y && (
+                                                <div className="absolute inset-0 z-10 flex items-center justify-center animate-idle">
+                                                    <PixelCat />
+                                                </div>
+                                            )}
 
-                                        {/* Goal */}
-                                        {cell === 3 && (
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-100">
-                                                <CheeseIcon />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
-                            ))}
+                                            {/* Goal */}
+                                            {cell === 3 && (
+                                                <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+                                                    <PixelCheese />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                ))}
+                            </div>
                         </div>
                     </div>
 
-                    {/* RIGHT SIDE: CONTROLS */}
-                    <div className="w-full md:w-1/3 flex flex-col gap-6 justify-center">
+                    {/* Right: Controls */}
+                    <div className="w-full md:w-1/3 flex flex-col gap-6 justify-center p-4">
                         
-                        {/* Status Box */}
-                        <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl text-center">
-                            <h2 className="text-slate-400 text-sm uppercase tracking-wider mb-2">Command Heard</h2>
-                            <div className="text-2xl font-mono font-bold text-yellow-400 min-h-[40px]">
-                                {transcript || "..."}
+                        <div className="ui-panel p-6 relative">
+                            <div className="absolute -top-3 left-4 bg-amber-100 px-2 text-amber-900 border border-amber-900 text-sm font-bold rounded">COMMAND LOG</div>
+                            <div className="text-4xl text-green-700 text-center uppercase tracking-widest h-12 flex items-center justify-center">
+                                {transcript || "READY"}
                             </div>
                         </div>
                         
-                        {/* Big Start/Stop Button */}
                         <button 
-                            className={`w-full py-8 rounded-2xl font-bold text-3xl shadow-lg transition-all border-4 ${
+                            className={`w-full py-6 text-3xl font-bold uppercase tracking-widest transition-all border-b-8 active:border-b-0 active:translate-y-2 rounded shadow-lg ${
                                 isListening 
-                                    ? 'bg-red-600 border-red-800 text-white animate-pulse' 
-                                    : 'bg-green-600 border-green-800 text-white hover:bg-green-500'
+                                    ? 'bg-red-500 border-red-800 text-white animate-pulse' 
+                                    : 'bg-green-500 border-green-800 text-white hover:bg-green-400'
                             }`}
                             onMouseDown={toggleListen}
                             onTouchStart={toggleListen}
-                            disabled={gameState === 'WON' || gameState === 'LOST'}
+                            disabled={gameState !== 'PLAYING'}
                         >
-                            {isListening ? "STOP LISTENING" : "START GAME"}
+                            {isListening ? "STOP MIC" : "START MIC"}
                         </button>
-                        
-                        {/* Cheat Sheet */}
-                        <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl">
-                            <h3 className="text-slate-500 text-xs uppercase mb-2">Valid Commands</h3>
-                            <div className="grid grid-cols-2 gap-2 text-sm text-slate-300 font-mono">
-                                <div className="bg-slate-800 p-2 rounded">Go forward</div>
-                                <div className="bg-slate-800 p-2 rounded">Go back</div>
-                                <div className="bg-slate-800 p-2 rounded">Turn left</div>
-                                <div className="bg-slate-800 p-2 rounded">Turn right</div>
-                            </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-amber-900 font-bold text-sm">
+                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">GO FORWARD</div>
+                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">GO BACK</div>
+                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">TURN LEFT</div>
+                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">TURN RIGHT</div>
                         </div>
                     </div>
-
                 </div>
             );
         }
