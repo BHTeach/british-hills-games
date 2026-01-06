@@ -81,13 +81,56 @@
         // --- DATA STRUCTURES ---
 
         // 1. Base Room Configuration (Fixed Video/Monster sequence)
+        // UPDATED: Now includes loss videos
         const ROOM_CONFIG = [
-            { id: 1, name: "Reception", monsterName: "Bogart", videoSrc: "./assets/reception.mp4", defeatVideoSrc: "./assets/receptiondefeat.mp4" },
-            { id: 2, name: "Drawing Room", monsterName: "Demon", videoSrc: "./assets/drawing.mp4", defeatVideoSrc: "./assets/drawingroomdefeat.mp4" },
-            { id: 3, name: "The Refectory", monsterName: "Ghost", videoSrc: "./assets/refectory.mp4", defeatVideoSrc: "./assets/refectorydefeat.mp4" },
-            { id: 4, name: "The Library", monsterName: "Dragon", videoSrc: "./assets/library.mp4", defeatVideoSrc: "./assets/librarydefeat.mp4" },
-            { id: 5, name: "Queen's Room", monsterName: "Unicorn", videoSrc: "./assets/queens.mp4", defeatVideoSrc: "./assets/queensdefeat.mp4" },
-            { id: 6, name: "Kings Room", monsterName: "Bear", videoSrc: "./assets/kings.mp4", defeatVideoSrc: "./assets/kingsdefeat.mp4" }
+            { 
+                id: 1, 
+                name: "Reception", 
+                monsterName: "Bogart", 
+                videoSrc: "./assets/reception.mp4", 
+                defeatVideoSrc: "./assets/receptiondefeat.mp4",
+                lossVideoSrc: "./assets/receptionloss.mp4"
+            },
+            { 
+                id: 2, 
+                name: "Drawing Room", 
+                monsterName: "Demon", 
+                videoSrc: "./assets/drawing.mp4", 
+                defeatVideoSrc: "./assets/drawingroomdefeat.mp4",
+                lossVideoSrc: "./assets/drawingroomloss.mp4"
+            },
+            { 
+                id: 3, 
+                name: "The Refectory", 
+                monsterName: "Ghost", 
+                videoSrc: "./assets/refectory.mp4", 
+                defeatVideoSrc: "./assets/refectorydefeat.mp4",
+                lossVideoSrc: null // Skipped as requested
+            },
+            { 
+                id: 4, 
+                name: "The Library", 
+                monsterName: "Dragon", 
+                videoSrc: "./assets/library.mp4", 
+                defeatVideoSrc: "./assets/librarydefeat.mp4",
+                lossVideoSrc: "./assets/libraryloss.mp4"
+            },
+            { 
+                id: 5, 
+                name: "Queen's Room", 
+                monsterName: "Unicorn", 
+                videoSrc: "./assets/queens.mp4", 
+                defeatVideoSrc: "./assets/queensdefeat.mp4",
+                lossVideoSrc: "./assets/queensloss.mp4"
+            },
+            { 
+                id: 6, 
+                name: "Kings Room", 
+                monsterName: "Bear", 
+                videoSrc: "./assets/kings.mp4", 
+                defeatVideoSrc: "./assets/kingsdefeat.mp4",
+                lossVideoSrc: "./assets/kingloss.mp4"
+            }
         ];
 
         // 2. Question Sets
@@ -128,7 +171,7 @@
 
         const App = () => {
             // --- State ---
-            const [gameState, setGameState] = useState('setup'); // setup, ready, playing, defeating, victory, defeated, gameover
+            const [gameState, setGameState] = useState('setup'); // setup, ready, playing, defeating, victory, losing, defeated, gameover
             const [currentStageIndex, setCurrentStageIndex] = useState(0);
             const [timeLeft, setTimeLeft] = useState(45);
             const [transcript, setTranscript] = useState("");
@@ -287,12 +330,21 @@
                 if (gameState === 'defeating') {
                     setGameState('victory');
                 }
+                if (gameState === 'losing') {
+                    setGameState('defeated');
+                }
             };
 
             const handleTimeOut = () => {
                 clearInterval(timerRef.current);
                 if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e){} }
-                setGameState('defeated');
+                
+                // Check if loss video exists
+                if (currentStage.lossVideoSrc) {
+                    setGameState('losing');
+                } else {
+                    setGameState('defeated');
+                }
             };
 
             const nextStage = () => {
@@ -349,6 +401,8 @@
             // Determine Video Properties
             const isDefeating = gameState === 'defeating';
             const isVictory = gameState === 'victory';
+            const isLosing = gameState === 'losing';
+            const isDefeated = gameState === 'defeated';
             const isGameOver = gameState === 'gameover';
             
             let currentVideoSrc;
@@ -360,6 +414,13 @@
             } else if ((isDefeating || isVictory) && currentStage.defeatVideoSrc) {
                 currentVideoSrc = currentStage.defeatVideoSrc;
                 shouldLoop = false;
+            } else if (isLosing && currentStage.lossVideoSrc) {
+                currentVideoSrc = currentStage.lossVideoSrc;
+                shouldLoop = false;
+            } else if (isDefeated) {
+                // When fully defeated (after video), show no video (black background)
+                currentVideoSrc = null;
+                shouldLoop = false;
             } else {
                 currentVideoSrc = currentStage.videoSrc;
                 shouldLoop = true;
@@ -368,22 +429,24 @@
             return (
                 <div className="relative w-screen h-screen overflow-hidden bg-black">
                     {/* Video Player */}
-                    <video
-                        key={currentVideoSrc}
-                        ref={videoRef}
-                        src={currentVideoSrc}
-                        autoPlay
-                        loop={shouldLoop}
-                        onEnded={isDefeating ? handleVideoEnded : undefined}
-                        playsInline
-                        className="absolute top-0 left-0 w-full h-full object-cover"
-                    />
+                    {currentVideoSrc && (
+                        <video
+                            key={currentVideoSrc}
+                            ref={videoRef}
+                            src={currentVideoSrc}
+                            autoPlay
+                            loop={shouldLoop}
+                            onEnded={(isDefeating || isLosing) ? handleVideoEnded : undefined}
+                            playsInline
+                            className="absolute top-0 left-0 w-full h-full object-cover"
+                        />
+                    )}
 
                     {/* Overlay */}
                     <div className="absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-between pointer-events-none p-4 md:p-6">
                         
                         {/* Header */}
-                        {!isDefeating && (
+                        {(!isDefeating && !isLosing && !isDefeated) && (
                         <div className="flex justify-between items-start pointer-events-auto">
                             <div className="glass-panel px-4 py-2 rounded-full">
                                 <h2 className="text-lg text-yellow-100 font-fantasy">{currentStage.name}</h2>
@@ -397,7 +460,7 @@
                             )}
                         </div>
                         )}
-                        {isDefeating && <div></div>}
+                        {(isDefeating || isLosing || isDefeated) && <div></div>}
 
                         {/* Center */}
                         <div className="flex-1 flex items-center justify-center pointer-events-auto">
@@ -454,8 +517,8 @@
                                 </div>
                             )}
 
-                            {/* DEFEATING */}
-                            {gameState === 'defeating' && null}
+                            {/* DEFEATING or LOSING (Empty center to watch video) */}
+                            {(gameState === 'defeating' || gameState === 'losing') && null}
 
                             {/* VICTORY */}
                             {gameState === 'victory' && (
