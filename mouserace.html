@@ -95,7 +95,7 @@
             opacity: 0.9;
         }
         
-        /* Cheese Zone (End) - Reverted from Lake */
+        /* Cheese Zone (End) */
         .end { 
             background-color: #fef9c3; /* Light Yellow */
             opacity: 0.5;
@@ -200,11 +200,8 @@
             const gain = audioCtxRef.current.createGain();
             osc.type = type; 
             osc.frequency.setValueAtTime(freq, audioCtxRef.current.currentTime);
-            
-            // Softer envelope for forest vibes
             gain.gain.setValueAtTime(0.05, audioCtxRef.current.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtxRef.current.currentTime + duration);
-            
             osc.connect(gain);
             gain.connect(audioCtxRef.current.destination);
             osc.start();
@@ -214,9 +211,9 @@
         const playMoveSound = () => playTone(400, 'sine', 0.1); 
         const playBumpSound = () => playTone(150, 'sawtooth', 0.2);
         const playWinSound = () => {
-            playTone(523.25, 'sine', 0.1); // C5
-            setTimeout(() => playTone(659.25, 'sine', 0.1), 100); // E5
-            setTimeout(() => playTone(783.99, 'sine', 0.2), 200); // G5
+            playTone(523.25, 'sine', 0.1); 
+            setTimeout(() => playTone(659.25, 'sine', 0.1), 100); 
+            setTimeout(() => playTone(783.99, 'sine', 0.2), 200); 
         };
         const playLoseSound = () => {
             playTone(300, 'sawtooth', 0.2);
@@ -314,81 +311,88 @@
                 }
             };
 
+            // Recursive function to execute list of commands
+            const executeCommandSequence = (sequence, currentP, currentC) => {
+                 if (sequence.length === 0 || gameStateRef.current !== 'PLAYING') return;
+
+                 const cmd = sequence[0];
+                 const remaining = sequence.slice(1);
+                 
+                 let nextP = { ...currentP };
+                 let nextC = { ...currentC };
+
+                 // 1. EXECUTE PLAYER ACTION
+                 if (cmd.type === "turn") {
+                     const newDir = (currentP.dir + cmd.change + 4) % 4;
+                     nextP = { ...currentP, dir: newDir };
+                     setPlayer(nextP);
+                     playMoveSound();
+                     triggerAnim("animate-hop");
+                 } else if (cmd.type === "move") {
+                     // Determine vector based on CURRENT direction
+                     const moveDir = DIRECTIONS[currentP.dir];
+                     const mult = cmd.action === "Forward" ? 1 : -1;
+                     const targetX = currentP.x + (moveDir.dx * mult);
+                     const targetY = currentP.y + (moveDir.dy * mult);
+
+                     if (targetX >= 0 && targetY >= 0 && targetX < GRID_SIZE && targetY < GRID_SIZE && LEVEL_1[targetY][targetX] !== 1) {
+                         nextP = { ...currentP, x: targetX, y: targetY };
+                         setPlayer(nextP);
+                         playMoveSound();
+                         triggerAnim("animate-hop");
+                     } else {
+                         playBumpSound();
+                         triggerAnim("animate-bonk");
+                         // Player blocked, but Cat will still move
+                     }
+                 }
+
+                 // Check Win
+                 if (checkGameStatus(nextP, currentC)) return;
+
+                 // 2. CAT MOVES (Always)
+                 nextC = getNextCatMove(currentC, nextP, LEVEL_1);
+                 setCat(nextC);
+                 
+                 // Check Loss
+                 if (checkGameStatus(nextP, nextC)) return;
+
+                 // 3. SCHEDULE NEXT MOVE
+                 if (remaining.length > 0) {
+                     setTimeout(() => {
+                         executeCommandSequence(remaining, nextP, nextC);
+                     }, 400); // 400ms delay for "Juice"
+                 }
+            };
+
             const processCommand = (text) => {
                 if (gameStateRef.current !== 'PLAYING') return;
 
-                const p = playerRef.current;
-                const c = catRef.current;
                 const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase();
                 
-                const commands = [
-                    { phrase: "go forward", action: "Forward", type: "move", dx: DIRECTIONS[p.dir].dx, dy: DIRECTIONS[p.dir].dy },
-                    { phrase: "go back", action: "Back", type: "move", dx: -DIRECTIONS[p.dir].dx, dy: -DIRECTIONS[p.dir].dy },
-                    { phrase: "turn left", action: "Turn Left", type: "turn", change: -1 },
-                    { phrase: "turn right", action: "Turn Right", type: "turn", change: 1 }
-                ];
+                // Regex to find ALL valid commands in the string
+                const regex = /(go forward|go back|turn left|turn right)/g;
+                const matches = cleanText.match(regex);
 
-                // First Match Logic
-                let bestCommand = null;
-                let minIndex = Infinity;
-
-                commands.forEach(cmd => {
-                    const idx = cleanText.indexOf(cmd.phrase);
-                    if (idx !== -1 && idx < minIndex) {
-                        minIndex = idx;
-                        bestCommand = cmd;
-                    }
-                });
-
-                if (bestCommand) {
-                    setTranscript(`${bestCommand.action}`);
-                    
-                    let newX = p.x;
-                    let newY = p.y;
-                    let newDir = p.dir;
-                    let nextPlayerPos = { ...p }; // Default to current state if no move success or just turn
-
-                    // 1. EXECUTE PLAYER ACTION
-                    if (bestCommand.type === "turn") {
-                        newDir = (p.dir + bestCommand.change + 4) % 4;
-                        nextPlayerPos = { ...p, dir: newDir };
-                        setPlayer(nextPlayerPos);
-                        playMoveSound();
-                        triggerAnim("animate-hop");
-                    } else if (bestCommand.type === "move") {
-                        newX += bestCommand.dx;
-                        newY += bestCommand.dy;
-                        
-                        // Check Wall
-                        if (newX >= 0 && newY >= 0 && newX < GRID_SIZE && newY < GRID_SIZE && LEVEL_1[newY][newX] !== 1) {
-                            nextPlayerPos = { ...p, x: newX, y: newY };
-                            setPlayer(nextPlayerPos);
-                            playMoveSound();
-                            triggerAnim("animate-hop");
-
-                            // Check immediate Win before Cat moves
-                            if (checkGameStatus(nextPlayerPos, c)) return;
-
-                        } else {
-                            playBumpSound();
-                            triggerAnim("animate-bonk");
-                            setTranscript("BONK!");
-                            // Player pos remains same (p), but we still trigger Cat
-                        }
-                    }
-
-                    // 2. CAT MOVES EVERY TURN (Unless player already won above)
-                    // Note: We use nextPlayerPos (the state AFTER player action)
-                    const nextCatPos = getNextCatMove(c, nextPlayerPos, LEVEL_1);
-                    setCat(nextCatPos);
-                    
-                    // 3. CHECK LOSS (Did cat catch player?)
-                    setTimeout(() => checkGameStatus(nextPlayerPos, nextCatPos), 50);
-
-                } else {
-                    const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
+                if (!matches || matches.length === 0) {
+                     const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
                     setTranscript(`? "${display}"`);
+                    return;
                 }
+
+                // Map matches to command objects
+                const commandSequence = matches.map(match => {
+                    if (match === 'go forward') return { action: "Forward", type: "move" };
+                    if (match === 'go back') return { action: "Back", type: "move" };
+                    if (match === 'turn left') return { action: "Turn Left", type: "turn", change: -1 };
+                    if (match === 'turn right') return { action: "Turn Right", type: "turn", change: 1 };
+                    return null;
+                }).filter(Boolean);
+
+                setTranscript(`Running ${commandSequence.length} moves...`);
+
+                // Start sequence with current state
+                executeCommandSequence(commandSequence, playerRef.current, catRef.current);
             };
 
             // Speech Setup
@@ -429,7 +433,7 @@
                 }
             };
 
-            // --- Pixel Art SVGs (Same shapes, different context) ---
+            // --- Pixel Art SVGs ---
             const PixelMouse = () => (
                 <svg viewBox="0 0 16 16" width="80%" height="80%" style={{ transform: `rotate(${player.dir * 90}deg)`, transition: 'transform 0.2s' }}>
                     <rect x="5" y="4" width="6" height="8" fill="#e2e8f0" /> {/* White/Grey Mouse */}
