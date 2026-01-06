@@ -242,7 +242,7 @@
 
     <!-- 1. SETUP SCREEN -->
     <div id="setup-screen" class="screen active">
-        <h1 style="color: var(--accent-color); text-shadow: 2px 2px 0 #000; font-size: 3rem; margin-bottom: 30px;">British Hills Trivia Points!</h1>
+        <h1 style="color: var(--accent-color); text-shadow: 2px 2px 0 #000; font-size: 3rem; margin-bottom: 30px;">British Hills Quiz Grid</h1>
         
         <div class="setup-controls">
             <h3 style="margin-top:0;">Manage Teams</h3>
@@ -326,15 +326,39 @@
 
         const DEFAULT_QUESTIONS = [
             // 100 Points
-            ["Capital of France?", "Paris"], ["H2O is...", "Water"], ["First US President?", "Washington"], ["Singer of 'Thriller'?", "Michael Jackson"], ["Past tense of 'Go'?", "Went"],
+            ["What is the capital of France?", "Paris"], 
+            ["What is the chemical formula for water?", "H2O"], 
+            ["Who was the first US President?", "George Washington"], 
+            ["Who sang the song 'Thriller'?", "Michael Jackson"], 
+            ["What is the past tense of 'Go'?", "Went"],
+            
             // 200 Points
-            ["Largest Ocean?", "Pacific"], ["Planet closest to sun?", "Mercury"], ["Year WWII ended?", "1945"], ["Batman's real name?", "Bruce Wayne"], ["Opposite of 'Hot'?", "Cold"],
+            ["What is the largest ocean in the world?", "The Pacific Ocean"], 
+            ["Which planet is closest to the sun?", "Mercury"], 
+            ["In what year did World War II end?", "1945"], 
+            ["What is Batman's real name?", "Bruce Wayne"], 
+            ["What is the opposite of 'Hot'?", "Cold"],
+            
             // 300 Points
-            ["Country with most people?", "India"], ["Speed of light?", "300,000 km/s"], ["Built the pyramids?", "Egyptians"], ["Played Iron Man?", "Robert Downey Jr."], ["Plural of 'Mouse'?", "Mice"],
+            ["Which country has the largest population?", "India"], 
+            ["What is the speed of light?", "300,000 km/s"], 
+            ["Who built the Pyramids?", "The Ancient Egyptians"], 
+            ["Which actor played Iron Man?", "Robert Downey Jr."], 
+            ["What is the plural of 'Mouse'?", "Mice"],
+            
             // 400 Points
-            ["Longest River?", "Nile"], ["Powerhouse of the cell?", "Mitochondria"], ["Start of WWI?", "1914"], ["Director of Star Wars?", "George Lucas"], ["Spell 'Necessary'", "N-E-C-E-S-S-A-R-Y"],
+            ["What is the longest river in the world?", "The Nile"], 
+            ["What is known as the 'powerhouse' of the cell?", "Mitochondria"], 
+            ["In what year did World War I start?", "1914"], 
+            ["Who directed the original Star Wars?", "George Lucas"], 
+            ["Spell the word 'Necessary'", "N-E-C-E-S-S-A-R-Y"],
+            
             // 500 Points
-            ["Capital of Australia?", "Canberra"], ["Symbol for Gold?", "Au"], ["King before Charles III?", "Elizabeth II"], ["Best selling album ever?", "Thriller"], ["Synonym for 'Happy'?", "Joyful"]
+            ["What is the capital of Australia?", "Canberra"], 
+            ["What is the chemical symbol for Gold?", "Au"], 
+            ["Who was the monarch before King Charles III?", "Queen Elizabeth II"], 
+            ["What is the best-selling album of all time?", "Thriller"], 
+            ["Give a synonym for the word 'Happy'", "Joyful / Glad / Cheerful"]
         ];
 
         /* --- STATE MANAGEMENT --- */
