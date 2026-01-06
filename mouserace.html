@@ -50,11 +50,11 @@
         }
         
         .start {
-            background-color: #60a5fa; /* Start Zone */
+            background-color: #60a5fa; /* Start Zone (Blue) */
         }
         
         .end {
-            background-color: #4ade80; /* End Zone */
+            background-color: #fef9c3; /* End Zone (Pale Yellow) */
         }
         
         .character {
@@ -75,7 +75,7 @@
         const { useState, useEffect, useRef } = React;
 
         // --- Game Constants ---
-        const GRID_SIZE = 11; // Increased size
+        const GRID_SIZE = 11;
         
         // 0: Empty, 1: Wall, 2: Start, 3: End
         const LEVEL_1 = [
@@ -146,14 +146,9 @@
 
         // --- Logic: BFS for Cat Pathfinding ---
         const getNextCatMove = (catPos, playerPos, grid) => {
-            // BFS to find the shortest path to the player
-            // Returns the coordinate of the immediate next step
-            
             const queue = [{ x: catPos.x, y: catPos.y, path: [] }];
             const visited = new Set();
             visited.add(`${catPos.x},${catPos.y}`);
-
-            // Safety break counter
             let iterations = 0;
 
             while (queue.length > 0 && iterations < 500) {
@@ -161,12 +156,10 @@
                 const current = queue.shift();
                 const { x, y, path } = current;
 
-                // Found player? Return first step
                 if (x === playerPos.x && y === playerPos.y) {
                     return path.length > 0 ? path[0] : catPos;
                 }
 
-                // Check neighbors
                 const moves = [
                     {dx: 0, dy: -1}, {dx: 0, dy: 1}, 
                     {dx: -1, dy: 0}, {dx: 1, dy: 0}
@@ -175,12 +168,9 @@
                 for (const move of moves) {
                     const nx = x + move.dx;
                     const ny = y + move.dy;
-                    
                     if (nx >= 0 && ny >= 0 && nx < GRID_SIZE && ny < GRID_SIZE) {
                         const cell = grid[ny][nx];
                         const posKey = `${nx},${ny}`;
-                        
-                        // Valid move if not a wall and not visited
                         if (cell !== 1 && !visited.has(posKey)) {
                             visited.add(posKey);
                             queue.push({
@@ -192,7 +182,6 @@
                     }
                 }
             }
-            // If no path found (shouldn't happen in solvable maze), stay still
             return catPos;
         };
 
@@ -239,14 +228,12 @@
             };
 
             const checkGameStatus = (pPos, cPos) => {
-                // Check Win
                 if (gridRef.current[pPos.y][pPos.x] === 3) {
                     setGameState('WON');
                     playWinSound();
                     speak("You won!");
                     return true;
                 }
-                // Check Loss (Cat caught mouse)
                 if (pPos.x === cPos.x && pPos.y === cPos.y) {
                     setGameState('LOST');
                     playLoseSound();
@@ -270,68 +257,63 @@
                 const p = playerRef.current;
                 const c = catRef.current;
                 
-                let newX = p.x;
-                let newY = p.y;
-                let newDir = p.dir;
-                let commandFound = false;
-                let action = "";
-                let didMove = false;
+                // Cleanup text: Remove punctuation, force lowercase
+                const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase();
+                
+                // Commands Configuration
+                const commands = [
+                    { phrase: "go forward", action: "Forward", type: "move", dx: DIRECTIONS[p.dir].dx, dy: DIRECTIONS[p.dir].dy },
+                    { phrase: "go back", action: "Back", type: "move", dx: -DIRECTIONS[p.dir].dx, dy: -DIRECTIONS[p.dir].dy },
+                    { phrase: "turn left", action: "Turn Left", type: "turn", change: -1 },
+                    { phrase: "turn right", action: "Turn Right", type: "turn", change: 1 }
+                ];
 
-                // Cleanup text
-                const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim().toLowerCase();
+                // FIND FIRST OCCURRENCE Logic
+                // We search for which command appears *earliest* in the string
+                let bestCommand = null;
+                let minIndex = Infinity;
 
-                // Logic
-                if (cleanText === "go forward") {
-                    newX += DIRECTIONS[p.dir].dx;
-                    newY += DIRECTIONS[p.dir].dy;
-                    action = "Forward";
-                    commandFound = true;
-                    didMove = true;
-                } else if (cleanText === "go back") {
-                    newX -= DIRECTIONS[p.dir].dx;
-                    newY -= DIRECTIONS[p.dir].dy;
-                    action = "Back";
-                    commandFound = true;
-                    didMove = true;
-                } else if (cleanText === "turn left") {
-                    newDir = (p.dir - 1 + 4) % 4;
-                    action = "Turn Left";
-                    commandFound = true;
-                } else if (cleanText === "turn right") {
-                    newDir = (p.dir + 1) % 4;
-                    action = "Turn Right";
-                    commandFound = true;
-                }
+                commands.forEach(cmd => {
+                    const idx = cleanText.indexOf(cmd.phrase);
+                    if (idx !== -1 && idx < minIndex) {
+                        minIndex = idx;
+                        bestCommand = cmd;
+                    }
+                });
 
-                if (commandFound) {
-                    setTranscript(`Cmd: ${action}`);
+                if (bestCommand) {
+                    setTranscript(`Cmd: ${bestCommand.action}`);
                     
-                    if (action.includes("Turn")) {
-                        // Just turn, Cat does NOT move on turns (gives students time to think)
+                    let newX = p.x;
+                    let newY = p.y;
+                    let newDir = p.dir;
+                    let didMove = false;
+
+                    if (bestCommand.type === "turn") {
+                        newDir = (p.dir + bestCommand.change + 4) % 4;
                         setPlayer({ ...p, dir: newDir });
                         playMoveSound();
-                    } else {
-                        // Movement
+                    } else if (bestCommand.type === "move") {
+                        newX += bestCommand.dx;
+                        newY += bestCommand.dy;
+                        didMove = true;
+                        
                         if (isValidMove(newX, newY)) {
-                            // 1. Move Player
-                            const nextPlayerPos = { ...p, x: newX, y: newY };
+                             const nextPlayerPos = { ...p, x: newX, y: newY };
                             setPlayer(nextPlayerPos);
                             playMoveSound();
 
-                            // 2. Check collisions immediately
+                            // Check collisions immediately
                             if (checkGameStatus(nextPlayerPos, c)) return;
 
-                            // 3. Move Cat (Only if player actually moved)
-                            if (didMove) {
-                                const nextCatPos = getNextCatMove(c, nextPlayerPos, gridRef.current);
-                                setCat(nextCatPos);
+                            // Move Cat (Only if player moved)
+                            const nextCatPos = getNextCatMove(c, nextPlayerPos, gridRef.current);
+                            setCat(nextCatPos);
 
-                                // 4. Check collisions after cat moves
-                                setTimeout(() => {
-                                    // Small delay to ensure state update doesn't race, though checking calculated values is safer
-                                    checkGameStatus(nextPlayerPos, nextCatPos);
-                                }, 50);
-                            }
+                            // Check collisions after cat moves
+                            setTimeout(() => {
+                                checkGameStatus(nextPlayerPos, nextCatPos);
+                            }, 50);
 
                         } else {
                             playBumpSound();
@@ -339,6 +321,7 @@
                         }
                     }
                 } else {
+                    // Just show a snippet of what was heard for debugging
                     const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
                     setTranscript(`Ignored: "${display}"`);
                 }
@@ -418,10 +401,13 @@
             );
 
             const CheeseIcon = () => (
-                 <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2C8 2 4 6 4 10V18C4 20 6 22 10 22H14C18 22 20 20 20 18V10C20 6 16 2 12 2Z" />
-                    <circle cx="10" cy="10" r="2" fill="#16a34a"/>
-                    <circle cx="14" cy="14" r="2" fill="#16a34a"/>
+                 <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" fill="#facc15" stroke="none"/>
+                    <circle cx="8" cy="8" r="1.5" fill="#ca8a04"/>
+                    <circle cx="16" cy="14" r="2" fill="#ca8a04"/>
+                    <circle cx="10" cy="16" r="1" fill="#ca8a04"/>
+                    <circle cx="15" cy="7" r="1" fill="#ca8a04"/>
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="#ca8a04" strokeWidth="2"/>
                 </svg>
             );
 
@@ -483,7 +469,7 @@
 
                                         {/* Goal */}
                                         {cell === 3 && (
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-70">
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-100">
                                                 <CheeseIcon />
                                             </div>
                                         )}
