@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Classroom Jeopardy</title>
+    <style>
+        :root {
+            --bg-color: #060CE9; /* Jeopardy Blue */
+            --card-color: #00008b; /* Darker Blue */
+            --text-color: #ffffff;
+            --accent-color: #FFCC00; /* Jeopardy Gold */
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --danger-color: #ff4444;
+            --success-color: #00C851;
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow: hidden; /* Prevent scrolling on iPad */
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- UTILS --- */
+        .screen { 
+            display: none; 
+            height: 100%; 
+            width: 100%; 
+            padding: 20px; 
+            flex-direction: column; 
+        }
+        .screen.active { display: flex; }
+        .hidden { display: none !important; }
+
+        .btn {
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 1.2rem; 
+            margin: 5px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.95); }
+
+        .btn-primary { background-color: var(--accent-color); color: #000; }
+        .btn-secondary { background-color: #ddd; color: #333; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-warning { background-color: #ff9900; color: white; }
+        
+        .large-btn { font-size: 1.8rem; padding: 20px 40px; }
+        .icon-btn { background: none; border: none; font-size: 2rem; cursor: pointer; color: white; }
+
+        /* --- SETUP --- */
+        #setup-screen { justify-content: center; align-items: center; text-align: center; overflow-y: auto; }
+        .setup-controls { 
+            background: rgba(0,0,0,0.5); 
+            padding: 40px; 
+            border-radius: 15px; 
+            max-width: 600px;
+            width: 90%;
+            border: 2px solid var(--accent-color);
+        }
+        .team-row { margin-bottom: 15px; display: flex; gap: 10px; justify-content: center; }
+        .team-row input { 
+            font-size: 1.5rem; 
+            padding: 10px; 
+            border-radius: 5px; 
+            border: none; 
+            width: 70%;
+        }
+
+        /* --- BOARD --- */
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            height: 12vh; 
+            padding: 0 20px;
+        }
+        
+        #score-board { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        
+        .score-card { 
+            background: #000; 
+            padding: 5px 15px; 
+            border: 2px solid var(--accent-color); 
+            border-radius: 5px;
+            text-align: center; 
+            min-width: 100px;
+        }
+        .score-card .t-name { display: block; font-size: 0.9rem; color: #fff; margin-bottom: 2px; }
+        .score-card .t-points { display: block; font-size: 1.5rem; font-weight: bold; color: var(--accent-color); }
+
+        #game-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: 0.6fr repeat(5, 1fr);
+            gap: 8px;
+            height: 86vh;
+            width: 100%;
+            padding: 0 10px 10px 10px;
+        }
+
+        .grid-header {
+            background: var(--card-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            font-size: 1.1vw; /* Responsive font */
+            border: 2px solid #000;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            padding: 5px;
+            word-break: break-word;
+        }
+
+        .grid-cell {
+            background: var(--card-color);
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4vw;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #000;
+            transition: transform 0.1s, background-color 0.2s;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .grid-cell:active { transform: scale(0.95); background-color: #333; }
+        .grid-cell.disabled { 
+            opacity: 0.0; /* Make it disappear like real Jeopardy */
+            pointer-events: none; 
+        }
+
+        /* --- MODAL --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: var(--bg-color);
+            border: 6px solid var(--accent-color);
+            border-radius: 10px;
+            width: 95%;
+            height: 95%;
+            padding: 20px;
+            display: flex; flex-direction: column;
+            text-align: center;
+            position: relative;
+        }
+        .modal-header { display: flex; justify-content: space-between; font-size: 1.5rem; color: #fff; margin-bottom: 10px; font-weight: bold; text-transform: uppercase;}
+
+        #timer-bar { width: 100%; height: 30px; background: #333; margin-bottom: 20px; border-radius: 15px; overflow: hidden; border: 2px solid white;}
+        #timer-fill { height: 100%; width: 100%; background: var(--accent-color); transform-origin: left; }
+
+        .q-display { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            overflow-y: auto;
+        }
+        #question-text { 
+            font-size: 4vw; 
+            margin: 0; 
+            text-shadow: 2px 2px 4px black;
+            line-height: 1.2;
+        }
+        #answer-text { 
+            font-size: 3vw; 
+            color: var(--accent-color); 
+            margin-top: 30px; 
+            border-top: 2px solid white;
+            padding-top: 20px;
+            width: 80%;
+        }
+
+        .modal-controls { margin-top: auto; padding-top: 20px; border-top: 1px solid #333; }
+        #award-section { display: flex; flex-direction: column; align-items: center;}
+        #award-buttons { display: flex; gap: 15px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
+        
+        /* Award Buttons should be huge */
+        #award-buttons button { padding: 15px 30px; font-size: 1.5rem; border: 2px solid white; }
+
+        /* --- EDIT MODE --- */
+        #edit-screen { overflow-y: auto; background: #111; display: none; }
+        .edit-header { 
+            display: flex; gap: 10px; padding: 20px; 
+            position: sticky; top: 0; background: #111; 
+            z-index: 10; border-bottom: 2px solid #333;
+            justify-content: space-between;
+        }
+        .edit-container { padding: 20px; }
+        .edit-category-block { margin-bottom: 40px; border: 1px solid #444; padding: 15px; background: #222; border-radius: 8px;}
+        .edit-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .edit-row span { width: 50px; font-weight: bold; color: var(--accent-color); }
+        .edit-row input { 
+            padding: 10px; 
+            width: 100%; 
+            background: #333; 
+            color: white; 
+            border: 1px solid #555; 
+            font-size: 1.1rem;
+        }
+        .cat-title-input { 
+            font-size: 1.5rem !important; 
+            font-weight: bold; 
+            width: 100%; 
+            margin-bottom: 15px; 
+            background: #000 !important; 
+            border: 1px solid var(--accent-color) !important; 
+            color: var(--accent-color) !important;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-header { font-size: 0.8rem; }
+            #question-text { font-size: 2rem; }
+            #answer-text { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. SETUP SCREEN -->
+    <div id="setup-screen" class="screen active">
+        <h1 style="color: var(--accent-color); text-shadow: 2px 2px 0 #000; font-size: 3rem; margin-bottom: 30px;">British Hills Trivia Points!</h1>
+        
+        <div class="setup-controls">
+            <h3 style="margin-top:0;">Manage Teams</h3>
+            <div id="team-inputs">
+                <!-- Team inputs generated by JS -->
+            </div>
+            <button class="btn btn-secondary" onclick="addTeamInput()">+ Add Team</button>
+            <br><br>
+            <div style="border-top: 1px solid white; margin: 20px 0;"></div>
+            <button class="btn btn-primary large-btn" onclick="startGame()">START GAME</button>
+            <br><br>
+            <div style="display:flex; justify-content: space-between; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-warning" onclick="toggleEditMode()">✏️ Edit Questions</button>
+                <button class="btn btn-danger" onclick="hardReset()">🗑️ Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. GAME BOARD SCREEN -->
+    <div id="board-screen" class="screen">
+        <header>
+            <button class="icon-btn" onclick="showSetup()">⚙️</button>
+            <div id="score-board">
+                <!-- Scores generated by JS -->
+            </div>
+        </header>
+        
+        <div id="game-grid">
+            <!-- Grid generated by JS -->
+        </div>
+    </div>
+
+    <!-- 3. QUESTION MODAL (Overlay) -->
+    <div id="question-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modal-category">Category</span>
+                <span id="modal-points">100</span>
+            </div>
+            
+            <div id="timer-bar"><div id="timer-fill"></div></div>
+            
+            <div class="q-display">
+                <h2 id="question-text">Question goes here...</h2>
+                <h2 id="answer-text" class="hidden">Answer goes here...</h2>
+            </div>
+
+            <div class="modal-controls">
+                <!-- Step 1: Reveal Answer -->
+                <button id="btn-reveal" class="btn btn-primary large-btn" onclick="revealAnswer()">SHOW ANSWER</button>
+                
+                <!-- Step 2: Award Points (Hidden initially) -->
+                <div id="award-section" class="hidden">
+                    <p style="font-size: 1.2rem; margin-bottom: 5px; color: #aaa;">Who answered correctly?</p>
+                    <div id="award-buttons"></div>
+                    <button class="btn btn-secondary" onclick="closeModal()">No Winner (Pass)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. EDIT MODE (Overlay) -->
+    <div id="edit-screen" class="screen">
+        <div class="edit-header">
+            <h2 style="margin:0;">Edit Mode</h2>
+            <div>
+                <button class="btn btn-primary" onclick="saveEdits()">💾 Save & Restart</button>
+                <button class="btn btn-secondary" onclick="cancelEdits()">Cancel</button>
+            </div>
+        </div>
+        <div class="edit-container" id="edit-container">
+            <!-- Edit inputs generated by JS -->
+        </div>
+    </div>
+
+    <script>
+        /* --- DEFAULT DATA --- */
+        const DEFAULT_CATEGORIES = [
+            "Geography", "Science", "History", "Pop Culture", "English"
+        ];
+
+        const DEFAULT_QUESTIONS = [
+            // 100 Points
+            ["Capital of France?", "Paris"], ["H2O is...", "Water"], ["First US President?", "Washington"], ["Singer of 'Thriller'?", "Michael Jackson"], ["Past tense of 'Go'?", "Went"],
+            // 200 Points
+            ["Largest Ocean?", "Pacific"], ["Planet closest to sun?", "Mercury"], ["Year WWII ended?", "1945"], ["Batman's real name?", "Bruce Wayne"], ["Opposite of 'Hot'?", "Cold"],
+            // 300 Points
+            ["Country with most people?", "India"], ["Speed of light?", "300,000 km/s"], ["Built the pyramids?", "Egyptians"], ["Played Iron Man?", "Robert Downey Jr."], ["Plural of 'Mouse'?", "Mice"],
+            // 400 Points
+            ["Longest River?", "Nile"], ["Powerhouse of the cell?", "Mitochondria"], ["Start of WWI?", "1914"], ["Director of Star Wars?", "George Lucas"], ["Spell 'Necessary'", "N-E-C-E-S-S-A-R-Y"],
+            // 500 Points
+            ["Capital of Australia?", "Canberra"], ["Symbol for Gold?", "Au"], ["King before Charles III?", "Elizabeth II"], ["Best selling album ever?", "Thriller"], ["Synonym for 'Happy'?", "Joyful"]
+        ];
+
+        /* --- STATE MANAGEMENT --- */
+        let gameState = {
+            teams: [{name: "Team 1", score: 0}, {name: "Team 2", score: 0}],
+            categories: [], 
+            grid: [], 
+            currentQ: null 
+        };
+
+        const TIMER_SECONDS = 45;
+
+        /* --- INITIALIZATION --- */
+        window.onload = () => {
+            loadState();
+            renderSetup();
+        };
+
+        function loadState() {
+            const saved = localStorage.getItem('jeopardy_efl_data_v1');
+            if (saved) {
+                gameState = JSON.parse(saved);
+            } else {
+                initDefaultData();
+            }
+        }
+
+        function initDefaultData() {
+            gameState.teams = [{name: "Team 1", score: 0}, {name: "Team 2", score: 0}];
+            gameState.categories = [...DEFAULT_CATEGORIES];
+            gameState.grid = [];
+            
+            let qIndex = 0;
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    gameState.grid.push({
+                        id: `r${row}c${col}`,
+                        row: row,
+                        col: col,
+                        points: (row + 1) * 100,
+                        q: DEFAULT_QUESTIONS[qIndex] ? DEFAULT_QUESTIONS[qIndex][0] : "Question",
+                        a: DEFAULT_QUESTIONS[qIndex] ? DEFAULT_QUESTIONS[qIndex][1] : "Answer",
+                        done: false
+                    });
+                    qIndex++;
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('jeopardy_efl_data_v1', JSON.stringify(gameState));
+        }
+
+        function hardReset() {
+            if(confirm("Are you sure? This will delete all scores AND your custom questions. It will return to the default trivia.")) {
+                localStorage.removeItem('jeopardy_efl_data_v1');
+                location.reload();
+            }
+        }
+
+        /* --- NAVIGATION --- */
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => {
+                s.classList.remove('active');
+                if(s.id === 'edit-screen') s.style.display = 'none'; // Explicit hide for edit
+            });
+            
+            const target = document.getElementById(id);
+            target.classList.add('active');
+            if(id === 'edit-screen') target.style.display = 'block';
+        }
+
+        function startGame() {
+            // Save team names from inputs
+            const inputs = document.querySelectorAll('.team-name-input');
+            const newTeamNames = Array.from(inputs).map(inp => inp.value || "Team");
+            
+            // Adjust gameState.teams to match new names, preserving scores if possible
+            // Actually, for a "Start Game", usually we just update names. 
+            // If the user added teams, we need to handle that.
+            
+            let newTeams = [];
+            newTeamNames.forEach((name, idx) => {
+                // If team exists, keep score, else 0
+                const existingScore = gameState.teams[idx] ? gameState.teams[idx].score : 0;
+                newTeams.push({name: name, score: existingScore});
+            });
+            gameState.teams = newTeams;
+            
+            saveState();
+            renderBoard();
+            showScreen('board-screen');
+        }
+
+        function showSetup() {
+            renderSetup();
+            showScreen('setup-screen');
+        }
+
+        /* --- SETUP & TEAMS --- */
+        function renderSetup() {
+            const container = document.getElementById('team-inputs');
+            container.innerHTML = '';
+            gameState.teams.forEach((t, index) => {
+                const div = document.createElement('div');
+                div.className = 'team-row';
+                div.innerHTML = `
+                    <input type="text" class="team-name-input" value="${t.name}" placeholder="Team Name">
+                    <button class="btn btn-danger" onclick="removeTeam(${index})">X</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addTeamInput() {
+            if (gameState.teams.length < 4) {
+                gameState.teams.push({name: `Team ${gameState.teams.length + 1}`, score: 0});
+                renderSetup();
+            }
+        }
+
+        function removeTeam(index) {
+            if (gameState.teams.length > 1) {
+                gameState.teams.splice(index, 1);
+                renderSetup();
+            }
+        }
+
+        /* --- GAME BOARD --- */
+        function renderBoard() {
+            // 1. Render Scores
+            const scoreContainer = document.getElementById('score-board');
+            scoreContainer.innerHTML = '';
+            gameState.teams.forEach((t, idx) => {
+                scoreContainer.innerHTML += `
+                    <div class="score-card">
+                        <span class="t-name">${t.name}</span>
+                        <span class="t-points">${t.score}</span>
+                    </div>
+                `;
+            });
+
+            // 2. Render Grid
+            const grid = document.getElementById('game-grid');
+            grid.innerHTML = '';
+
+            // Headers
+            gameState.categories.forEach(cat => {
+                const cell = document.createElement('div');
+                cell.className = 'grid-header';
+                cell.innerText = cat;
+                grid.appendChild(cell);
+            });
+
+            // Render by ROW (Points)
+            for (let r = 0; r < 5; r++) { 
+                for (let c = 0; c < 5; c++) { 
+                    const item = gameState.grid.find(i => i.row === r && i.col === c);
+                    
+                    const cell = document.createElement('div');
+                    cell.className = `grid-cell ${item.done ? 'disabled' : ''}`;
+                    cell.innerText = item.points;
+                    cell.onclick = () => openQuestion(item);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        /* --- GAMEPLAY & MODAL --- */
+        function openQuestion(item) {
+            if (item.done) return;
+            
+            gameState.currentQ = item;
+            
+            document.getElementById('modal-category').innerText = gameState.categories[item.col];
+            document.getElementById('modal-points').innerText = item.points;
+            document.getElementById('question-text').innerText = item.q;
+            document.getElementById('answer-text').innerText = item.a;
+            
+            // UI Reset
+            document.getElementById('answer-text').classList.add('hidden');
+            document.getElementById('award-section').classList.add('hidden');
+            document.getElementById('btn-reveal').classList.remove('hidden');
+            document.getElementById('question-modal').classList.remove('hidden');
+
+            startTimer();
+        }
+
+        function startTimer() {
+            const fill = document.getElementById('timer-fill');
+            // Reset animation
+            fill.style.transition = 'none';
+            fill.style.width = '100%';
+            
+            // Force reflow
+            void fill.offsetWidth;
+            
+            // Start animation
+            fill.style.transition = `width ${TIMER_SECONDS}s linear`;
+            fill.style.width = '0%';
+        }
+
+        function revealAnswer() {
+            document.getElementById('answer-text').classList.remove('hidden');
+            document.getElementById('btn-reveal').classList.add('hidden');
+            document.getElementById('award-section').classList.remove('hidden');
+            
+            // Stop timer visuals (optional, but good feedback)
+            const fill = document.getElementById('timer-fill');
+            const currentWidth = fill.offsetWidth;
+            fill.style.transition = 'none';
+            fill.style.width = currentWidth + 'px';
+
+            // Generate Award Buttons
+            const btnContainer = document.getElementById('award-buttons');
+            btnContainer.innerHTML = '';
+            gameState.teams.forEach((t, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-primary';
+                btn.innerText = t.name;
+                btn.onclick = () => awardPoints(idx);
+                btnContainer.appendChild(btn);
+            });
+        }
+
+        function awardPoints(teamIndex) {
+            if (gameState.currentQ) {
+                gameState.teams[teamIndex].score += gameState.currentQ.points;
+                gameState.currentQ.done = true;
+                saveState();
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            if (document.getElementById('answer-text').classList.contains('hidden') === false) {
+                // If answer was shown, mark as done even if "No Winner" selected
+                if(gameState.currentQ) gameState.currentQ.done = true;
+            }
+            // If closed BEFORE answer shown (accidental click), do not mark done
+            
+            saveState();
+            document.getElementById('question-modal').classList.add('hidden');
+            renderBoard();
+        }
+
+        /* --- EDIT MODE --- */
+        function toggleEditMode() {
+            renderEditor();
+            showScreen('edit-screen');
+        }
+
+        function renderEditor() {
+            const container = document.getElementById('edit-container');
+            container.innerHTML = '';
+
+            // Loop through columns (Categories)
+            for (let c = 0; c < 5; c++) {
+                const catBlock = document.createElement('div');
+                catBlock.className = 'edit-category-block';
+                
+                // Category Title Input
+                catBlock.innerHTML = `
+                    <label style="color:#aaa">Category ${c+1}:</label>
+                    <input type="text" class="cat-title-input" data-col="${c}" value="${gameState.categories[c]}">
+                `;
+
+                // Questions for this category
+                const colItems = gameState.grid.filter(i => i.col === c).sort((a,b) => a.points - b.points);
+
+                colItems.forEach(item => {
+                    catBlock.innerHTML += `
+                        <div class="edit-row">
+                            <span>${item.points}</span>
+                            <div style="width:100%">
+                                <input type="text" placeholder="Question" class="edit-q" data-row="${item.row}" data-col="${c}" value="${item.q.replace(/"/g, '&quot;')}">
+                                <div style="height:5px"></div>
+                                <input type="text" placeholder="Answer" class="edit-a" style="color:var(--accent-color)" data-row="${item.row}" data-col="${c}" value="${item.a.replace(/"/g, '&quot;')}">
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.appendChild(catBlock);
+            }
+        }
+
+        function saveEdits() {
+            // Update Categories
+            document.querySelectorAll('.cat-title-input').forEach(inp => {
+                const col = parseInt(inp.dataset.col);
+                gameState.categories[col] = inp.value;
+            });
+
+            // Update Questions
+            document.querySelectorAll('.edit-q').forEach(inp => {
+                const r = parseInt(inp.dataset.row);
+                const c = parseInt(inp.dataset.col);
+                const item = gameState.grid.find(i => i.row === r && i.col === c);
+                if(item) item.q = inp.value;
+            });
+
+            document.querySelectorAll('.edit-a').forEach(inp => {
+                const r = parseInt(inp.dataset.row);
+                const c = parseInt(inp.dataset.col);
+                const item = gameState.grid.find(i => i.row === r && i.col === c);
+                if(item) item.a = inp.value;
+            });
+
+            // Reset played status logic
+            // If we are in edit mode, it's safer to ask if we want to reset the board status
+            // because changing a question that was already played makes the game weird.
+            if(confirm("Do you want to reset the board (make all questions playable again)?")) {
+                gameState.grid.forEach(i => i.done = false);
+                gameState.teams.forEach(t => t.score = 0);
+            }
+
+            saveState();
+            showScreen('setup-screen');
+        }
+
+        function cancelEdits() {
+            showScreen('setup-screen');
+        }
+    </script>
+</body>
+</html>
