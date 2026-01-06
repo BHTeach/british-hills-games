@@ -31,14 +31,14 @@
         
         .maze-grid {
             display: grid;
-            gap: 2px;
+            gap: 1px; /* Tighter gap for larger grid */
             background-color: #000;
-            border: 4px solid #1e293b; /* slate-800 */
+            border: 4px solid #1e293b;
         }
         
         .cell {
             position: relative;
-            background-color: #e2e8f0; /* slate-200 (Path) */
+            background-color: #e2e8f0; /* Path */
             aspect-ratio: 1;
             display: flex;
             align-items: center;
@@ -46,23 +46,21 @@
         }
         
         .wall {
-            background-color: #0f172a; /* slate-900 (Wall) */
+            background-color: #0f172a; /* Wall */
         }
         
         .start {
-            background-color: #60a5fa; /* blue-400 */
+            background-color: #60a5fa; /* Start Zone */
         }
         
         .end {
-            background-color: #4ade80; /* green-400 */
+            background-color: #4ade80; /* End Zone */
         }
         
-        /* Smooth transition for movement */
         .character {
             transition: all 0.3s ease-in-out;
         }
 
-        /* Safe area for iPhone/iPad notch/home bar */
         .safe-padding {
             padding-bottom: env(safe-area-inset-bottom);
             padding-left: env(safe-area-inset-left);
@@ -77,18 +75,26 @@
         const { useState, useEffect, useRef } = React;
 
         // --- Game Constants ---
-        const GRID_SIZE = 7;
+        const GRID_SIZE = 11; // Increased size
         
         // 0: Empty, 1: Wall, 2: Start, 3: End
         const LEVEL_1 = [
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 0, 1, 0, 3, 1],
-            [1, 1, 0, 1, 0, 1, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 1, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 2, 0, 1, 0, 0, 0, 1, 0, 0, 1], // Start at 1,1
+            [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+            [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+            [1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1], // End at 9,9
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         ];
+
+        // Initial Positions
+        const INITIAL_PLAYER = { x: 1, y: 1, dir: 1 };
+        const INITIAL_CAT = { x: 9, y: 1 }; // Top right corner
 
         // Directions: 0: Up, 1: Right, 2: Down, 3: Left
         const DIRECTIONS = [
@@ -132,13 +138,71 @@
             setTimeout(() => playTone(600, 'sine', 0.1), 100);
             setTimeout(() => playTone(800, 'sine', 0.2), 200);
         };
+        const playLoseSound = () => {
+            playTone(300, 'sawtooth', 0.2);
+            setTimeout(() => playTone(200, 'sawtooth', 0.4), 200);
+        };
         const playListenSound = () => playTone(800, 'sine', 0.05);
+
+        // --- Logic: BFS for Cat Pathfinding ---
+        const getNextCatMove = (catPos, playerPos, grid) => {
+            // BFS to find the shortest path to the player
+            // Returns the coordinate of the immediate next step
+            
+            const queue = [{ x: catPos.x, y: catPos.y, path: [] }];
+            const visited = new Set();
+            visited.add(`${catPos.x},${catPos.y}`);
+
+            // Safety break counter
+            let iterations = 0;
+
+            while (queue.length > 0 && iterations < 500) {
+                iterations++;
+                const current = queue.shift();
+                const { x, y, path } = current;
+
+                // Found player? Return first step
+                if (x === playerPos.x && y === playerPos.y) {
+                    return path.length > 0 ? path[0] : catPos;
+                }
+
+                // Check neighbors
+                const moves = [
+                    {dx: 0, dy: -1}, {dx: 0, dy: 1}, 
+                    {dx: -1, dy: 0}, {dx: 1, dy: 0}
+                ];
+
+                for (const move of moves) {
+                    const nx = x + move.dx;
+                    const ny = y + move.dy;
+                    
+                    if (nx >= 0 && ny >= 0 && nx < GRID_SIZE && ny < GRID_SIZE) {
+                        const cell = grid[ny][nx];
+                        const posKey = `${nx},${ny}`;
+                        
+                        // Valid move if not a wall and not visited
+                        if (cell !== 1 && !visited.has(posKey)) {
+                            visited.add(posKey);
+                            queue.push({
+                                x: nx,
+                                y: ny,
+                                path: [...path, {x: nx, y: ny}]
+                            });
+                        }
+                    }
+                }
+            }
+            // If no path found (shouldn't happen in solvable maze), stay still
+            return catPos;
+        };
+
 
         // --- Main Component ---
         function App() {
             // Game State
-            const [gameState, setGameState] = useState('START'); // START, PLAYING, WON
-            const [player, setPlayer] = useState({ x: 1, y: 1, dir: 1 }); // Start at 1,1 facing Right
+            const [gameState, setGameState] = useState('START'); // START, PLAYING, WON, LOST
+            const [player, setPlayer] = useState(INITIAL_PLAYER);
+            const [cat, setCat] = useState(INITIAL_CAT);
             const [grid, setGrid] = useState(LEVEL_1);
             
             // Speech State
@@ -146,21 +210,24 @@
             const [transcript, setTranscript] = useState("");
             const [errorMsg, setErrorMsg] = useState("");
 
-            // Refs for State
+            // Refs
             const recognitionRef = useRef(null);
             const playerRef = useRef(player);
+            const catRef = useRef(cat);
             const gridRef = useRef(grid);
             const gameStateRef = useRef(gameState);
             const shouldListenRef = useRef(false);
 
-            // Keep refs synced
+            // Sync Refs
             useEffect(() => { playerRef.current = player; }, [player]);
+            useEffect(() => { catRef.current = cat; }, [cat]);
             useEffect(() => { gridRef.current = grid; }, [grid]);
             useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
             // --- Game Logic ---
             const resetGame = () => {
-                setPlayer({ x: 1, y: 1, dir: 1 }); 
+                setPlayer(INITIAL_PLAYER);
+                setCat(INITIAL_CAT);
                 setGameState('PLAYING');
                 setTranscript("Ready!");
                 initAudio();
@@ -171,14 +238,28 @@
                 return gridRef.current[y][x] !== 1; // 1 is Wall
             };
 
-            const checkWin = (x, y) => {
-                if (gridRef.current[y][x] === 3) { // 3 is End
+            const checkGameStatus = (pPos, cPos) => {
+                // Check Win
+                if (gridRef.current[pPos.y][pPos.x] === 3) {
                     setGameState('WON');
                     playWinSound();
-                    if ('speechSynthesis' in window) {
-                         const utterance = new SpeechSynthesisUtterance("You won!");
-                         window.speechSynthesis.speak(utterance);
-                    }
+                    speak("You won!");
+                    return true;
+                }
+                // Check Loss (Cat caught mouse)
+                if (pPos.x === cPos.x && pPos.y === cPos.y) {
+                    setGameState('LOST');
+                    playLoseSound();
+                    speak("Oh no! The cat caught you.");
+                    return true;
+                }
+                return false;
+            };
+
+            const speak = (text) => {
+                if ('speechSynthesis' in window) {
+                     const utterance = new SpeechSynthesisUtterance(text);
+                     window.speechSynthesis.speak(utterance);
                 }
             };
 
@@ -187,25 +268,31 @@
                 if (gameStateRef.current !== 'PLAYING') return;
 
                 const p = playerRef.current;
+                const c = catRef.current;
+                
                 let newX = p.x;
                 let newY = p.y;
                 let newDir = p.dir;
                 let commandFound = false;
                 let action = "";
+                let didMove = false;
 
-                // Strict Matching
+                // Cleanup text
                 const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim().toLowerCase();
 
+                // Logic
                 if (cleanText === "go forward") {
                     newX += DIRECTIONS[p.dir].dx;
                     newY += DIRECTIONS[p.dir].dy;
                     action = "Forward";
                     commandFound = true;
+                    didMove = true;
                 } else if (cleanText === "go back") {
                     newX -= DIRECTIONS[p.dir].dx;
                     newY -= DIRECTIONS[p.dir].dy;
                     action = "Back";
                     commandFound = true;
+                    didMove = true;
                 } else if (cleanText === "turn left") {
                     newDir = (p.dir - 1 + 4) % 4;
                     action = "Turn Left";
@@ -218,21 +305,40 @@
 
                 if (commandFound) {
                     setTranscript(`Cmd: ${action}`);
+                    
                     if (action.includes("Turn")) {
+                        // Just turn, Cat does NOT move on turns (gives students time to think)
                         setPlayer({ ...p, dir: newDir });
                         playMoveSound();
                     } else {
+                        // Movement
                         if (isValidMove(newX, newY)) {
-                            setPlayer({ ...p, x: newX, y: newY });
+                            // 1. Move Player
+                            const nextPlayerPos = { ...p, x: newX, y: newY };
+                            setPlayer(nextPlayerPos);
                             playMoveSound();
-                            checkWin(newX, newY);
+
+                            // 2. Check collisions immediately
+                            if (checkGameStatus(nextPlayerPos, c)) return;
+
+                            // 3. Move Cat (Only if player actually moved)
+                            if (didMove) {
+                                const nextCatPos = getNextCatMove(c, nextPlayerPos, gridRef.current);
+                                setCat(nextCatPos);
+
+                                // 4. Check collisions after cat moves
+                                setTimeout(() => {
+                                    // Small delay to ensure state update doesn't race, though checking calculated values is safer
+                                    checkGameStatus(nextPlayerPos, nextCatPos);
+                                }, 50);
+                            }
+
                         } else {
                             playBumpSound();
                             setTranscript("Bonk! Wall.");
                         }
                     }
                 } else {
-                     // Debug: show rejected words (helpful for teacher)
                     const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
                     setTranscript(`Ignored: "${display}"`);
                 }
@@ -248,32 +354,23 @@
                     recognition.interimResults = false;
                     recognition.lang = 'en-US';
 
-                    recognition.onstart = () => {
-                        setIsListening(true);
-                        setTranscript("Listening...");
-                        setErrorMsg("");
-                    };
-
+                    recognition.onstart = () => { setIsListening(true); setTranscript("Listening..."); setErrorMsg(""); };
                     recognition.onend = () => {
                         setIsListening(false);
                         if (shouldListenRef.current && gameStateRef.current === 'PLAYING') {
-                            try { recognition.start(); } catch (e) { console.log("Restart failed", e); }
+                            try { recognition.start(); } catch (e) {}
                         }
                     };
-
                     recognition.onerror = (event) => {
                         if (event.error === 'not-allowed') {
-                            setErrorMsg("Microphone access denied.");
+                            setErrorMsg("Microphone denied.");
                             shouldListenRef.current = false;
                             setIsListening(false);
                         }
                     };
-
                     recognition.onresult = (event) => {
                         const latestResult = event.results[event.results.length - 1];
-                        if (latestResult.isFinal) {
-                            processCommandRef.current(latestResult[0].transcript);
-                        }
+                        if (latestResult.isFinal) processCommandRef.current(latestResult[0].transcript);
                     };
                     recognitionRef.current = recognition;
                 } else {
@@ -303,11 +400,23 @@
 
             // --- Icons ---
             const getMouseRotation = () => player.dir * 90;
+            
             const MouseIcon = () => (
                 <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: `rotate(${getMouseRotation()}deg)`, transition: 'transform 0.3s' }}>
-                    <path d="M12 2L19 22L12 18L5 22L12 2Z" fill="#ef4444" /> {/* Red Mouse for Visibility */}
+                    <path d="M12 2L19 22L12 18L5 22L12 2Z" fill="#3b82f6" />
                 </svg>
             );
+            
+            const CatIcon = () => (
+                <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" fill="#ef4444" opacity="0.8" />
+                    <path d="M8 8L16 16M16 8L8 16" stroke="white" strokeWidth="3" />
+                    <circle cx="9" cy="9" r="1.5" fill="black"/>
+                    <circle cx="15" cy="9" r="1.5" fill="black"/>
+                    <path d="M10 16 Q12 18 14 16" stroke="black" fill="transparent"/>
+                </svg>
+            );
+
             const CheeseIcon = () => (
                  <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2C8 2 4 6 4 10V18C4 20 6 22 10 22H14C18 22 20 20 20 18V10C20 6 16 2 12 2Z" />
@@ -320,14 +429,14 @@
                 <div className="safe-padding flex flex-col md:flex-row h-full w-full items-center justify-center p-4 gap-6 bg-black">
                     
                     {/* LEFT SIDE: MAZE */}
-                    <div className="flex-1 h-full max-h-[90vh] aspect-square flex items-center justify-center relative">
+                    <div className="flex-1 h-full max-h-[95vh] aspect-square flex items-center justify-center relative">
                         
                         {/* Overlays */}
                         {gameState === 'START' && (
                             <div className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm border border-slate-700">
                                 <h2 className="text-white text-4xl font-bold mb-6">Classroom Maze</h2>
                                 <button onClick={resetGame} className="px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-2xl shadow-lg">
-                                    Load Level 1
+                                    Start Game
                                 </button>
                             </div>
                         )}
@@ -341,6 +450,15 @@
                             </div>
                         )}
 
+                        {gameState === 'LOST' && (
+                            <div className="absolute inset-0 z-20 bg-red-900/90 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm border border-red-500">
+                                <h2 className="text-white text-5xl font-bold mb-6">Cat Caught You! 🙀</h2>
+                                <button onClick={resetGame} className="px-10 py-5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-2xl shadow-lg">
+                                    Try Again
+                                </button>
+                            </div>
+                        )}
+
                         <div 
                             className="maze-grid rounded-lg overflow-hidden shadow-2xl w-full h-full"
                             style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
@@ -348,11 +466,22 @@
                             {grid.map((row, y) => (
                                 row.map((cell, x) => (
                                     <div key={`${x}-${y}`} className={`cell ${cell === 1 ? 'wall' : cell === 2 ? 'start' : cell === 3 ? 'end' : ''}`}>
+                                        
+                                        {/* Player */}
                                         {player.x === x && player.y === y && (
-                                            <div className="absolute inset-0 flex items-center justify-center z-10 text-red-600">
+                                            <div className="absolute inset-0 flex items-center justify-center z-10 text-blue-500">
                                                 <MouseIcon />
                                             </div>
                                         )}
+                                        
+                                        {/* Cat */}
+                                        {cat.x === x && cat.y === y && (
+                                            <div className="absolute inset-0 flex items-center justify-center z-10 text-red-500">
+                                                <CatIcon />
+                                            </div>
+                                        )}
+
+                                        {/* Goal */}
                                         {cell === 3 && (
                                             <div className="absolute inset-0 flex items-center justify-center opacity-70">
                                                 <CheeseIcon />
@@ -384,7 +513,7 @@
                             }`}
                             onMouseDown={toggleListen}
                             onTouchStart={toggleListen}
-                            disabled={gameState === 'WON'}
+                            disabled={gameState === 'WON' || gameState === 'LOST'}
                         >
                             {isListening ? "STOP LISTENING" : "START GAME"}
                         </button>
@@ -399,10 +528,6 @@
                                 <div className="bg-slate-800 p-2 rounded">Turn right</div>
                             </div>
                         </div>
-
-                        <p className="text-center text-slate-500 text-xs">
-                            {errorMsg || "Tap START GAME to enable microphone"}
-                        </p>
                     </div>
 
                 </div>
