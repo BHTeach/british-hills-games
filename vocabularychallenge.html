@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vocab Pop! - EFL Voice Game</title>
+    <title>Word Pop! - EFL Voice Game</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
@@ -52,6 +52,16 @@
             left: 0;
             animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
+
+        /* Custom Select Styling */
+        select {
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-screen w-screen overflow-hidden flex flex-col font-sans">
@@ -59,7 +69,7 @@
     <!-- TOP BAR: Timer & Status -->
     <div class="h-16 bg-white shadow-md flex items-center justify-between px-6 z-10">
         <div class="text-xl font-bold text-gray-700">
-            Vocab Pop! <span class="text-xs font-normal text-gray-400 block">Colors Level</span>
+            Word Pop! <span id="currentLevelName" class="text-xs font-normal text-gray-400 block">Select a level</span>
         </div>
         
         <!-- Timer Display -->
@@ -79,23 +89,35 @@
         <!-- OVERLAYS -->
         
         <!-- Start Screen -->
-        <div id="startScreen" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
-            <h1 class="text-5xl font-extrabold text-white mb-4 tracking-wider">VOCAB POP</h1>
-            <p class="text-gray-300 mb-8 text-lg text-center max-w-md">Shout the colors to pop them before time runs out!</p>
-            <button onclick="startGame()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-6 px-12 rounded-full text-2xl shadow-lg transform transition hover:scale-105 active:scale-95 flex items-center gap-3">
-                <i class="fa-solid fa-microphone"></i> Start Game
+        <div id="startScreen" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm px-4">
+            <h1 class="text-5xl font-extrabold text-white mb-2 tracking-wider">WORD POP</h1>
+            <p class="text-gray-300 mb-8 text-lg text-center max-w-md">Shout the words to pop them!</p>
+            
+            <!-- Category Selector -->
+            <div class="w-full max-w-xs mb-8">
+                <label class="block text-gray-400 text-sm font-bold mb-2 ml-1">SELECT CATEGORY</label>
+                <div class="relative">
+                    <select id="categorySelect" class="block w-full bg-gray-700 border border-gray-600 hover:border-gray-500 text-white py-4 px-4 pr-8 rounded-xl shadow leading-tight focus:outline-none focus:shadow-outline text-lg">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-5 px-12 rounded-full text-2xl shadow-lg transform transition hover:scale-105 active:scale-95 flex items-center gap-3 w-full max-w-xs justify-center">
+                <i class="fa-solid fa-microphone"></i> PLAY
             </button>
-            <p id="httpsWarning" class="hidden text-red-400 mt-4 text-sm font-bold bg-red-900/50 p-2 rounded">
+            
+            <p id="httpsWarning" class="hidden text-red-400 mt-4 text-sm font-bold bg-red-900/50 p-2 rounded text-center">
                 ⚠️ Warning: Microphone requires HTTPS or Localhost.
             </p>
         </div>
 
         <!-- Game Over Screen (Win/Lose) -->
-        <div id="endScreen" class="hidden absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50">
-            <h2 id="endTitle" class="text-6xl font-bold text-white mb-4">GAME OVER</h2>
-            <p id="endMessage" class="text-2xl text-gray-300 mb-8">Time's up!</p>
+        <div id="endScreen" class="hidden absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 px-4">
+            <h2 id="endTitle" class="text-6xl font-bold text-white mb-4 text-center">GAME OVER</h2>
+            <p id="endMessage" class="text-2xl text-gray-300 mb-8 text-center">Time's up!</p>
             <button onclick="resetGame()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-10 rounded-xl text-xl shadow-lg">
-                Play Again
+                Back to Menu
             </button>
         </div>
     </div>
@@ -117,21 +139,42 @@
         // --- CONFIGURATION ---
         const GAME_DURATION = 45; // Seconds
         
-        // Asset Library
-        // To use images later, change 'type' to 'image' and 'val' to the URL.
-        const ASSETS = [
-            { id: 'red', keywords: ['red', 'read'], type: 'color', val: '#EF4444' }, // Tailwind red-500
-            { id: 'blue', keywords: ['blue', 'glue'], type: 'color', val: '#3B82F6' }, // Tailwind blue-500
-            { id: 'green', keywords: ['green'], type: 'color', val: '#22C55E' }, // Tailwind green-500
-            { id: 'yellow', keywords: ['yellow'], type: 'color', val: '#EAB308' }, // Tailwind yellow-500
-            { id: 'orange', keywords: ['orange'], type: 'color', val: '#F97316' }, // Tailwind orange-500
-            { id: 'purple', keywords: ['purple'], type: 'color', val: '#A855F7' }, // Tailwind purple-500
-            { id: 'pink', keywords: ['pink'], type: 'color', val: '#EC4899' }, // Tailwind pink-500
-            { id: 'black', keywords: ['black'], type: 'color', val: '#1F2937' }  // Tailwind gray-800
-        ];
+        // --- DATA STRUCTURE ---
+        // To add a new category:
+        // 1. Add a new key (e.g., 'farm_animals')
+        // 2. Add an array of objects inside it.
+        // 3. For images, use type: 'image' and val: 'assets/filename.png'
+        
+        const GAME_DATA = {
+            colors: [
+                { id: 'red', keywords: ['red', 'read'], type: 'color', val: '#EF4444' }, 
+                { id: 'blue', keywords: ['blue', 'glue'], type: 'color', val: '#3B82F6' },
+                { id: 'green', keywords: ['green'], type: 'color', val: '#22C55E' },
+                { id: 'yellow', keywords: ['yellow'], type: 'color', val: '#EAB308' },
+                { id: 'orange', keywords: ['orange'], type: 'color', val: '#F97316' },
+                { id: 'purple', keywords: ['purple'], type: 'color', val: '#A855F7' },
+                { id: 'pink', keywords: ['pink'], type: 'color', val: '#EC4899' },
+                { id: 'black', keywords: ['black'], type: 'color', val: '#1F2937' }
+            ],
+            animals: [
+                { id: 'dog', keywords: ['dog'], type: 'image', val: 'assets/dog.jpg' },
+                { id: 'sheep', keywords: ['sheep'], type: 'image', val: 'assets/sheep.jpg' },
+                { id: 'cat', keywords: ['cat'], type: 'image', val: 'assets/cat.jpg' },
+                { id: 'tiger', keywords: ['tiger'], type: 'image', val: 'assets/tiger.jpg' },
+                { id: 'lion', keywords: ['lion'], type: 'image', val: 'assets/lion.jpg' },
+                { id: 'cow', keywords: ['cow'], type: 'image', val: 'assets/cow.jpg' },
+                { id: 'duck', keywords: ['duck'], type: 'image', val: 'assets/duck.jpg' },
+                { id: 'fox', keywords: ['fox'], type: 'image', val: 'assets/fox.jpg' }
+            ],
+            // Placeholder category for testing without assets
+            shapes: [
+                { id: 'circle', keywords: ['circle'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Circle' },
+                { id: 'square', keywords: ['square'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Square' },
+                { id: 'triangle', keywords: ['triangle'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Triangle' },
+                { id: 'star', keywords: ['star'], type: 'image', val: 'https://placehold.co/400x400/222222/FFF?text=Star' }
+            ]
+        };
 
-        // Sound Effects (Using reliable open URLs)
-        // Note: For production, hosting your own MP3s in an 'assets' folder is safest.
         const SOUNDS = {
             pop: new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3'),
             win: new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'),
@@ -143,31 +186,41 @@
             isPlaying: false,
             timer: GAME_DURATION,
             activeItems: [], // Items currently on screen
-            recognition: null
+            recognition: null,
+            currentCategory: 'colors'
         };
 
         let timerInterval;
 
         // --- INITIALIZATION ---
         window.onload = () => {
-            // Check for Web Speech API support
+            // Populate Dropdown
+            const select = document.getElementById('categorySelect');
+            Object.keys(GAME_DATA).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                // Capitalize first letter
+                opt.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+                select.appendChild(opt);
+            });
+
+            // Check Support
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert("Sorry, your browser doesn't support Voice Control. Please use Chrome or Safari.");
                 return;
             }
 
-            // Check Protocol for iOS
             if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
                 document.getElementById('httpsWarning').classList.remove('hidden');
             }
         };
 
-        // --- SPEECH RECOGNITION SETUP ---
+        // --- SPEECH RECOGNITION ---
         function initSpeech() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             state.recognition = new SpeechRecognition();
-            state.recognition.continuous = true; // Keep listening
-            state.recognition.interimResults = true; // Faster matching
+            state.recognition.continuous = true; 
+            state.recognition.interimResults = true; 
             state.recognition.lang = 'en-US';
 
             state.recognition.onstart = () => {
@@ -176,11 +229,8 @@
             };
 
             state.recognition.onend = () => {
-                // If game is still playing, restart mic (iOS often stops it after silence)
                 if (state.isPlaying) {
-                    try {
-                        state.recognition.start();
-                    } catch(e) { console.log("Mic restart ignored"); }
+                    try { state.recognition.start(); } catch(e) { console.log("Mic restart ignored"); }
                 } else {
                     document.getElementById('micIcon').classList.replace('bg-green-500', 'bg-red-500');
                     document.getElementById('micIcon').classList.remove('mic-active');
@@ -188,14 +238,9 @@
             };
 
             state.recognition.onresult = (event) => {
-                // Get the latest result
                 const lastResult = event.results[event.results.length - 1];
                 const transcript = lastResult[0].transcript.toLowerCase().trim();
-                
-                // Visual feedback
                 document.getElementById('transcript').textContent = transcript;
-
-                // Check for matches
                 checkMatch(transcript);
             };
         }
@@ -203,34 +248,39 @@
         // --- GAME LOGIC ---
 
         function startGame() {
-            // 1. Initialize Audio Context (Must be done in user click for iOS)
-            // We play sounds briefly at 0 volume to 'warm up' the iOS audio engine
+            // Get selected category
+            const selectedCat = document.getElementById('categorySelect').value;
+            state.currentCategory = selectedCat;
+            document.getElementById('currentLevelName').textContent = selectedCat.toUpperCase();
+
+            // Init Audio
             Object.values(SOUNDS).forEach(s => {
                 s.volume = 0;
-                s.play().catch(e => console.log("Audio play fail:", e));
+                s.play().catch(e => {});
                 s.pause();
                 s.currentTime = 0;
-                s.volume = 1; // Reset volume for actual game
+                s.volume = 1;
             });
 
-            // 2. Initialize Speech
+            // Init Speech
             if (!state.recognition) initSpeech();
-            try {
-                state.recognition.start();
-            } catch (e) { console.log("Recognition already started"); }
+            try { state.recognition.start(); } catch (e) {}
 
-            // 3. Reset State
+            // Set State
             state.isPlaying = true;
             state.timer = GAME_DURATION;
-            state.activeItems = JSON.parse(JSON.stringify(ASSETS)); // Deep copy
+            
+            // Load Data for Category
+            const categoryItems = GAME_DATA[selectedCat];
+            state.activeItems = JSON.parse(JSON.stringify(categoryItems)); 
 
-            // 4. UI Setup
+            // UI
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('endScreen').classList.add('hidden');
             document.getElementById('timerDisplay').classList.remove('text-red-600');
             renderGrid();
             
-            // 5. Start Timer
+            // Timer
             clearInterval(timerInterval);
             updateTimerDisplay();
             timerInterval = setInterval(() => {
@@ -252,24 +302,22 @@
 
         function renderGrid() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = ''; // Clear existing
+            grid.innerHTML = ''; 
 
             state.activeItems.forEach(item => {
                 const el = document.createElement('div');
                 el.id = `item-${item.id}`;
-                el.className = 'vocab-card w-full aspect-square rounded-2xl flex items-center justify-center text-4xl shadow-sm border-4 border-white';
+                el.className = 'vocab-card w-full aspect-square rounded-2xl flex items-center justify-center text-4xl shadow-sm border-4 border-white bg-white overflow-hidden relative';
                 
                 if (item.type === 'color') {
                     el.style.backgroundColor = item.val;
                 } else if (item.type === 'image') {
-                    // Future proofing for images
-                    el.style.backgroundImage = `url(${item.val})`;
-                    el.style.backgroundSize = 'cover';
+                    // Image handling
+                    el.style.backgroundImage = `url('${item.val}')`;
+                    el.style.backgroundSize = 'contain';
+                    el.style.backgroundRepeat = 'no-repeat';
                     el.style.backgroundPosition = 'center';
                 }
-
-                // Debug helper: Show word on hover (or temporarily for testing)
-                // el.title = item.id; 
                 
                 grid.appendChild(el);
             });
@@ -277,10 +325,6 @@
 
         function checkMatch(spokenPhrase) {
             if (!state.isPlaying) return;
-
-            // Simple keyword matching: does the spoken phrase contain the keyword?
-            // We iterate backwards so we can splice safely if needed, 
-            // though here we just look for IDs to remove.
             
             const matchedItemIndex = state.activeItems.findIndex(item => {
                 return item.keywords.some(keyword => spokenPhrase.includes(keyword));
@@ -288,23 +332,16 @@
 
             if (matchedItemIndex !== -1) {
                 const item = state.activeItems[matchedItemIndex];
-                
-                // EXPLODE!
                 const element = document.getElementById(`item-${item.id}`);
+                
                 if (element) {
-                    // Visual
                     element.classList.add('exploding');
-                    
-                    // Audio
                     SOUNDS.pop.currentTime = 0;
                     SOUNDS.pop.play().catch(e => {});
-
-                    // Data
                     state.activeItems.splice(matchedItemIndex, 1);
 
-                    // Check Win
                     if (state.activeItems.length === 0) {
-                        setTimeout(() => gameOver(true), 500); // Wait for animation
+                        setTimeout(() => gameOver(true), 500); 
                     }
                 }
             }
@@ -332,12 +369,12 @@
             if (win) {
                 title.textContent = "YOU WIN!";
                 title.className = "text-6xl font-bold text-green-400 mb-4";
-                msg.textContent = `Great job! You cleared the board in ${GAME_DURATION - state.timer} seconds.`;
+                msg.textContent = `Cleared in ${GAME_DURATION - state.timer}s!`;
                 SOUNDS.win.play().catch(e => {});
             } else {
                 title.textContent = "GAME OVER";
                 title.className = "text-6xl font-bold text-red-500 mb-4";
-                msg.textContent = "Time ran out! Try to be faster next time.";
+                msg.textContent = "Time's up!";
                 SOUNDS.lose.play().catch(e => {});
             }
         }
