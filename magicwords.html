@@ -43,7 +43,7 @@
         }
 
         .grid-square {
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 1 / 1; /* Ensures perfect squares */
         }
 
         /* Animations */
@@ -99,7 +99,8 @@
 
         <!-- GRID VIEW -->
         <div id="view-grid" class="absolute inset-0 p-4 overflow-y-auto hidden">
-            <div id="category-grid" class="grid grid-cols-5 gap-2 md:gap-4 h-full max-h-full w-full max-w-5xl mx-auto content-center">
+            <!-- Removed 'content-center' to fix scrolling issue -->
+            <div id="category-grid" class="grid grid-cols-5 gap-2 md:gap-4 w-full max-w-6xl mx-auto pb-8">
                 <!-- Categories injected here -->
             </div>
         </div>
@@ -128,7 +129,7 @@
                     
                     <!-- EDIT FORM (Hidden by default) -->
                     <div id="edit-container" class="hidden space-y-2 max-w-3xl mx-auto w-full bg-yellow-50 p-4 rounded-xl border-2 border-yellow-200">
-                        <h3 class="font-bold text-yellow-700 mb-2">Editing Content</h3>
+                        <h3 class="font-bold text-yellow-700 mb-2">Editing Content <span class="text-xs font-normal text-gray-500">(Use '|' for synonyms)</span></h3>
                         <div class="mb-2">
                             <label class="text-xs font-bold text-gray-500">Category Title</label>
                             <input type="text" id="edit-title" class="w-full p-2 border rounded">
@@ -178,33 +179,32 @@
     </main>
 
     <script>
-        // --- DEFAULT DATA (125 Answers) ---
+        // --- DATA WITH SYNONYMS (Separated by |) ---
+        // 20 Categories (4 rows x 5 columns)
         const DEFAULT_CATEGORIES = [
-            { t: "Kitchen", a: ["Spoon", "Fork", "Knife", "Plate", "Fridge"] },
+            { t: "Kitchen", a: ["Spoon", "Fork", "Knife", "Plate", "Fridge|Refrigerator"] },
             { t: "Animals", a: ["Dog", "Cat", "Lion", "Elephant", "Monkey"] },
             { t: "Colors", a: ["Red", "Blue", "Green", "Yellow", "Purple"] },
-            { t: "Jobs", a: ["Teacher", "Doctor", "Police", "Chef", "Farmer"] },
+            { t: "Jobs", a: ["Teacher", "Doctor", "Police|Officer|Cop", "Chef", "Farmer"] },
             { t: "Fruits", a: ["Apple", "Banana", "Orange", "Grape", "Lemon"] },
-            { t: "Sports", a: ["Soccer", "Basketball", "Tennis", "Swimming", "Baseball"] },
+            
+            { t: "Sports", a: ["Soccer|Football", "Basketball", "Tennis", "Swimming", "Baseball"] },
             { t: "School", a: ["Pencil", "Book", "Desk", "Teacher", "Eraser"] },
-            { t: "Clothes", a: ["T-shirt", "Jeans", "Shoes", "Hat", "Jacket"] },
+            { t: "Clothes", a: ["T-shirt|Shirt", "Jeans", "Shoes", "Hat", "Jacket"] },
             { t: "Body", a: ["Head", "Arm", "Leg", "Hand", "Foot"] },
-            { t: "Transport", a: ["Car", "Bus", "Train", "Plane", "Bike"] },
-            { t: "Family", a: ["Mother", "Father", "Sister", "Brother", "Baby"] },
+            { t: "Transport", a: ["Car", "Bus", "Train", "Plane", "Bike|Bicycle"] },
+            
+            { t: "Family", a: ["Mother|Mom|Mum", "Father|Dad", "Sister", "Brother", "Grandparents|Grandma|Grandpa"] },
             { t: "Weather", a: ["Sunny", "Rainy", "Cloudy", "Snowy", "Windy"] },
             { t: "Holidays", a: ["Christmas", "Halloween", "Easter", "New Year", "Birthday"] },
-            { t: "Furniture", a: ["Chair", "Table", "Sofa", "Bed", "Lamp"] },
             { t: "Verbs", a: ["Run", "Jump", "Eat", "Sleep", "Play"] },
-            { t: "Countries", a: ["USA", "UK", "Japan", "China", "France"] }, // Generic, can be edited
+            { t: "Countries", a: ["USA|America", "UK|Britain", "Japan", "China", "France"] },
+            
             { t: "Drinks", a: ["Water", "Milk", "Juice", "Tea", "Coffee"] },
             { t: "Shapes", a: ["Circle", "Square", "Triangle", "Star", "Heart"] },
-            { t: "Adjectives", a: ["Big", "Small", "Happy", "Sad", "Fast"] },
-            { t: "Numbers", a: ["One", "Ten", "Hundred", "Thousand", "Zero"] },
             { t: "Rooms", a: ["Bedroom", "Kitchen", "Bathroom", "Living Room", "Garden"] },
-            { t: "Time", a: ["Morning", "Afternoon", "Night", "Week", "Year"] },
             { t: "Feelings", a: ["Happy", "Sad", "Angry", "Tired", "Hungry"] },
-            { t: "Hobbies", a: ["Reading", "Gaming", "Dancing", "Drawing", "Singing"] },
-            { t: "Nature", a: ["Tree", "Flower", "Sun", "Moon", "River"] }
+            { t: "Numbers", a: ["One", "Ten", "Hundred", "Thousand", "Zero"] }
         ];
 
         // --- APP STATE ---
@@ -226,18 +226,17 @@
             },
 
             loadData: () => {
-                const saved = localStorage.getItem('magicWordsData');
+                const saved = localStorage.getItem('magicWordsData_v2');
                 if (saved) {
                     app.data = JSON.parse(saved);
                 } else {
-                    // Populate from default
                     app.data = DEFAULT_CATEGORIES.map((cat, idx) => ({
                         id: idx,
                         title: cat.t,
                         solved: false,
-                        answers: cat.a.map((word, wIdx) => ({
-                            word: word,
-                            points: wIdx + 1, // Points 1-5
+                        answers: cat.a.map((wordStr, wIdx) => ({
+                            word: wordStr, // Stores "USA|America"
+                            points: wIdx + 1,
                             revealed: false
                         }))
                     }));
@@ -245,18 +244,15 @@
             },
 
             saveDataToStorage: () => {
-                localStorage.setItem('magicWordsData', JSON.stringify(app.data));
+                localStorage.setItem('magicWordsData_v2', JSON.stringify(app.data));
             },
 
             resetGameData: () => {
-                if(confirm("Reset all categories and answers to default? Teams scores will remain.")) {
-                    localStorage.removeItem('magicWordsData');
+                if(confirm("Reset all categories and answers to default?")) {
+                    localStorage.removeItem('magicWordsData_v2');
                     app.loadData();
                     if(app.currentCategory) {
-                        // Reload current view if open
-                        app.currentCategory = app.data.find(c => c.id === app.currentCategory.id);
-                        app.renderAnswers();
-                        document.getElementById('current-category-title').innerText = app.currentCategory.title;
+                        app.closeQuestion();
                     } else {
                         app.renderGrid();
                     }
@@ -309,7 +305,7 @@
                     const btn = document.createElement('button');
                     let bgClass = cat.solved ? 'bg-gray-200 text-gray-400' : 'bg-white hover:bg-blue-50 text-blue-600';
                     
-                    btn.className = `${bgClass} rounded-xl shadow-md flex items-center justify-center p-1 text-center font-bold text-xs md:text-lg lg:text-xl transition-transform transform active:scale-95 grid-square border-2 border-transparent select-none`;
+                    btn.className = `${bgClass} rounded-xl shadow-md flex items-center justify-center p-1 text-center font-bold text-xs md:text-xl transition-transform transform active:scale-95 grid-square border-2 border-transparent select-none`;
                     btn.innerText = cat.title;
                     btn.disabled = cat.solved;
                     if (!cat.solved) {
@@ -338,13 +334,10 @@
                 if (allRevealed) app.currentCategory.solved = true;
                 if (app.isListening) app.toggleMic();
 
-                app.saveDataToStorage(); // Ensure state is saved
+                app.saveDataToStorage();
                 document.getElementById('view-question').classList.add('hidden');
                 document.getElementById('view-grid').classList.remove('hidden');
                 app.renderGrid();
-                
-                // Rotate team on exit? Or let teacher decide. 
-                // Let's simple rotate team index for next round to be fair
                 app.currentTeamIndex = (app.currentTeamIndex + 1) % app.teamCount;
             },
 
@@ -357,7 +350,6 @@
                 if (app.isEditing) {
                     view.classList.add('hidden');
                     edit.classList.remove('hidden');
-                    // Populate inputs
                     document.getElementById('edit-title').value = app.currentCategory.title;
                     const rows = document.getElementById('edit-rows');
                     rows.innerHTML = '';
@@ -365,7 +357,7 @@
                         rows.innerHTML += `
                             <div class="flex gap-2">
                                 <span class="p-2 font-bold w-8">${idx+1}</span>
-                                <input type="text" class="edit-word flex-grow p-2 border rounded" value="${ans.word}" placeholder="Word">
+                                <input type="text" class="edit-word flex-grow p-2 border rounded" value="${ans.word}" placeholder="Word1|Word2">
                                 <input type="number" class="edit-points w-16 p-2 border rounded" value="${ans.points}" placeholder="Pts">
                             </div>
                         `;
@@ -377,21 +369,19 @@
             },
 
             saveEdits: () => {
-                // Update Title
                 app.currentCategory.title = document.getElementById('edit-title').value;
                 document.getElementById('current-category-title').innerText = app.currentCategory.title;
 
-                // Update Answers
                 const wordInputs = document.querySelectorAll('.edit-word');
                 const pointInputs = document.querySelectorAll('.edit-points');
                 
                 app.currentCategory.answers.forEach((ans, idx) => {
-                    ans.word = wordInputs[idx].value;
+                    ans.word = wordInputs[idx].value; // Saves "USA|America"
                     ans.points = parseInt(pointInputs[idx].value) || 1;
                 });
 
                 app.saveDataToStorage();
-                app.toggleEditMode(); // Close edit mode
+                app.toggleEditMode();
                 app.renderAnswers();
             },
 
@@ -402,11 +392,13 @@
                 
                 app.currentCategory.answers.forEach((ans, idx) => {
                     const div = document.createElement('div');
+                    // Display only the first option (before |)
+                    const displayWord = ans.word.split('|')[0];
                     
                     if (ans.revealed) {
                         div.className = "flex items-center justify-between bg-green-100 border-2 border-green-500 rounded-lg p-3 md:p-4 shadow-sm pop-in";
                         div.innerHTML = `
-                            <span class="text-xl md:text-2xl font-bold text-green-900">${ans.word}</span>
+                            <span class="text-xl md:text-2xl font-bold text-green-900 truncate">${displayWord}</span>
                             <span class="text-lg font-bold bg-white text-green-700 px-3 py-1 rounded-full shadow-sm min-w-[3rem] text-center">${ans.points}</span>
                         `;
                     } else {
@@ -472,8 +464,6 @@
             },
 
             revealAll: () => {
-                // When revealing remaining, do we give points? 
-                // Usually no points for reveal all at end of round.
                 app.currentCategory.answers.forEach((ans) => {
                     if (!ans.revealed) ans.revealed = true;
                 });
@@ -521,7 +511,6 @@
                     };
 
                     app.recognition.onerror = (event) => {
-                        // iOS often throws 'no-speech' if silent, ignore it visually
                         if(event.error !== 'no-speech') {
                             document.getElementById('transcript-display').innerText = "Try again.";
                         }
@@ -530,7 +519,6 @@
                 } else {
                     document.getElementById('mic-btn').innerHTML = "Mic Not Supported";
                     document.getElementById('mic-btn').disabled = true;
-                    document.getElementById('mic-btn').classList.add('bg-gray-400');
                 }
             },
 
@@ -539,12 +527,7 @@
                 if (app.isListening) {
                     app.recognition.stop();
                 } else {
-                    try {
-                        app.recognition.start();
-                    } catch(e) {
-                        // Handle restart too quickly
-                        console.log("Mic restart error", e);
-                    }
+                    try { app.recognition.start(); } catch(e) {}
                 }
             },
 
@@ -557,24 +540,24 @@
                 app.currentCategory.answers.forEach((ans, idx) => {
                     if (ans.revealed) return;
 
-                    const cleanAnswer = ans.word.toLowerCase();
+                    // SPLIT BY PIPE FOR SYNONYMS
+                    const acceptedWords = ans.word.toLowerCase().split('|');
                     
-                    // FUZZY LOGIC
-                    // 1. Direct includes: "I see a blue bird" matches "bird"
-                    // 2. Exact match for short words: "Bat" != "Battery"
-                    
+                    // CHECK ALL SYNONYMS
                     let isMatch = false;
-                    if (cleanAnswer.length <= 3) {
-                         // Strict for short words
-                        if (cleanSpoken.split(' ').includes(cleanAnswer)) isMatch = true;
-                    } else {
-                        // Loose for longer words
-                        if (cleanSpoken.includes(cleanAnswer)) isMatch = true;
-                        
-                        // Handle plural 's' simply
-                        if (cleanSpoken.includes(cleanAnswer + 's')) isMatch = true;
-                        if (cleanAnswer.endsWith('s') && cleanSpoken.includes(cleanAnswer.slice(0, -1))) isMatch = true;
-                    }
+                    acceptedWords.forEach(word => {
+                        const cleanAnswer = word.trim();
+                        if (cleanAnswer.length <= 3) {
+                            // Strict for short words
+                            if (cleanSpoken.split(/[\s,]+/).includes(cleanAnswer)) isMatch = true;
+                        } else {
+                            // Loose for longer words
+                            if (cleanSpoken.includes(cleanAnswer)) isMatch = true;
+                            // Plurals
+                            if (cleanSpoken.includes(cleanAnswer + 's')) isMatch = true;
+                            if (cleanAnswer.endsWith('s') && cleanSpoken.includes(cleanAnswer.slice(0, -1))) isMatch = true;
+                        }
+                    });
 
                     if (isMatch) {
                         app.revealAnswer(idx);
@@ -592,7 +575,6 @@
                 gainNode.connect(audioCtx.destination);
 
                 if (type === 'correct') {
-                    // Happy ping
                     oscillator.type = 'sine';
                     oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
                     oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
