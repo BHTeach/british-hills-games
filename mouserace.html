@@ -330,11 +330,16 @@
             const playerRef = useRef(player);
             const catRef = useRef(cat);
             const gameStateRef = useRef(gameState);
+            
+            // CRITICAL FIX: Track currentLevel in Ref to avoid stale closures in speech processing
+            const currentLevelRef = useRef(currentLevel);
+            
             const shouldListenRef = useRef(false);
 
             useEffect(() => { playerRef.current = player; }, [player]);
             useEffect(() => { catRef.current = cat; }, [cat]);
             useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+            useEffect(() => { currentLevelRef.current = currentLevel; }, [currentLevel]); // Sync level ref
 
             // Update Body Theme
             useEffect(() => {
@@ -371,7 +376,7 @@
             };
 
             const checkGameStatus = (pPos, cPos) => {
-                const grid = LEVELS[currentLevel].grid;
+                const grid = LEVELS[currentLevelRef.current].grid; // Use Ref for reliability
                 if (grid[pPos.y][pPos.x] === 3) {
                     setGameState('WON');
                     playWinSound();
@@ -406,7 +411,9 @@
                 let currentC = catRef.current;
                 let nextP = { ...currentP };
                 let nextC = { ...currentC };
-                const grid = LEVELS[currentLevel].grid;
+                
+                // CRITICAL FIX: Use the REF to get the grid for the current level
+                const grid = LEVELS[currentLevelRef.current].grid;
 
                 if (cmd.type === "turn") {
                      const newDir = (currentP.dir + cmd.change + 4) % 4;
