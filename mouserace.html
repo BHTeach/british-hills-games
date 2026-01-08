@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Mouse Maze 3 (Forest Edition)</title>
+    <title>Mouse Maze 4 (Instant)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -61,11 +61,8 @@
         }
 
         /* --- FOREST TEXTURES --- */
-        
-        /* Grass Floor */
         .floor {
-            background-color: #86efac; /* Light Green */
-            /* Random grass tufts pattern using gradients */
+            background-color: #86efac;
             background-image: 
                 radial-gradient(#4ade80 15%, transparent 16%),
                 radial-gradient(#4ade80 15%, transparent 16%);
@@ -73,10 +70,8 @@
             background-position: 0 0, 10px 10px;
         }
         
-        /* Hedge/Tree Wall */
         .wall {
-            background-color: #14532d; /* Dark Green */
-            /* Leafy texture */
+            background-color: #14532d;
             background-image: 
                 radial-gradient(circle at 50% 50%, #166534 40%, transparent 41%),
                 radial-gradient(circle at 0% 0%, #166534 30%, transparent 31%),
@@ -85,24 +80,21 @@
                 radial-gradient(circle at 100% 0%, #166534 30%, transparent 31%);
             background-size: 20px 20px;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
-            border-radius: 4px; /* Slightly rounded for bushes */
+            border-radius: 4px;
         }
         
-        /* Dirt Path (Start) */
         .start { 
-            background-color: #d97706; /* Amber/Dirt */
+            background-color: #d97706;
             background-image: repeating-linear-gradient(45deg, #b45309 0, #b45309 2px, transparent 2px, transparent 8px);
             opacity: 0.9;
         }
         
-        /* Cheese Zone (End) */
         .end { 
-            background-color: #fef9c3; /* Light Yellow */
+            background-color: #fef9c3;
             opacity: 0.5;
         }
 
         /* --- JUICE ANIMATIONS --- */
-        
         @keyframes idle-bounce {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -121,17 +113,9 @@
             100% { transform: translateX(0); }
         }
 
-        .animate-idle {
-            animation: idle-bounce 2s infinite ease-in-out;
-        }
-
-        .animate-hop {
-            animation: hop 0.3s ease-out;
-        }
-
-        .animate-bonk {
-            animation: bonk 0.2s ease-in-out;
-        }
+        .animate-idle { animation: idle-bounce 2s infinite ease-in-out; }
+        .animate-hop { animation: hop 0.2s ease-out; }
+        .animate-bonk { animation: bonk 0.2s ease-in-out; }
 
         .safe-padding {
             padding-bottom: env(safe-area-inset-bottom);
@@ -139,10 +123,9 @@
             padding-right: env(safe-area-inset-right);
         }
 
-        /* Wood UI Panel */
         .ui-panel {
-            background-color: #fef3c7; /* Parchment */
-            border: 4px solid #78350f; /* Wood */
+            background-color: #fef3c7;
+            border: 4px solid #78350f;
             box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
             border-radius: 8px;
         }
@@ -232,11 +215,9 @@
                 iterations++;
                 const current = queue.shift();
                 const { x, y, path } = current;
-
                 if (x === playerPos.x && y === playerPos.y) return path.length > 0 ? path[0] : catPos;
 
                 const moves = [{dx: 0, dy: -1}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 1, dy: 0}];
-
                 for (const move of moves) {
                     const nx = x + move.dx;
                     const ny = y + move.dy;
@@ -264,7 +245,17 @@
             // Animation States
             const [playerAnim, setPlayerAnim] = useState(""); 
             
+            // Queue for instant processing
+            const commandQueueRef = useRef([]);
+            const isProcessingRef = useRef(false);
+
             const recognitionRef = useRef(null);
+            
+            // Speech Processing Refs
+            const processedIndexRef = useRef(0);
+            const processedLengthRef = useRef(0);
+
+            // Game State Refs (for async access)
             const playerRef = useRef(player);
             const catRef = useRef(cat);
             const gameStateRef = useRef(gameState);
@@ -285,6 +276,10 @@
                 setGameState('PLAYING');
                 setTranscript("Ready!");
                 setPlayerAnim("");
+                commandQueueRef.current = [];
+                isProcessingRef.current = false;
+                processedIndexRef.current = 0;
+                processedLengthRef.current = 0;
                 initAudio();
             };
 
@@ -292,13 +287,13 @@
                 if (LEVEL_1[pPos.y][pPos.x] === 3) {
                     setGameState('WON');
                     playWinSound();
-                    speak("Yummy! You found the cheese!");
+                    speak("Yummy! Cheese!");
                     return true;
                 }
                 if (pPos.x === cPos.x && pPos.y === cPos.y) {
                     setGameState('LOST');
                     playLoseSound();
-                    speak("Oh no! The cat caught you!");
+                    speak("Oh no!");
                     return true;
                 }
                 return false;
@@ -311,25 +306,31 @@
                 }
             };
 
-            // Recursive function to execute list of commands
-            const executeCommandSequence = (sequence, currentP, currentC) => {
-                 if (sequence.length === 0 || gameStateRef.current !== 'PLAYING') return;
+            // --- COMMAND EXECUTION LOOP ---
+            const processQueue = () => {
+                if (commandQueueRef.current.length === 0) {
+                    isProcessingRef.current = false;
+                    return;
+                }
+                
+                if (gameStateRef.current !== 'PLAYING') return;
 
-                 const cmd = sequence[0];
-                 const remaining = sequence.slice(1);
-                 
-                 let nextP = { ...currentP };
-                 let nextC = { ...currentC };
+                isProcessingRef.current = true;
+                const cmd = commandQueueRef.current.shift(); // Get next command
 
-                 // 1. EXECUTE PLAYER ACTION
-                 if (cmd.type === "turn") {
+                let currentP = playerRef.current;
+                let currentC = catRef.current;
+                let nextP = { ...currentP };
+                let nextC = { ...currentC };
+
+                // 1. EXECUTE PLAYER ACTION
+                if (cmd.type === "turn") {
                      const newDir = (currentP.dir + cmd.change + 4) % 4;
                      nextP = { ...currentP, dir: newDir };
                      setPlayer(nextP);
                      playMoveSound();
                      triggerAnim("animate-hop");
-                 } else if (cmd.type === "move") {
-                     // Determine vector based on CURRENT direction
+                } else if (cmd.type === "move") {
                      const moveDir = DIRECTIONS[currentP.dir];
                      const mult = cmd.action === "Forward" ? 1 : -1;
                      const targetX = currentP.x + (moveDir.dx * mult);
@@ -344,58 +345,90 @@
                          playBumpSound();
                          triggerAnim("animate-bonk");
                          setTranscript("BONK!");
-                         // Player blocked
                      }
-                 }
-
-                 // Check Win
-                 if (checkGameStatus(nextP, currentC)) return;
-
-                 // 2. CAT MOVES (Only if player command was a MOVE, not a turn)
-                 if (cmd.type === 'move') {
-                     nextC = getNextCatMove(currentC, nextP, LEVEL_1);
-                     setCat(nextC);
-                 }
-                 
-                 // Check Loss
-                 if (checkGameStatus(nextP, nextC)) return;
-
-                 // 3. SCHEDULE NEXT MOVE
-                 if (remaining.length > 0) {
-                     setTimeout(() => {
-                         executeCommandSequence(remaining, nextP, nextC);
-                     }, 100); // Reduced to 100ms for "Immediate" feel
-                 }
-            };
-
-            const processCommand = (text) => {
-                if (gameStateRef.current !== 'PLAYING') return;
-
-                const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase();
+                }
                 
-                // Regex to find ALL valid commands in the string
-                const regex = /(go forward|go back|turn left|turn right)/g;
-                const matches = cleanText.match(regex);
+                // Check Win
+                if (checkGameStatus(nextP, currentC)) return;
 
-                if (!matches || matches.length === 0) {
-                     const display = cleanText.length > 20 ? cleanText.substring(0, 20) + "..." : cleanText;
-                    setTranscript(`? "${display}"`);
-                    return;
+                // 2. CAT MOVES (Only if player MOVED, not turned)
+                if (cmd.type === "move") {
+                    nextC = getNextCatMove(currentC, nextP, LEVEL_1);
+                    setCat(nextC);
                 }
 
-                // Map matches to command objects
-                const commandSequence = matches.map(match => {
-                    if (match === 'go forward') return { action: "Forward", type: "move" };
-                    if (match === 'go back') return { action: "Back", type: "move" };
-                    if (match === 'turn left') return { action: "Turn Left", type: "turn", change: -1 };
-                    if (match === 'turn right') return { action: "Turn Right", type: "turn", change: 1 };
-                    return null;
-                }).filter(Boolean);
+                // Check Loss
+                if (checkGameStatus(nextP, nextC)) return;
 
-                setTranscript(`Running ${commandSequence.length} moves...`);
+                // 3. Next Move Delay
+                setTimeout(processQueue, 250); // Small delay between rapid-fire commands for clarity
+            };
 
-                // Start sequence with current state
-                executeCommandSequence(commandSequence, playerRef.current, catRef.current);
+
+            // --- SPEECH PARSING LOGIC ---
+            const handleSpeechResult = (event) => {
+                if (gameStateRef.current !== 'PLAYING') return;
+
+                // 1. Handle Result Index Changes (New sentence started)
+                const currentResultIndex = event.resultIndex;
+                if (currentResultIndex > processedIndexRef.current) {
+                    processedIndexRef.current = currentResultIndex;
+                    processedLengthRef.current = 0; // Reset length for new sentence
+                }
+
+                // 2. Get current interim text
+                const result = event.results[currentResultIndex];
+                if (!result) return;
+                
+                const fullTranscript = result[0].transcript.toLowerCase();
+                
+                // 3. Extract ONLY the new part we haven't processed yet
+                const newText = fullTranscript.substring(processedLengthRef.current);
+                
+                if (newText.length === 0) return;
+
+                // 4. Check for commands in the new text
+                // We use a simpler "tail" check or regex search on the new chunk
+                
+                const commands = [
+                    { phrase: "go forward", action: "Forward", type: "move" },
+                    { phrase: "go back", action: "Back", type: "move" },
+                    { phrase: "turn left", action: "Left", type: "turn", change: -1 },
+                    { phrase: "turn right", action: "Right", type: "turn", change: 1 }
+                ];
+
+                let matchFound = false;
+                let matchLength = 0;
+
+                // Check matches. We sort by length to match longest phrase first if overlapping
+                // But here phrases are distinct.
+                
+                // We scan the newText. Note: Speech API might return "go" then "go forward".
+                // "go" matches nothing. "go forward" matches.
+                
+                for (let cmd of commands) {
+                    const idx = newText.indexOf(cmd.phrase);
+                    if (idx !== -1) {
+                        // Command Found!
+                        // Add to queue
+                        commandQueueRef.current.push(cmd);
+                        setTranscript(cmd.action.toUpperCase());
+                        
+                        // Update the processed length so we don't process this again
+                        // We advance by the end of the match
+                        processedLengthRef.current += (idx + cmd.phrase.length);
+                        matchFound = true;
+                        
+                        // If we found a match, we break and wait for next event to process remaining text
+                        // to avoid complex overlap logic, simple sequential is safer for "instant" feel
+                        break; 
+                    }
+                }
+
+                // 5. Trigger Queue Processor if not running
+                if (matchFound && !isProcessingRef.current) {
+                    processQueue();
+                }
             };
 
             // Speech Setup
@@ -404,20 +437,18 @@
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
                     recognition.continuous = true;
-                    recognition.interimResults = false;
+                    recognition.interimResults = true; // CRITICAL: ENABLE INTERIM
                     recognition.lang = 'en-US';
 
                     recognition.onstart = () => { setIsListening(true); setTranscript("Listening..."); };
                     recognition.onend = () => {
                         setIsListening(false);
+                        // Auto-restart if game is playing
                         if (shouldListenRef.current && gameStateRef.current === 'PLAYING') {
                             try { recognition.start(); } catch (e) {}
                         }
                     };
-                    recognition.onresult = (event) => {
-                        const latestResult = event.results[event.results.length - 1];
-                        if (latestResult.isFinal) processCommand(latestResult[0].transcript);
-                    };
+                    recognition.onresult = handleSpeechResult;
                     recognitionRef.current = recognition;
                 }
                 return () => { shouldListenRef.current = false; if (recognitionRef.current) recognitionRef.current.abort(); };
@@ -439,7 +470,7 @@
             // --- Pixel Art SVGs ---
             const PixelMouse = () => (
                 <svg viewBox="0 0 16 16" width="80%" height="80%" style={{ transform: `rotate(${player.dir * 90}deg)`, transition: 'transform 0.2s' }}>
-                    <rect x="5" y="4" width="6" height="8" fill="#e2e8f0" /> {/* White/Grey Mouse */}
+                    <rect x="5" y="4" width="6" height="8" fill="#e2e8f0" />
                     <rect x="4" y="2" width="3" height="3" fill="#94a3b8" />
                     <rect x="9" y="2" width="3" height="3" fill="#94a3b8" />
                     <rect x="7" y="12" width="2" height="3" fill="#f472b6" />
@@ -450,7 +481,7 @@
 
             const PixelCat = () => (
                 <svg viewBox="0 0 16 16" width="80%" height="80%">
-                    <rect x="4" y="4" width="8" height="7" fill="#f97316" /> {/* Orange Tabby */}
+                    <rect x="4" y="4" width="8" height="7" fill="#f97316" />
                     <path d="M4 4 L4 1 L7 4 Z" fill="#c2410c" />
                     <path d="M12 4 L12 1 L9 4 Z" fill="#c2410c" />
                     <rect x="5" y="6" width="2" height="1" fill="#fff" />
@@ -481,7 +512,7 @@
                         {gameState === 'START' && (
                             <div className="absolute inset-0 z-20 bg-green-800/90 flex flex-col items-center justify-center rounded-lg border-4 border-amber-300 shadow-2xl">
                                 <h1 className="text-6xl text-amber-300 mb-2 tracking-widest text-shadow">FOREST MAZE</h1>
-                                <p className="text-xl text-green-100 mb-8 font-mono">PIXEL FOREST EDITION</p>
+                                <p className="text-xl text-green-100 mb-8 font-mono">INSTANT EDITION</p>
                                 <button onClick={resetGame} className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-amber-900 text-2xl font-bold border-b-4 border-amber-800 active:border-b-0 active:translate-y-1 transition-all rounded">
                                     START ADVENTURE
                                 </button>
