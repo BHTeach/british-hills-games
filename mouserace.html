@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Mouse Maze 4 (Instant)</title>
+    <title>Mouse Maze 5 (Seasons)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,9 +26,9 @@
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior: none;
-            background-color: #7dd3fc; /* Sky Blue */
             font-family: 'VT323', monospace;
-            color: #451a03; /* Dark Brown Text */
+            color: #451a03;
+            transition: background-color 0.5s ease;
         }
         
         /* Pixel Art Rendering */
@@ -39,10 +39,9 @@
 
         .maze-container {
             position: relative;
-            background-color: #22c55e;
-            border: 8px solid #713f12; /* Wood border */
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             border-radius: 8px;
+            transition: all 0.5s ease;
         }
 
         .maze-grid {
@@ -60,58 +59,84 @@
             justify-content: center;
         }
 
-        /* --- FOREST TEXTURES --- */
-        .floor {
+        /* --- THEMES --- */
+
+        /* 1. SUMMER FOREST */
+        .theme-summer body { background-color: #7dd3fc; } /* Sky Blue */
+        .theme-summer .maze-container { background-color: #14532d; border: 8px solid #713f12; }
+        .theme-summer .floor {
             background-color: #86efac;
-            background-image: 
-                radial-gradient(#4ade80 15%, transparent 16%),
-                radial-gradient(#4ade80 15%, transparent 16%);
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
+            background-image: radial-gradient(#4ade80 15%, transparent 16%), radial-gradient(#4ade80 15%, transparent 16%);
+            background-size: 20px 20px; background-position: 0 0, 10px 10px;
         }
-        
-        .wall {
+        .theme-summer .wall {
             background-color: #14532d;
-            background-image: 
-                radial-gradient(circle at 50% 50%, #166534 40%, transparent 41%),
-                radial-gradient(circle at 0% 0%, #166534 30%, transparent 31%),
-                radial-gradient(circle at 100% 100%, #166534 30%, transparent 31%),
-                radial-gradient(circle at 0% 100%, #166534 30%, transparent 31%),
-                radial-gradient(circle at 100% 0%, #166534 30%, transparent 31%);
+            background-image: radial-gradient(circle at 50% 50%, #166534 40%, transparent 41%);
             background-size: 20px 20px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
-            border-radius: 4px;
         }
-        
-        .start { 
-            background-color: #d97706;
-            background-image: repeating-linear-gradient(45deg, #b45309 0, #b45309 2px, transparent 2px, transparent 8px);
-            opacity: 0.9;
+        .theme-summer .start { background-color: #d97706; opacity: 0.9; }
+        .theme-summer .end { background-color: #fef9c3; opacity: 0.6; }
+        .theme-summer .ui-panel { background-color: #fef3c7; border: 4px solid #78350f; color: #451a03; }
+        .theme-summer .btn-primary { @apply bg-green-500 border-green-800 text-white hover:bg-green-400; }
+
+        /* 2. AUTUMN MOUNTAINS */
+        .theme-autumn body { background-color: #ffedd5; } /* Sunset Orange/Peach */
+        .theme-autumn .maze-container { background-color: #7c2d12; border: 8px solid #451a03; }
+        .theme-autumn .floor {
+            background-color: #fdba74; /* Orange-300 */
+            background-image: linear-gradient(45deg, #fb923c 25%, transparent 25%, transparent 75%, #fb923c 75%, #fb923c);
+            background-size: 20px 20px;
         }
-        
-        .end { 
-            background-color: #fef9c3;
-            opacity: 0.5;
+        .theme-autumn .wall {
+            background-color: #9a3412; /* Red-Orange */
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 19px, #7c2d12 20px); /* Brick lines */
         }
+        .theme-autumn .start { background-color: #713f12; opacity: 0.8; }
+        .theme-autumn .end { background-color: #fef9c3; opacity: 0.6; }
+        .theme-autumn .ui-panel { background-color: #fff7ed; border: 4px solid #9a3412; color: #7c2d12; }
+        .theme-autumn .btn-primary { @apply bg-orange-600 border-orange-900 text-white hover:bg-orange-500; }
+
+        /* 3. WINTER KINGDOM */
+        .theme-winter body { background-color: #e0f2fe; } /* Ice Blue */
+        .theme-winter .maze-container { background-color: #1e3a8a; border: 8px solid #172554; }
+        .theme-winter .floor {
+            background-color: #f0f9ff; /* White-ish */
+            background-image: radial-gradient(#bae6fd 10%, transparent 11%); /* Snow dots */
+            background-size: 15px 15px;
+        }
+        .theme-winter .wall {
+            background-color: #3b82f6; /* Blue-500 */
+            background-image: linear-gradient(135deg, #60a5fa 25%, transparent 25%), linear-gradient(225deg, #60a5fa 25%, transparent 25%);
+            background-size: 20px 20px;
+        }
+        .theme-winter .start { background-color: #93c5fd; opacity: 0.8; }
+        .theme-winter .end { background-color: #fef9c3; opacity: 0.6; }
+        .theme-winter .ui-panel { background-color: #eff6ff; border: 4px solid #1e40af; color: #1e3a8a; }
+        .theme-winter .btn-primary { @apply bg-blue-600 border-blue-900 text-white hover:bg-blue-500; }
+
+        /* 4. SPRING GARDEN */
+        .theme-spring body { background-color: #fce7f3; } /* Pink-100 */
+        .theme-spring .maze-container { background-color: #db2777; border: 8px solid #831843; }
+        .theme-spring .floor {
+            background-color: #bef264; /* Lime-300 */
+            background-image: radial-gradient(#a3e635 20%, transparent 20%);
+            background-size: 25px 25px;
+        }
+        .theme-spring .wall {
+            background-color: #ec4899; /* Pink-500 */
+            background-image: radial-gradient(circle, #db2777 50%, transparent 50%); /* Flowers */
+            background-size: 18px 18px;
+        }
+        .theme-spring .start { background-color: #a3e635; opacity: 0.8; }
+        .theme-spring .end { background-color: #fef9c3; opacity: 0.6; }
+        .theme-spring .ui-panel { background-color: #fdf2f8; border: 4px solid #be185d; color: #831843; }
+        .theme-spring .btn-primary { @apply bg-pink-600 border-pink-900 text-white hover:bg-pink-500; }
+
 
         /* --- JUICE ANIMATIONS --- */
-        @keyframes idle-bounce {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        @keyframes hop {
-            0% { transform: scale(1) translateY(0); }
-            50% { transform: scale(1.2) translateY(-10%); }
-            100% { transform: scale(1) translateY(0); }
-        }
-
-        @keyframes bonk {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-5px) rotate(-5deg); }
-            75% { transform: translateX(5px) rotate(5deg); }
-            100% { transform: translateX(0); }
-        }
+        @keyframes idle-bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes hop { 0% { transform: scale(1) translateY(0); } 50% { transform: scale(1.2) translateY(-10%); } 100% { transform: scale(1) translateY(0); } }
+        @keyframes bonk { 0% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-5deg); } 75% { transform: translateX(5px) rotate(5deg); } 100% { transform: translateX(0); } }
 
         .animate-idle { animation: idle-bounce 2s infinite ease-in-out; }
         .animate-hop { animation: hop 0.2s ease-out; }
@@ -122,16 +147,9 @@
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
         }
-
-        .ui-panel {
-            background-color: #fef3c7;
-            border: 4px solid #78350f;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
-            border-radius: 8px;
-        }
     </style>
 </head>
-<body class="h-[100dvh] w-screen overflow-hidden">
+<body class="h-[100dvh] w-screen overflow-hidden theme-summer"> <!-- Default Class -->
     <div id="root" class="h-full w-full"></div>
 
     <script type="text/babel">
@@ -140,22 +158,85 @@
         // --- Game Constants ---
         const GRID_SIZE = 11;
         
-        const LEVEL_1 = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 0, 1, 0, 0, 0, 1, 0, 0, 1],
-            [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
-            [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-            [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-            [1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ];
-
-        const INITIAL_PLAYER = { x: 1, y: 1, dir: 1 };
-        const INITIAL_CAT = { x: 9, y: 1 };
+        // 0: Empty, 1: Wall, 2: Start, 3: End
+        const LEVELS = {
+            SUMMER: {
+                name: "Summer Forest",
+                themeClass: "theme-summer",
+                grid: [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, 2, 0, 1, 0, 0, 0, 1, 0, 0, 1],
+                    [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+                    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                    [1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ],
+                start: { x: 1, y: 1, dir: 1 },
+                cat: { x: 9, y: 1 }
+            },
+            AUTUMN: {
+                name: "Autumn Mountains",
+                themeClass: "theme-autumn",
+                grid: [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, 2, 0, 0, 0, 1, 3, 0, 0, 0, 1], // Goal is closer but tricky wall
+                    [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1],
+                    [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+                    [1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], // Big open area
+                    [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ],
+                start: { x: 1, y: 1, dir: 1 },
+                cat: { x: 5, y: 5 } // Cat in middle!
+            },
+            WINTER: {
+                name: "Winter Kingdom",
+                themeClass: "theme-winter",
+                grid: [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, 3, 1, 0, 0, 0, 1, 0, 0, 0, 1], // Goal Top Left
+                    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], // Vertical corridors
+                    [1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+                    [1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+                    [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1],
+                    [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
+                    [1, 2, 1, 0, 0, 0, 1, 1, 1, 0, 1], // Start Bottom Left
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ],
+                start: { x: 1, y: 9, dir: 1 }, // Bottom Left Start
+                cat: { x: 9, y: 1 } // Top Right Cat
+            },
+            SPRING: {
+                name: "Spring Garden",
+                themeClass: "theme-spring",
+                grid: [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, 2, 0, 0, 1, 0, 0, 0, 1, 3, 1],
+                    [1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1], // Horizontal corridors
+                    [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                    [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ],
+                start: { x: 1, y: 1, dir: 2 }, // Facing Down
+                cat: { x: 5, y: 5 }
+            }
+        };
 
         const DIRECTIONS = [
             { dx: 0, dy: -1, label: 'North' },
@@ -193,15 +274,8 @@
 
         const playMoveSound = () => playTone(400, 'sine', 0.1); 
         const playBumpSound = () => playTone(150, 'sawtooth', 0.2);
-        const playWinSound = () => {
-            playTone(523.25, 'sine', 0.1); 
-            setTimeout(() => playTone(659.25, 'sine', 0.1), 100); 
-            setTimeout(() => playTone(783.99, 'sine', 0.2), 200); 
-        };
-        const playLoseSound = () => {
-            playTone(300, 'sawtooth', 0.2);
-            setTimeout(() => playTone(200, 'sawtooth', 0.4), 200);
-        };
+        const playWinSound = () => { playTone(523, 'sine', 0.1); setTimeout(() => playTone(659, 'sine', 0.1), 100); setTimeout(() => playTone(783, 'sine', 0.2), 200); };
+        const playLoseSound = () => { playTone(300, 'sawtooth', 0.2); setTimeout(() => playTone(200, 'sawtooth', 0.4), 200); };
         const playListenSound = () => playTone(880, 'sine', 0.1);
 
         // --- Cat Logic (BFS) ---
@@ -236,26 +310,23 @@
 
         // --- Main Component ---
         function App() {
-            const [gameState, setGameState] = useState('START');
-            const [player, setPlayer] = useState(INITIAL_PLAYER);
-            const [cat, setCat] = useState(INITIAL_CAT);
+            const [appState, setAppState] = useState('MENU'); // MENU, GAME
+            const [gameState, setGameState] = useState('START'); // START, PLAYING, WON, LOST
+            const [currentLevel, setCurrentLevel] = useState('SUMMER');
+            
+            const [player, setPlayer] = useState({ x: 1, y: 1, dir: 1 });
+            const [cat, setCat] = useState({ x: 9, y: 1 });
             const [isListening, setIsListening] = useState(false);
             const [transcript, setTranscript] = useState("");
-            
-            // Animation States
             const [playerAnim, setPlayerAnim] = useState(""); 
             
-            // Queue for instant processing
             const commandQueueRef = useRef([]);
             const isProcessingRef = useRef(false);
-
             const recognitionRef = useRef(null);
             
-            // Speech Processing Refs
+            // Refs for Speech & Game Loop
             const processedIndexRef = useRef(0);
             const processedLengthRef = useRef(0);
-
-            // Game State Refs (for async access)
             const playerRef = useRef(player);
             const catRef = useRef(cat);
             const gameStateRef = useRef(gameState);
@@ -265,29 +336,46 @@
             useEffect(() => { catRef.current = cat; }, [cat]);
             useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
+            // Update Body Theme
+            useEffect(() => {
+                document.body.className = LEVELS[currentLevel].themeClass;
+            }, [currentLevel]);
+
             const triggerAnim = (type) => {
                 setPlayerAnim(""); 
                 setTimeout(() => setPlayerAnim(type), 10);
             };
 
-            const resetGame = () => {
-                setPlayer(INITIAL_PLAYER);
-                setCat(INITIAL_CAT);
-                setGameState('PLAYING');
+            const startGame = (levelKey) => {
+                setCurrentLevel(levelKey);
+                const levelData = LEVELS[levelKey];
+                setPlayer(levelData.start);
+                setCat(levelData.cat);
+                setAppState('GAME');
+                setGameState('START');
                 setTranscript("Ready!");
                 setPlayerAnim("");
                 commandQueueRef.current = [];
                 isProcessingRef.current = false;
-                processedIndexRef.current = 0;
-                processedLengthRef.current = 0;
                 initAudio();
             };
 
+            const backToMenu = () => {
+                setAppState('MENU');
+                setIsListening(false);
+                if (recognitionRef.current) recognitionRef.current.stop();
+            };
+
+            const restartLevel = () => {
+                startGame(currentLevel);
+            };
+
             const checkGameStatus = (pPos, cPos) => {
-                if (LEVEL_1[pPos.y][pPos.x] === 3) {
+                const grid = LEVELS[currentLevel].grid;
+                if (grid[pPos.y][pPos.x] === 3) {
                     setGameState('WON');
                     playWinSound();
-                    speak("Yummy! Cheese!");
+                    speak("Yummy! Found it!");
                     return true;
                 }
                 if (pPos.x === cPos.x && pPos.y === cPos.y) {
@@ -306,24 +394,20 @@
                 }
             };
 
-            // --- COMMAND EXECUTION LOOP ---
+            // --- COMMAND EXECUTION ---
             const processQueue = () => {
-                if (commandQueueRef.current.length === 0) {
-                    isProcessingRef.current = false;
-                    return;
-                }
-                
+                if (commandQueueRef.current.length === 0) { isProcessingRef.current = false; return; }
                 if (gameStateRef.current !== 'PLAYING') return;
 
                 isProcessingRef.current = true;
-                const cmd = commandQueueRef.current.shift(); // Get next command
-
+                const cmd = commandQueueRef.current.shift();
+                
                 let currentP = playerRef.current;
                 let currentC = catRef.current;
                 let nextP = { ...currentP };
                 let nextC = { ...currentC };
+                const grid = LEVELS[currentLevel].grid;
 
-                // 1. EXECUTE PLAYER ACTION
                 if (cmd.type === "turn") {
                      const newDir = (currentP.dir + cmd.change + 4) % 4;
                      nextP = { ...currentP, dir: newDir };
@@ -336,7 +420,7 @@
                      const targetX = currentP.x + (moveDir.dx * mult);
                      const targetY = currentP.y + (moveDir.dy * mult);
 
-                     if (targetX >= 0 && targetY >= 0 && targetX < GRID_SIZE && targetY < GRID_SIZE && LEVEL_1[targetY][targetX] !== 1) {
+                     if (targetX >= 0 && targetY >= 0 && targetX < GRID_SIZE && targetY < GRID_SIZE && grid[targetY][targetX] !== 1) {
                          nextP = { ...currentP, x: targetX, y: targetY };
                          setPlayer(nextP);
                          playMoveSound();
@@ -348,48 +432,34 @@
                      }
                 }
                 
-                // Check Win
                 if (checkGameStatus(nextP, currentC)) return;
 
-                // 2. CAT MOVES (Only if player MOVED, not turned)
                 if (cmd.type === "move") {
-                    nextC = getNextCatMove(currentC, nextP, LEVEL_1);
+                    nextC = getNextCatMove(currentC, nextP, grid);
                     setCat(nextC);
                 }
 
-                // Check Loss
                 if (checkGameStatus(nextP, nextC)) return;
 
-                // 3. Next Move Delay
-                setTimeout(processQueue, 250); // Small delay between rapid-fire commands for clarity
+                setTimeout(processQueue, 250);
             };
 
-
-            // --- SPEECH PARSING LOGIC ---
             const handleSpeechResult = (event) => {
                 if (gameStateRef.current !== 'PLAYING') return;
 
-                // 1. Handle Result Index Changes (New sentence started)
                 const currentResultIndex = event.resultIndex;
                 if (currentResultIndex > processedIndexRef.current) {
                     processedIndexRef.current = currentResultIndex;
-                    processedLengthRef.current = 0; // Reset length for new sentence
+                    processedLengthRef.current = 0;
                 }
 
-                // 2. Get current interim text
                 const result = event.results[currentResultIndex];
                 if (!result) return;
                 
                 const fullTranscript = result[0].transcript.toLowerCase();
-                
-                // 3. Extract ONLY the new part we haven't processed yet
                 const newText = fullTranscript.substring(processedLengthRef.current);
-                
                 if (newText.length === 0) return;
 
-                // 4. Check for commands in the new text
-                // We use a simpler "tail" check or regex search on the new chunk
-                
                 const commands = [
                     { phrase: "go forward", action: "Forward", type: "move" },
                     { phrase: "go back", action: "Back", type: "move" },
@@ -398,52 +468,30 @@
                 ];
 
                 let matchFound = false;
-                let matchLength = 0;
-
-                // Check matches. We sort by length to match longest phrase first if overlapping
-                // But here phrases are distinct.
-                
-                // We scan the newText. Note: Speech API might return "go" then "go forward".
-                // "go" matches nothing. "go forward" matches.
-                
                 for (let cmd of commands) {
                     const idx = newText.indexOf(cmd.phrase);
                     if (idx !== -1) {
-                        // Command Found!
-                        // Add to queue
                         commandQueueRef.current.push(cmd);
                         setTranscript(cmd.action.toUpperCase());
-                        
-                        // Update the processed length so we don't process this again
-                        // We advance by the end of the match
                         processedLengthRef.current += (idx + cmd.phrase.length);
                         matchFound = true;
-                        
-                        // If we found a match, we break and wait for next event to process remaining text
-                        // to avoid complex overlap logic, simple sequential is safer for "instant" feel
                         break; 
                     }
                 }
-
-                // 5. Trigger Queue Processor if not running
-                if (matchFound && !isProcessingRef.current) {
-                    processQueue();
-                }
+                if (matchFound && !isProcessingRef.current) processQueue();
             };
 
-            // Speech Setup
             useEffect(() => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
                     const recognition = new SpeechRecognition();
                     recognition.continuous = true;
-                    recognition.interimResults = true; // CRITICAL: ENABLE INTERIM
+                    recognition.interimResults = true;
                     recognition.lang = 'en-US';
 
                     recognition.onstart = () => { setIsListening(true); setTranscript("Listening..."); };
                     recognition.onend = () => {
                         setIsListening(false);
-                        // Auto-restart if game is playing
                         if (shouldListenRef.current && gameStateRef.current === 'PLAYING') {
                             try { recognition.start(); } catch (e) {}
                         }
@@ -463,11 +511,13 @@
                 } else {
                     shouldListenRef.current = true;
                     playListenSound();
-                    try { recognitionRef.current.start(); } catch (e) {}
+                    try { recognitionRef.current.start(); } catch (e) {
+                         // iOS quirk: if already started, ignore
+                    }
                 }
             };
 
-            // --- Pixel Art SVGs ---
+            // --- Pixel Art ---
             const PixelMouse = () => (
                 <svg viewBox="0 0 16 16" width="80%" height="80%" style={{ transform: `rotate(${player.dir * 90}deg)`, transition: 'transform 0.2s' }}>
                     <rect x="5" y="4" width="6" height="8" fill="#e2e8f0" />
@@ -502,68 +552,108 @@
                 </svg>
             );
 
+            // --- RENDER ---
+            
+            // 1. MAIN MENU
+            if (appState === 'MENU') {
+                return (
+                    <div className="h-full w-full flex flex-col items-center justify-center p-4 space-y-6">
+                        <div className="text-center">
+                            <h1 className="text-6xl text-slate-900 mb-2 tracking-widest" style={{textShadow: "4px 4px 0px rgba(255,255,255,0.5)"}}>MOUSE MAZE</h1>
+                            <p className="text-2xl text-slate-700 font-mono bg-white/50 px-4 py-1 rounded inline-block">SELECT A SEASON</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
+                            {/* Summer */}
+                            <button onClick={() => startGame('SUMMER')} className="relative group overflow-hidden rounded-xl border-4 border-green-800 bg-green-500 hover:bg-green-400 h-40 transition-all shadow-xl active:scale-95">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
+                                    <div className="text-4xl mb-2">🌳</div>
+                                    <span className="text-3xl font-bold tracking-wider drop-shadow-md">SUMMER</span>
+                                </div>
+                                {/* Preview Pattern */}
+                                <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iNSIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==')]"></div>
+                            </button>
+
+                            {/* Autumn */}
+                            <button onClick={() => startGame('AUTUMN')} className="relative group overflow-hidden rounded-xl border-4 border-orange-900 bg-orange-600 hover:bg-orange-500 h-40 transition-all shadow-xl active:scale-95">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
+                                    <div className="text-4xl mb-2">🍂</div>
+                                    <span className="text-3xl font-bold tracking-wider drop-shadow-md">AUTUMN</span>
+                                </div>
+                            </button>
+
+                            {/* Winter */}
+                            <button onClick={() => startGame('WINTER')} className="relative group overflow-hidden rounded-xl border-4 border-blue-900 bg-blue-600 hover:bg-blue-500 h-40 transition-all shadow-xl active:scale-95">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
+                                    <div className="text-4xl mb-2">❄️</div>
+                                    <span className="text-3xl font-bold tracking-wider drop-shadow-md">WINTER</span>
+                                </div>
+                            </button>
+
+                             {/* Spring */}
+                             <button onClick={() => startGame('SPRING')} className="relative group overflow-hidden rounded-xl border-4 border-pink-900 bg-pink-500 hover:bg-pink-400 h-40 transition-all shadow-xl active:scale-95">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
+                                    <div className="text-4xl mb-2">🌸</div>
+                                    <span className="text-3xl font-bold tracking-wider drop-shadow-md">SPRING</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // 2. GAME SCREEN
             return (
                 <div className="safe-padding flex flex-col md:flex-row h-full w-full items-center justify-center p-4 gap-6">
                     
-                    {/* Left: Maze */}
+                    {/* Maze Area */}
                     <div className="flex-1 h-full max-h-[95vh] aspect-square flex items-center justify-center relative">
                         
-                        {/* Start Screen */}
+                        {/* Start Overlay */}
                         {gameState === 'START' && (
-                            <div className="absolute inset-0 z-20 bg-green-800/90 flex flex-col items-center justify-center rounded-lg border-4 border-amber-300 shadow-2xl">
-                                <h1 className="text-6xl text-amber-300 mb-2 tracking-widest text-shadow">FOREST MAZE</h1>
-                                <p className="text-xl text-green-100 mb-8 font-mono">INSTANT EDITION</p>
-                                <button onClick={resetGame} className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-amber-900 text-2xl font-bold border-b-4 border-amber-800 active:border-b-0 active:translate-y-1 transition-all rounded">
-                                    START ADVENTURE
+                            <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg shadow-2xl p-8 text-center">
+                                <h2 className="text-5xl text-white mb-2 text-shadow">{LEVELS[currentLevel].name}</h2>
+                                <button onClick={() => { setGameState('PLAYING'); setTranscript('Go!'); }} className="mt-6 px-10 py-5 bg-white text-black text-3xl font-bold border-b-8 border-gray-300 active:border-b-0 active:translate-y-2 rounded-xl transition-all">
+                                    START LEVEL
+                                </button>
+                                <button onClick={backToMenu} className="mt-4 text-white underline opacity-80 hover:opacity-100">
+                                    Back to Menu
                                 </button>
                             </div>
                         )}
 
-                        {/* End Screens */}
+                        {/* Win Overlay */}
                         {gameState === 'WON' && (
-                            <div className="absolute inset-0 z-20 bg-yellow-500/90 flex flex-col items-center justify-center rounded-lg border-4 border-white">
-                                <h2 className="text-6xl text-white mb-4 animate-bounce">YUMMY!</h2>
-                                <p className="text-xl text-yellow-100 mb-6">You found the cheese!</p>
-                                <button onClick={resetGame} className="px-8 py-4 bg-white text-yellow-600 text-2xl font-bold border-b-4 border-yellow-200 active:border-b-0 active:translate-y-1 rounded">
-                                    PLAY AGAIN
-                                </button>
+                            <div className="absolute inset-0 z-20 bg-green-500/90 flex flex-col items-center justify-center rounded-lg text-white">
+                                <div className="text-6xl mb-4 animate-bounce">🏆</div>
+                                <h2 className="text-5xl font-bold mb-8">VICTORY!</h2>
+                                <div className="flex gap-4">
+                                    <button onClick={restartLevel} className="px-6 py-3 bg-white text-green-700 font-bold rounded shadow-lg">Replay Level</button>
+                                    <button onClick={backToMenu} className="px-6 py-3 bg-green-800 text-white font-bold rounded shadow-lg">Main Menu</button>
+                                </div>
                             </div>
                         )}
+
+                        {/* Loss Overlay */}
                         {gameState === 'LOST' && (
-                            <div className="absolute inset-0 z-20 bg-red-800/90 flex flex-col items-center justify-center rounded-lg border-4 border-red-400">
-                                <h2 className="text-6xl text-red-200 mb-4">OH NO!</h2>
-                                <button onClick={resetGame} className="px-8 py-4 bg-red-500 hover:bg-red-400 text-white text-2xl font-bold border-b-4 border-red-800 active:border-b-0 active:translate-y-1 rounded">
-                                    TRY AGAIN
-                                </button>
+                            <div className="absolute inset-0 z-20 bg-red-600/90 flex flex-col items-center justify-center rounded-lg text-white">
+                                <div className="text-6xl mb-4">😿</div>
+                                <h2 className="text-5xl font-bold mb-8">CAUGHT!</h2>
+                                <div className="flex gap-4">
+                                    <button onClick={restartLevel} className="px-6 py-3 bg-white text-red-700 font-bold rounded shadow-lg">Try Again</button>
+                                    <button onClick={backToMenu} className="px-6 py-3 bg-red-800 text-white font-bold rounded shadow-lg">Main Menu</button>
+                                </div>
                             </div>
                         )}
 
                         <div className="maze-container w-full h-full">
                             <div className="maze-grid" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
-                                {LEVEL_1.map((row, y) => (
+                                {LEVELS[currentLevel].grid.map((row, y) => (
                                     row.map((cell, x) => (
                                         <div key={`${x}-${y}`} className={`cell ${cell === 1 ? 'wall' : 'floor'} ${cell === 2 ? 'start' : cell === 3 ? 'end' : ''}`}>
-                                            
-                                            {/* Player */}
-                                            {player.x === x && player.y === y && (
-                                                <div className={`absolute inset-0 z-10 flex items-center justify-center ${playerAnim || 'animate-idle'}`}>
-                                                    <PixelMouse />
-                                                </div>
-                                            )}
-                                            
-                                            {/* Cat */}
-                                            {cat.x === x && cat.y === y && (
-                                                <div className="absolute inset-0 z-10 flex items-center justify-center animate-idle">
-                                                    <PixelCat />
-                                                </div>
-                                            )}
-
-                                            {/* Goal */}
-                                            {cell === 3 && (
-                                                <div className="absolute inset-0 flex items-center justify-center animate-pulse">
-                                                    <PixelCheese />
-                                                </div>
-                                            )}
+                                            {player.x === x && player.y === y && <div className={`absolute inset-0 z-10 flex items-center justify-center ${playerAnim || 'animate-idle'}`}><PixelMouse /></div>}
+                                            {cat.x === x && cat.y === y && <div className="absolute inset-0 z-10 flex items-center justify-center animate-idle"><PixelCat /></div>}
+                                            {cell === 3 && <div className="absolute inset-0 flex items-center justify-center animate-pulse"><PixelCheese /></div>}
                                         </div>
                                     ))
                                 ))}
@@ -571,21 +661,18 @@
                         </div>
                     </div>
 
-                    {/* Right: Controls */}
+                    {/* Controls Area */}
                     <div className="w-full md:w-1/3 flex flex-col gap-6 justify-center p-4">
-                        
                         <div className="ui-panel p-6 relative">
-                            <div className="absolute -top-3 left-4 bg-amber-100 px-2 text-amber-900 border border-amber-900 text-sm font-bold rounded">COMMAND LOG</div>
-                            <div className="text-4xl text-green-700 text-center uppercase tracking-widest h-12 flex items-center justify-center">
-                                {transcript || "READY"}
+                            <div className="absolute -top-3 left-4 bg-white px-2 border border-current text-sm font-bold rounded opacity-80">COMMAND LOG</div>
+                            <div className="text-4xl text-center uppercase tracking-widest h-12 flex items-center justify-center font-bold opacity-80">
+                                {transcript || "..."}
                             </div>
                         </div>
                         
                         <button 
-                            className={`w-full py-6 text-3xl font-bold uppercase tracking-widest transition-all border-b-8 active:border-b-0 active:translate-y-2 rounded shadow-lg ${
-                                isListening 
-                                    ? 'bg-red-500 border-red-800 text-white animate-pulse' 
-                                    : 'bg-green-500 border-green-800 text-white hover:bg-green-400'
+                            className={`btn-primary w-full py-6 text-3xl font-bold uppercase tracking-widest transition-all border-b-8 active:border-b-0 active:translate-y-2 rounded-xl shadow-xl ${
+                                isListening ? 'animate-pulse brightness-110' : ''
                             }`}
                             onMouseDown={toggleListen}
                             onTouchStart={toggleListen}
@@ -594,12 +681,16 @@
                             {isListening ? "STOP MIC" : "START MIC"}
                         </button>
 
-                        <div className="grid grid-cols-2 gap-4 text-amber-900 font-bold text-sm">
-                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">GO FORWARD</div>
-                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">GO BACK</div>
-                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">TURN LEFT</div>
-                            <div className="bg-amber-100 p-2 text-center border-2 border-amber-900 rounded shadow-sm">TURN RIGHT</div>
+                        <div className="grid grid-cols-2 gap-4 font-bold text-sm opacity-80">
+                            <div className="bg-white/50 p-2 text-center border-2 border-current rounded shadow-sm">GO FORWARD</div>
+                            <div className="bg-white/50 p-2 text-center border-2 border-current rounded shadow-sm">GO BACK</div>
+                            <div className="bg-white/50 p-2 text-center border-2 border-current rounded shadow-sm">TURN LEFT</div>
+                            <div className="bg-white/50 p-2 text-center border-2 border-current rounded shadow-sm">TURN RIGHT</div>
                         </div>
+
+                        <button onClick={backToMenu} className="text-center text-sm font-bold opacity-50 hover:opacity-100 mt-4">
+                            ← EXIT TO MENU
+                        </button>
                     </div>
                 </div>
             );
