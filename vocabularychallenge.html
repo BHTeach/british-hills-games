@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Word Pop! - EFL Voice Game</title>
+    <title>Word & Memory Pop!</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
@@ -18,16 +18,38 @@
             user-select: none;
         }
 
-        /* Explosion Animation */
+        /* --- ANIMATIONS --- */
+
+        /* Explosion (Word Pop) */
         @keyframes explode {
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.4); opacity: 0.8; }
             100% { transform: scale(2); opacity: 0; }
         }
-
         .exploding {
             animation: explode 0.4s ease-out forwards;
-            pointer-events: none; /* Prevent clicking while exploding */
+            pointer-events: none;
+        }
+
+        /* Flip Out (Memory Pop - Hide) */
+        @keyframes flipOut {
+            0% { transform: perspective(600px) rotateY(0deg); opacity: 1; }
+            50% { transform: perspective(600px) rotateY(90deg); opacity: 0.5; }
+            100% { transform: perspective(600px) rotateY(180deg); opacity: 0; }
+        }
+        .flipped-hidden {
+            animation: flipOut 0.6s ease-in forwards;
+            pointer-events: none;
+        }
+
+        /* Pop In (Memory Pop - Reveal) */
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .revealed {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
         /* Grid Item Styling */
@@ -66,21 +88,33 @@
 </head>
 <body class="bg-gray-100 h-screen w-screen overflow-hidden flex flex-col font-sans">
 
-    <!-- TOP BAR: Timer & Status -->
-    <div class="h-16 bg-white shadow-md flex items-center justify-between px-6 z-10">
-        <div class="text-xl font-bold text-gray-700">
-            Word Pop! <span id="currentLevelName" class="text-xs font-normal text-gray-400 block">Select a level</span>
+    <!-- TOP BAR: Controls & Status -->
+    <div class="h-16 bg-white shadow-md flex items-center justify-between px-6 z-10 shrink-0">
+        <div class="flex flex-col">
+            <div class="text-xl font-bold text-gray-700 leading-tight">
+                <span id="gameTitleDisplay">Word Pop!</span>
+            </div>
+            <span id="currentLevelName" class="text-xs font-normal text-gray-400">Select a level</span>
         </div>
         
-        <!-- Timer Display -->
-        <div class="flex items-center gap-2">
-            <i class="fa-regular fa-clock text-gray-500"></i>
-            <span id="timerDisplay" class="text-3xl font-bold text-blue-600 font-mono">45</span>
+        <!-- Controls Container -->
+        <div class="flex items-center gap-4">
+            
+            <!-- Memory Pop Specific Control: Hide Button -->
+            <button id="hideBtn" onclick="hideRandomItems()" class="hidden bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow transition transform active:scale-95">
+                <i class="fa-solid fa-eye-slash mr-2"></i> Hide 4!
+            </button>
+
+            <!-- Timer Display (Only for Word Pop) -->
+            <div id="timerContainer" class="flex items-center gap-2">
+                <i class="fa-regular fa-clock text-gray-500"></i>
+                <span id="timerDisplay" class="text-3xl font-bold text-blue-600 font-mono">45</span>
+            </div>
         </div>
     </div>
 
     <!-- GAME AREA: Grid -->
-    <div id="gameContainer" class="flex-1 p-4 relative flex items-center justify-center">
+    <div id="gameContainer" class="flex-1 p-4 relative flex items-center justify-center min-h-0">
         <!-- The Grid -->
         <div id="grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl h-full max-h-full content-center">
             <!-- Items injected by JS -->
@@ -90,8 +124,19 @@
         
         <!-- Start Screen -->
         <div id="startScreen" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm px-4">
-            <h1 class="text-5xl font-extrabold text-white mb-2 tracking-wider">WORD POP</h1>
-            <p class="text-gray-300 mb-8 text-lg text-center max-w-md">Shout the words to pop them!</p>
+            
+            <!-- Mode Switcher -->
+            <div class="bg-gray-800 p-1 rounded-lg flex mb-6">
+                <button id="modeWordPop" onclick="setMode('word-pop')" class="px-6 py-2 rounded-md font-bold text-sm transition-colors bg-blue-600 text-white shadow-sm">
+                    Word Pop
+                </button>
+                <button id="modeMemoryPop" onclick="setMode('memory-pop')" class="px-6 py-2 rounded-md font-bold text-sm transition-colors text-gray-400 hover:text-white">
+                    Memory Pop
+                </button>
+            </div>
+
+            <h1 id="mainTitle" class="text-5xl font-extrabold text-white mb-2 tracking-wider text-center">WORD POP</h1>
+            <p id="mainDesc" class="text-gray-300 mb-8 text-lg text-center max-w-md">Shout the words to pop them before time runs out!</p>
             
             <!-- Category Selector -->
             <div class="w-full max-w-xs mb-8">
@@ -104,7 +149,7 @@
             </div>
 
             <button onclick="startGame()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-5 px-12 rounded-full text-2xl shadow-lg transform transition hover:scale-105 active:scale-95 flex items-center gap-3 w-full max-w-xs justify-center">
-                <i class="fa-solid fa-microphone"></i> PLAY
+                <i class="fa-solid fa-play"></i> START
             </button>
             
             <p id="httpsWarning" class="hidden text-red-400 mt-4 text-sm font-bold bg-red-900/50 p-2 rounded text-center">
@@ -122,22 +167,33 @@
         </div>
     </div>
 
-    <!-- BOTTOM BAR: Speech Debugger -->
-    <div class="h-12 bg-gray-800 flex items-center px-4 justify-between">
-        <div class="flex items-center gap-3 text-white">
+    <!-- BOTTOM BAR: Speech & Manual Input -->
+    <div class="h-14 bg-gray-800 flex items-center px-4 justify-between shrink-0 gap-4">
+        
+        <!-- Mic Status -->
+        <div class="flex items-center gap-3 text-white shrink-0">
             <div id="micIcon" class="relative w-3 h-3 bg-red-500 rounded-full transition-colors"></div>
-            <span class="text-xs text-gray-400 uppercase tracking-widest">Mic Status</span>
+            <span class="hidden sm:inline text-xs text-gray-400 uppercase tracking-widest">Mic</span>
         </div>
-        <div class="flex-1 text-center">
-            <span class="text-gray-500 text-sm mr-2">Heard:</span>
-            <span id="transcript" class="text-white font-mono font-bold text-lg italic">...</span>
+
+        <!-- Manual Input (Useful for Memory Game) -->
+        <div class="flex-1 max-w-md relative">
+            <input type="text" id="manualInput" placeholder="Type or shout answer..." 
+                   class="w-full bg-gray-700 text-white rounded-full py-1.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center placeholder-gray-500"
+                   onkeydown="if(event.key === 'Enter') handleManualInput(this.value)">
+        </div>
+
+        <!-- Transcript Display -->
+        <div class="hidden md:flex items-center gap-2 text-center max-w-xs overflow-hidden">
+            <span class="text-gray-500 text-sm whitespace-nowrap">Heard:</span>
+            <span id="transcript" class="text-white font-mono font-bold text-lg italic truncate">...</span>
         </div>
     </div>
 
     <!-- LOGIC -->
     <script>
         // --- CONFIGURATION ---
-        const GAME_DURATION = 45; // Seconds
+        const GAME_DURATION = 45; // Seconds (Word Pop)
         
         // --- DATA STRUCTURE ---
         const GAME_DATA = {
@@ -186,14 +242,17 @@
         const SOUNDS = {
             pop: new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3'),
             win: new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'),
-            lose: new Audio('https://www.soundjay.com/misc/sounds/fail-buzzer-01.mp3')
+            lose: new Audio('https://www.soundjay.com/misc/sounds/fail-buzzer-01.mp3'),
+            flip: new Audio('https://www.soundjay.com/misc/sounds/swish-1.mp3')
         };
 
         // --- STATE MANAGEMENT ---
         let state = {
+            mode: 'word-pop', // 'word-pop' or 'memory-pop'
             isPlaying: false,
             timer: GAME_DURATION,
             activeItems: [], // Items currently on screen
+            hiddenItemIds: [], // IDs of items currently hidden in Memory mode
             recognition: null,
             currentCategory: 'colors'
         };
@@ -201,36 +260,49 @@
         let timerInterval;
 
         // --- INITIALIZATION ---
-        
-        // 1. Populate Dropdown IMMEDIATELY (Fixes iPad "No Categories" issue)
-        // We do this before window.onload to ensure options exist when page renders.
         try {
             const select = document.getElementById('categorySelect');
             if (select) {
                 Object.keys(GAME_DATA).forEach(key => {
                     const opt = document.createElement('option');
                     opt.value = key;
-                    // Capitalize first letter
-                    opt.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+                    opt.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ');
                     select.appendChild(opt);
                 });
             }
-        } catch (e) {
-            console.error("Error populating dropdown:", e);
-        }
+        } catch (e) { console.error("Error populating dropdown:", e); }
 
-        // 2. Browser Checks on Load
         window.onload = () => {
-            // Check Support
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Sorry, your browser doesn't support Voice Control. Please use Chrome or Safari.");
-                return;
+                alert("Voice Control not supported. Please use Chrome/Safari.");
             }
-
             if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
                 document.getElementById('httpsWarning').classList.remove('hidden');
             }
         };
+
+        // --- MODE SWITCHING ---
+        function setMode(mode) {
+            state.mode = mode;
+            
+            // UI Updates
+            const btnWord = document.getElementById('modeWordPop');
+            const btnMem = document.getElementById('modeMemoryPop');
+            const title = document.getElementById('mainTitle');
+            const desc = document.getElementById('mainDesc');
+
+            if (mode === 'word-pop') {
+                btnWord.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors bg-blue-600 text-white shadow-sm";
+                btnMem.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors text-gray-400 hover:text-white";
+                title.textContent = "WORD POP";
+                desc.textContent = "Shout the words to pop them before time runs out!";
+            } else {
+                btnWord.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors text-gray-400 hover:text-white";
+                btnMem.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors bg-purple-600 text-white shadow-sm";
+                title.textContent = "MEMORY POP";
+                desc.textContent = "Hide items, then shout or type the missing ones to reveal them!";
+            }
+        }
 
         // --- SPEECH RECOGNITION ---
         function initSpeech() {
@@ -247,7 +319,7 @@
 
             state.recognition.onend = () => {
                 if (state.isPlaying) {
-                    try { state.recognition.start(); } catch(e) { console.log("Mic restart ignored"); }
+                    try { state.recognition.start(); } catch(e) {}
                 } else {
                     document.getElementById('micIcon').classList.replace('bg-green-500', 'bg-red-500');
                     document.getElementById('micIcon').classList.remove('mic-active');
@@ -258,66 +330,119 @@
                 const lastResult = event.results[event.results.length - 1];
                 const transcript = lastResult[0].transcript.toLowerCase().trim();
                 document.getElementById('transcript').textContent = transcript;
-                checkMatch(transcript);
+                processInput(transcript);
             };
+        }
+
+        function handleManualInput(text) {
+            processInput(text.toLowerCase().trim());
+            document.getElementById('manualInput').value = '';
         }
 
         // --- GAME LOGIC ---
 
         function startGame() {
-            // Get selected category
-            const selectEl = document.getElementById('categorySelect');
-            const selectedCat = selectEl.value || 'colors'; // Fallback if empty
-            
-            state.currentCategory = selectedCat;
-            document.getElementById('currentLevelName').textContent = selectedCat.toUpperCase();
-
-            // Init Audio
+            // Setup Audio context
             Object.values(SOUNDS).forEach(s => {
-                s.volume = 0;
-                s.play().catch(e => {});
-                s.pause();
-                s.currentTime = 0;
-                s.volume = 1;
+                s.volume = 0; s.play().catch(e => {}); s.pause(); s.currentTime = 0; s.volume = 1;
             });
 
-            // Init Speech
+            // Start Mic
             if (!state.recognition) initSpeech();
             try { state.recognition.start(); } catch (e) {}
 
-            // Set State
-            state.isPlaying = true;
-            state.timer = GAME_DURATION;
-            
-            // Load Data for Category
+            // Common Setup
+            const selectedCat = document.getElementById('categorySelect').value || 'colors';
+            state.currentCategory = selectedCat;
             const categoryItems = GAME_DATA[selectedCat];
-            state.activeItems = JSON.parse(JSON.stringify(categoryItems)); 
+            state.activeItems = JSON.parse(JSON.stringify(categoryItems));
+            state.isPlaying = true;
+            state.hiddenItemIds = [];
 
-            // UI
+            // UI Reset
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('endScreen').classList.add('hidden');
             document.getElementById('timerDisplay').classList.remove('text-red-600');
-            renderGrid();
+            document.getElementById('currentLevelName').textContent = selectedCat.toUpperCase();
             
-            // Timer
-            clearInterval(timerInterval);
-            updateTimerDisplay();
-            timerInterval = setInterval(() => {
-                state.timer--;
+            renderGrid();
+
+            if (state.mode === 'word-pop') {
+                // WORD POP SETUP
+                document.getElementById('gameTitleDisplay').textContent = "Word Pop!";
+                document.getElementById('timerContainer').classList.remove('hidden');
+                document.getElementById('hideBtn').classList.add('hidden');
+                
+                state.timer = GAME_DURATION;
+                clearInterval(timerInterval);
                 updateTimerDisplay();
-                if (state.timer <= 0) {
-                    gameOver(false);
-                }
-            }, 1000);
+                timerInterval = setInterval(() => {
+                    state.timer--;
+                    updateTimerDisplay();
+                    if (state.timer <= 0) gameOver(false);
+                }, 1000);
+
+            } else {
+                // MEMORY POP SETUP
+                document.getElementById('gameTitleDisplay').textContent = "Memory Pop!";
+                document.getElementById('timerContainer').classList.add('hidden'); // Hide timer
+                document.getElementById('hideBtn').classList.remove('hidden'); // Show hide button
+                clearInterval(timerInterval); // No timer in memory mode
+            }
         }
 
-        function resetGame() {
-            document.getElementById('endScreen').classList.add('hidden');
-            document.getElementById('startScreen').classList.remove('hidden');
-            clearInterval(timerInterval);
-            state.isPlaying = false;
-            if(state.recognition) state.recognition.stop();
+        // --- MEMORY POP SPECIFIC FUNCTIONS ---
+
+        function hideRandomItems() {
+            if (state.activeItems.length < 4) return; // Safety check
+            
+            // Create a pool of indices
+            let indices = Array.from(Array(state.activeItems.length).keys());
+            // Shuffle
+            indices.sort(() => Math.random() - 0.5);
+            // Pick first 4
+            const toHideIndices = indices.slice(0, 4);
+            
+            state.hiddenItemIds = []; // Reset hidden list
+            
+            SOUNDS.flip.play().catch(e=>{});
+
+            toHideIndices.forEach(index => {
+                const item = state.activeItems[index];
+                state.hiddenItemIds.push(item.id);
+                
+                const el = document.getElementById(`item-${item.id}`);
+                if (el) {
+                    el.classList.add('flipped-hidden');
+                }
+            });
+
+            // Disable button after hiding
+            document.getElementById('hideBtn').classList.add('hidden');
         }
+
+        function revealItem(itemId) {
+            const el = document.getElementById(`item-${itemId}`);
+            if (el) {
+                // Remove hidden class, add reveal animation
+                el.classList.remove('flipped-hidden');
+                el.classList.add('revealed');
+                
+                // Sound
+                SOUNDS.pop.currentTime = 0;
+                SOUNDS.pop.play().catch(e => {});
+
+                // Remove from hidden list
+                state.hiddenItemIds = state.hiddenItemIds.filter(id => id !== itemId);
+
+                // Check Win for Memory Pop
+                if (state.hiddenItemIds.length === 0) {
+                    setTimeout(() => gameOver(true), 1000);
+                }
+            }
+        }
+
+        // --- COMMON LOGIC ---
 
         function renderGrid() {
             const grid = document.getElementById('grid');
@@ -326,42 +451,50 @@
             state.activeItems.forEach(item => {
                 const el = document.createElement('div');
                 el.id = `item-${item.id}`;
-                el.className = 'vocab-card w-full aspect-square rounded-2xl flex items-center justify-center text-4xl shadow-sm border-4 border-white bg-white overflow-hidden relative';
+                el.className = 'vocab-card w-full aspect-square rounded-2xl flex items-center justify-center text-4xl shadow-sm border-4 border-white bg-white overflow-hidden relative backface-hidden';
                 
                 if (item.type === 'color') {
                     el.style.backgroundColor = item.val;
                 } else if (item.type === 'image') {
-                    // Image handling
                     el.style.backgroundImage = `url('${item.val}')`;
                     el.style.backgroundSize = 'contain';
                     el.style.backgroundRepeat = 'no-repeat';
                     el.style.backgroundPosition = 'center';
                 }
-                
                 grid.appendChild(el);
             });
         }
 
-        function checkMatch(spokenPhrase) {
+        function processInput(spokenPhrase) {
             if (!state.isPlaying) return;
-            
-            const matchedItemIndex = state.activeItems.findIndex(item => {
-                return item.keywords.some(keyword => spokenPhrase.includes(keyword));
-            });
 
-            if (matchedItemIndex !== -1) {
-                const item = state.activeItems[matchedItemIndex];
-                const element = document.getElementById(`item-${item.id}`);
-                
-                if (element) {
-                    element.classList.add('exploding');
-                    SOUNDS.pop.currentTime = 0;
-                    SOUNDS.pop.play().catch(e => {});
-                    state.activeItems.splice(matchedItemIndex, 1);
+            if (state.mode === 'word-pop') {
+                // WORD POP LOGIC: Find matches -> Remove them
+                const matchedItemIndex = state.activeItems.findIndex(item => {
+                    return item.keywords.some(keyword => spokenPhrase.includes(keyword));
+                });
 
-                    if (state.activeItems.length === 0) {
-                        setTimeout(() => gameOver(true), 500); 
+                if (matchedItemIndex !== -1) {
+                    const item = state.activeItems[matchedItemIndex];
+                    const element = document.getElementById(`item-${item.id}`);
+                    if (element) {
+                        element.classList.add('exploding');
+                        SOUNDS.pop.currentTime = 0;
+                        SOUNDS.pop.play().catch(e => {});
+                        state.activeItems.splice(matchedItemIndex, 1);
+                        if (state.activeItems.length === 0) setTimeout(() => gameOver(true), 500);
                     }
+                }
+            } else {
+                // MEMORY POP LOGIC: Find matches in HIDDEN list -> Reveal them
+                const matchedHiddenItem = state.activeItems.find(item => {
+                    // Check if this item is currently hidden AND matches the keyword
+                    return state.hiddenItemIds.includes(item.id) && 
+                           item.keywords.some(keyword => spokenPhrase.includes(keyword));
+                });
+
+                if (matchedHiddenItem) {
+                    revealItem(matchedHiddenItem.id);
                 }
             }
         }
@@ -369,9 +502,15 @@
         function updateTimerDisplay() {
             const display = document.getElementById('timerDisplay');
             display.textContent = state.timer;
-            if (state.timer <= 10) {
-                display.classList.add('text-red-600');
-            }
+            if (state.timer <= 10) display.classList.add('text-red-600');
+        }
+
+        function resetGame() {
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            clearInterval(timerInterval);
+            state.isPlaying = false;
+            if(state.recognition) state.recognition.stop();
         }
 
         function gameOver(win) {
@@ -386,13 +525,17 @@
             screen.classList.remove('hidden');
 
             if (win) {
-                title.textContent = "YOU WIN!";
-                title.className = "text-6xl font-bold text-green-400 mb-4";
-                msg.textContent = `Cleared in ${GAME_DURATION - state.timer}s!`;
+                title.textContent = "GREAT JOB!";
+                title.className = "text-6xl font-bold text-green-400 mb-4 text-center";
+                if (state.mode === 'word-pop') {
+                    msg.textContent = `Cleared in ${GAME_DURATION - state.timer}s!`;
+                } else {
+                    msg.textContent = "You found all the missing items!";
+                }
                 SOUNDS.win.play().catch(e => {});
             } else {
                 title.textContent = "GAME OVER";
-                title.className = "text-6xl font-bold text-red-500 mb-4";
+                title.className = "text-6xl font-bold text-red-500 mb-4 text-center";
                 msg.textContent = "Time's up!";
                 SOUNDS.lose.play().catch(e => {});
             }
