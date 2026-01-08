@@ -343,16 +343,19 @@
                      } else {
                          playBumpSound();
                          triggerAnim("animate-bonk");
-                         // Player blocked, but Cat will still move
+                         setTranscript("BONK!");
+                         // Player blocked
                      }
                  }
 
                  // Check Win
                  if (checkGameStatus(nextP, currentC)) return;
 
-                 // 2. CAT MOVES (Always)
-                 nextC = getNextCatMove(currentC, nextP, LEVEL_1);
-                 setCat(nextC);
+                 // 2. CAT MOVES (Only if player command was a MOVE, not a turn)
+                 if (cmd.type === 'move') {
+                     nextC = getNextCatMove(currentC, nextP, LEVEL_1);
+                     setCat(nextC);
+                 }
                  
                  // Check Loss
                  if (checkGameStatus(nextP, nextC)) return;
@@ -361,7 +364,7 @@
                  if (remaining.length > 0) {
                      setTimeout(() => {
                          executeCommandSequence(remaining, nextP, nextC);
-                     }, 400); // 400ms delay for "Juice"
+                     }, 100); // Reduced to 100ms for "Immediate" feel
                  }
             };
 
