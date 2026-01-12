@@ -441,6 +441,8 @@
             lightningFlash = 0.8; 
 
             // Thunder Synth (Noise Burst + Low Pass)
+            // Note: If you upload a thunder.mp3, replace this block with:
+            // new Audio('https://.../thunder.mp3').play();
             const bufferSize = audioCtx.sampleRate * 2; 
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
@@ -465,18 +467,14 @@
         function playOneShot(type) {
             if(!isAudioInit) initAudio();
             
-            // KNOCK: Short square waves
+            // KNOCK: Uses your external file (Relative Path)
             if(type === 'knock') {
-                const knockTime = audioCtx.currentTime;
-                // Knock 1
-                createKnock(knockTime);
-                // Knock 2
-                createKnock(knockTime + 0.15);
-                // Knock 3
-                createKnock(knockTime + 0.35);
+                const audio = new Audio('./assets/knock.mp3');
+                audio.play().catch(e => console.log("Audio play failed:", e));
             }
             
-            // BELL: Sine wave with long decay
+            // BELL: Sine wave with long decay (Synthesized)
+            // Replace with URL if you have one: new Audio('./assets/bell.mp3').play();
             if(type === 'bell') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -492,42 +490,14 @@
                 osc.stop(audioCtx.currentTime + 2.0);
             }
 
-            // WOLF: Sine wave slide
+            // WOLF: Uses your external file (Relative Path)
             if(type === 'wolf') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                
-                // Pitch Envelope: Low -> High -> Low
-                const t = audioCtx.currentTime;
-                osc.frequency.setValueAtTime(300, t);
-                osc.frequency.linearRampToValueAtTime(600, t + 1.0); // Howl up
-                osc.frequency.linearRampToValueAtTime(250, t + 3.0); // Slide down
-                
-                // Volume Envelope
-                gain.gain.setValueAtTime(0, t);
-                gain.gain.linearRampToValueAtTime(0.4, t + 1.0);
-                gain.gain.linearRampToValueAtTime(0, t + 3.0);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(t + 3.1);
+                const audio = new Audio('./assets/wolfhowl.mp3');
+                audio.play().catch(e => console.log("Audio play failed:", e));
             }
         }
 
-        function createKnock(time) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.frequency.value = 150;
-            osc.type = 'square';
-            gain.gain.setValueAtTime(0.8, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.08);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.1);
-        }
+        // Removed createKnock() helper as it is no longer needed
     </script>
 </body>
 </html>
