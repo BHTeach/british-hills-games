@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Atmosphere Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;1,400&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Cinzel', serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- THE SCENES (Real Images) --- */
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            transition: opacity 1.5s ease-in-out, transform 10s ease-in-out;
+            opacity: 0;
+            z-index: 0;
+            transform: scale(1.0);
+        }
+
+        .scene.active { 
+            opacity: 1; 
+            transform: scale(1.05); /* Subtle zoom effect for "life" */
+        }
+
+        /* Library: Old books, warm light */
+        #scene-library {
+            background-color: #2c1a0b; /* Fallback Brown */
+            background-image: url('https://images.unsplash.com/photo-1568667256549-094345857637?q=80&w=1920&auto=format&fit=crop');
+        }
+        
+        /* Garden: Dark, misty */
+        #scene-garden {
+            background-color: #0f172a; /* Fallback Dark Blue */
+            background-image: url('https://images.unsplash.com/photo-1475113548554-5a36f1f523d6?q=80&w=1920&auto=format&fit=crop');
+        }
+
+        /* Dining Hall: Candlelight - UPDATED */
+        #scene-dining {
+            background-color: #3f1010; /* Fallback Dark Red */
+            background-image: url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1920&auto=format&fit=crop');
+        }
+
+        /* Dungeon: Stone, cold */
+        #scene-dungeon {
+            background-color: #1a1c1a; /* Fallback Dark Grey */
+            background-image: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1920&auto=format&fit=crop');
+        }
+
+        /* Overlay to darken images slightly so text/rain pops */
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* Canvas for Weather Effects */
+        #weather-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* --- UI DASHBOARD --- */
+        #dashboard {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 2rem;
+            background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0) 100%);
+            z-index: 50;
+            transition: opacity 1s ease, transform 1s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        #dashboard.hidden-ui {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+
+        /* Steampunk/Manor Styled Controls */
+        .control-group {
+            display: flex;
+            gap: 1rem;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid #4a3b2a;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-location {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #5c4d3c;
+            background: #2a2218;
+            color: #d4c5b0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+        }
+
+        .btn-location:hover {
+            background: #3d3226;
+        }
+
+        .btn-location.active {
+            background: #8c6a43;
+            color: #fff;
+            box-shadow: 0 0 10px #8c6a43;
+            border-color: #d4c5b0;
+        }
+
+        .btn-sfx {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid #5c4d3c;
+            background: #1a1510;
+            color: #d4c5b0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            gap: 5px;
+            transition: transform 0.1s, background 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-sfx:active {
+            transform: scale(0.95);
+            background: #3d2e1e;
+            color: #fff;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 36px;
+            width: 36px;
+            border-radius: 50%;
+            background: #d4c5b0;
+            border: 4px solid #4a2c0f;
+            cursor: pointer;
+            margin-top: -14px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #2a2218;
+            border-radius: 4px;
+            border: 1px solid #5c4d3c;
+        }
+
+        .weather-label {
+            color: #8c6a43;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- VISUAL LAYERS -->
+    <div id="scene-library" class="scene active"></div>
+    <div id="scene-garden" class="scene"></div>
+    <div id="scene-dining" class="scene"></div>
+    <div id="scene-dungeon" class="scene"></div>
+
+    <div class="vignette"></div>
+
+    <!-- WEATHER LAYER (Rain/Lightning) -->
+    <canvas id="weather-canvas"></canvas>
+
+    <!-- UI DASHBOARD -->
+    <div id="dashboard">
+        
+        <!-- Top Row: Locations -->
+        <div class="control-group">
+            <button class="btn-location active" onclick="changeScene('library')">Library</button>
+            <button class="btn-location" onclick="changeScene('garden')">Garden</button>
+            <button class="btn-location" onclick="changeScene('dining')">Dining</button>
+            <button class="btn-location" onclick="changeScene('dungeon')">Dungeon</button>
+        </div>
+
+        <!-- Middle Row: Weather Slider -->
+        <div class="control-group" style="width: 100%; max-width: 600px; flex-direction: column;">
+            <div class="weather-label">Atmosphere Intensity (Calm &rarr; Storm)</div>
+            <input type="range" id="weatherSlider" min="0" max="100" value="0">
+        </div>
+
+        <!-- Bottom Row: Soundboard -->
+        <div class="control-group">
+            <button class="btn-sfx" onclick="playOneShot('knock')">
+                <i data-lucide="door-closed"></i> Knock
+            </button>
+            <button class="btn-sfx" onclick="playOneShot('bell')">
+                <i data-lucide="bell"></i> Bell
+            </button>
+            <button class="btn-sfx" onclick="triggerLightning()">
+                <i data-lucide="zap"></i> Thunder
+            </button>
+            <button class="btn-sfx" onclick="playOneShot('wolf')">
+                <i data-lucide="moon"></i> Wolf
+            </button>
+        </div>
+
+        <div style="color: #555; font-size: 0.8rem; margin-top: -10px;">Tap anywhere to wake controls</div>
+    </div>
+
+    <!-- CLICK ANYWHERE OVERLAY -->
+    <div id="wake-layer" style="position:fixed; top:0; left:0; width:100%; height:80%; z-index:40;" onclick="wakeUI()"></div>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // --- STATE ---
+        let currentScene = 'library';
+        let weatherIntensity = 0; // 0 to 100
+        let inactivityTimer;
+        let isAudioInit = false;
+
+        // --- AUDIO CONTEXT (Synthesizer) ---
+        let audioCtx;
+        let rainNode, rainGain;
+        let windNode, windGain;
+
+        function initAudio() {
+            if (isAudioInit) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            // 1. Rain Synth (White Noise)
+            const bufferSize = 2 * audioCtx.sampleRate;
+            const rainBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = rainBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            rainNode = audioCtx.createBufferSource();
+            rainNode.buffer = rainBuffer;
+            rainNode.loop = true;
+            
+            // Filter: Rain is high frequency "hiss" but dampened
+            const rainFilter = audioCtx.createBiquadFilter();
+            rainFilter.type = 'lowpass';
+            rainFilter.frequency.value = 800; 
+
+            rainGain = audioCtx.createGain();
+            rainGain.gain.value = 0; // Start silent
+
+            rainNode.connect(rainFilter);
+            rainFilter.connect(rainGain);
+            rainGain.connect(audioCtx.destination);
+            rainNode.start();
+
+            // 2. Wind Synth (Pink Noise approx)
+            const windBufferSize = 2 * audioCtx.sampleRate;
+            const windBuffer = audioCtx.createBuffer(1, windBufferSize, audioCtx.sampleRate);
+            const windData = windBuffer.getChannelData(0);
+            for (let i = 0; i < windBufferSize; i++) {
+                windData[i] = Math.random() * 2 - 1;
+            }
+            windNode = audioCtx.createBufferSource();
+            windNode.buffer = windBuffer;
+            windNode.loop = true;
+
+            const windFilter = audioCtx.createBiquadFilter();
+            windFilter.type = 'lowpass';
+            windFilter.frequency.value = 200; // Deep rumble
+
+            windGain = audioCtx.createGain();
+            windGain.gain.value = 0;
+
+            windNode.connect(windFilter);
+            windFilter.connect(windGain);
+            windGain.connect(audioCtx.destination);
+            windNode.start();
+
+            isAudioInit = true;
+        }
+
+        // --- CANVAS WEATHER ENGINE ---
+        const canvas = document.getElementById('weather-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let lightningFlash = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createParticle() {
+            return {
+                x: Math.random() * canvas.width,
+                y: -10,
+                speed: Math.random() * 10 + 5 + (weatherIntensity * 0.2), // Faster when stormy
+                length: Math.random() * 10 + 5
+            };
+        }
+
+        function drawWeather() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Lightning Flash
+            if (lightningFlash > 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${lightningFlash})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                lightningFlash -= 0.1;
+            }
+
+            // 2. Draw Rain (Only if intensity > 10)
+            if (weatherIntensity > 10) {
+                ctx.strokeStyle = `rgba(174, 194, 224, ${weatherIntensity / 150})`; 
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                // Add new particles
+                const density = Math.floor(weatherIntensity / 5);
+                for(let i=0; i<density; i++) {
+                    if(Math.random() > 0.5) particles.push(createParticle());
+                }
+
+                // Update and Draw particles
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x, p.y + p.length);
+                    p.y += p.speed;
+                    p.x -= (weatherIntensity * 0.05); // Wind slant
+
+                    // Remove if off screen
+                    if (p.y > canvas.height) {
+                        particles.splice(i, 1);
+                        i--;
+                    }
+                }
+                ctx.stroke();
+            } else {
+                particles = []; // Clear rain if calm
+            }
+
+            requestAnimationFrame(drawWeather);
+        }
+        drawWeather();
+
+        // --- CONTROLS LOGIC ---
+        function changeScene(sceneId) {
+            // Update Visuals
+            document.querySelectorAll('.scene').forEach(el => el.classList.remove('active'));
+            document.getElementById('scene-' + sceneId).classList.add('active');
+            
+            // Update Buttons
+            document.querySelectorAll('.btn-location').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            currentScene = sceneId;
+            wakeUI();
+        }
+
+        // Slider Logic
+        const slider = document.getElementById('weatherSlider');
+        slider.addEventListener('input', (e) => {
+            if(!isAudioInit) initAudio();
+            
+            weatherIntensity = parseInt(e.target.value);
+            
+            // Adjust Synth Volume
+            if(rainGain) rainGain.gain.setTargetAtTime(weatherIntensity / 200, audioCtx.currentTime, 0.1);
+            if(windGain) windGain.gain.setTargetAtTime(weatherIntensity / 300, audioCtx.currentTime, 0.1);
+
+            wakeUI();
+        });
+
+        // UI Auto-Fade Logic
+        const dashboard = document.getElementById('dashboard');
+        
+        function wakeUI() {
+            dashboard.classList.remove('hidden-ui');
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                dashboard.classList.add('hidden-ui');
+            }, 3000); // Fade after 3 seconds
+        }
+
+        // Initial Wake
+        wakeUI();
+        document.addEventListener('touchstart', wakeUI);
+        document.addEventListener('click', wakeUI);
+
+        // --- ONE SHOT SOUNDS ---
+        function triggerLightning() {
+            if(!isAudioInit) initAudio();
+            
+            // Visual Flash
+            lightningFlash = 0.8; 
+
+            // Thunder Synth (Noise Burst + Low Pass)
+            const bufferSize = audioCtx.sampleRate * 2; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.5));
+            }
+            
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 200;
+            const gain = audioCtx.createGain();
+            gain.gain.value = 1;
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function playOneShot(type) {
+            if(!isAudioInit) initAudio();
+            
+            // KNOCK: Short square waves
+            if(type === 'knock') {
+                const knockTime = audioCtx.currentTime;
+                // Knock 1
+                createKnock(knockTime);
+                // Knock 2
+                createKnock(knockTime + 0.15);
+                // Knock 3
+                createKnock(knockTime + 0.35);
+            }
+            
+            // BELL: Sine wave with long decay
+            if(type === 'bell') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.value = 880; // High pitch A
+                osc.type = 'sine';
+                
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.0);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 2.0);
+            }
+
+            // WOLF: Sine wave slide
+            if(type === 'wolf') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                
+                // Pitch Envelope: Low -> High -> Low
+                const t = audioCtx.currentTime;
+                osc.frequency.setValueAtTime(300, t);
+                osc.frequency.linearRampToValueAtTime(600, t + 1.0); // Howl up
+                osc.frequency.linearRampToValueAtTime(250, t + 3.0); // Slide down
+                
+                // Volume Envelope
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.4, t + 1.0);
+                gain.gain.linearRampToValueAtTime(0, t + 3.0);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(t + 3.1);
+            }
+        }
+
+        function createKnock(time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.value = 150;
+            osc.type = 'square';
+            gain.gain.setValueAtTime(0.8, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(time);
+            osc.stop(time + 0.1);
+        }
+    </script>
+</body>
+</html>
