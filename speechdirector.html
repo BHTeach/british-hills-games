@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Silent Director</title>
+    <title>Speech Director</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -19,6 +19,7 @@
         /* The main stage area */
         #stage {
             height: 100vh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -29,41 +30,52 @@
 
         /* The Timer Display */
         #timer-display {
-            font-size: 15vw;
+            font-size: 18vw; /* Slightly larger for visibility */
             font-weight: 700;
             letter-spacing: -2px;
             line-height: 1;
             text-shadow: 0 0 20px rgba(255,255,255,0.1);
+            margin-top: 15vh; /* Pushes the timer down to clear the top area */
+            z-index: 1;
         }
 
         /* The Cue Overlay (Big Icon) */
         #cue-overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.5);
-            font-size: 20vw;
+            top: 8vh; /* Anchored firmly to the top */
+            left: 0; 
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             opacity: 0;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             pointer-events: none;
             z-index: 10;
-            text-align: center;
         }
 
         #cue-overlay.active {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
+            transform: scale(1.1); /* slight pop effect */
+        }
+        
+        #cue-icon {
+            font-size: 15vh; /* Responsive to height, not width, to prevent massive icons on wide screens */
+            margin-bottom: 2vh;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
         }
 
         #cue-text {
             display: block;
-            font-size: 4vw;
-            margin-top: 20px;
+            font-size: 5vh;
             text-transform: uppercase;
             letter-spacing: 5px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 30px;
-            border-radius: 10px;
+            background: rgba(20,20,20,0.9);
+            padding: 10px 40px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         /* Control Panel at bottom */
@@ -190,6 +202,7 @@
         <!-- The Cue Overlay (Hidden by default) -->
         <div id="cue-overlay">
             <i id="cue-icon" class="fas fa-volume-up"></i>
+            <br>
             <span id="cue-text">Louder</span>
         </div>
     </div>
@@ -236,7 +249,7 @@
         </div>
         
         <div class="text-center text-xs text-gray-500 mt-2">
-            The Silent Director v1.0
+            Speech Director v1.0
         </div>
     </div>
 
