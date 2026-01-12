@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Silent Director</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;700&display=swap');
+        
+        body {
+            font-family: 'Oswald', sans-serif;
+            background-color: #000;
+            color: white;
+            overflow: hidden; /* Prevent scrolling */
+        }
+
+        /* The main stage area */
+        #stage {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.5s ease;
+            position: relative;
+        }
+
+        /* The Timer Display */
+        #timer-display {
+            font-size: 15vw;
+            font-weight: 700;
+            letter-spacing: -2px;
+            line-height: 1;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+
+        /* The Cue Overlay (Big Icon) */
+        #cue-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            font-size: 20vw;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            z-index: 10;
+            text-align: center;
+        }
+
+        #cue-overlay.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #cue-text {
+            display: block;
+            font-size: 4vw;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 30px;
+            border-radius: 10px;
+        }
+
+        /* Control Panel at bottom */
+        #controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(20, 20, 20, 0.95);
+            border-top: 1px solid #333;
+            padding: 15px;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        #controls.collapsed {
+            transform: translateY(92%);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #eee;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 100px;
+            justify-content: center;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-cue {
+            background: #2d3748;
+            border-color: #4a5568;
+        }
+        .btn-cue:hover { background: #4a5568; }
+
+        .btn-primary {
+            background: #2b6cb0;
+            border-color: #4299e1;
+        }
+        
+        .btn-danger {
+            background: #c53030;
+            border-color: #f56565;
+        }
+
+        /* Toggle Handle for controls */
+        #toggle-handle {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            width: 60px;
+            height: 25px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border: 1px solid #333;
+            border-bottom: none;
+            color: #888;
+        }
+
+        /* Subtle blinking for overtime */
+        @keyframes urgent {
+            0% { color: #fff; }
+            50% { color: #fc8181; }
+            100% { color: #fff; }
+        }
+        .urgent {
+            animation: urgent 1s infinite;
+        }
+        
+        /* Progress Bar */
+        #progress-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: #222;
+        }
+        #progress-bar {
+            height: 100%;
+            background: #48bb78;
+            width: 100%;
+            transition: width 1s linear, background-color 1s ease;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Main Visual Stage -->
+    <div id="stage">
+        <!-- Progress Bar at top -->
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <div id="timer-display">02:00</div>
+        
+        <!-- The Cue Overlay (Hidden by default) -->
+        <div id="cue-overlay">
+            <i id="cue-icon" class="fas fa-volume-up"></i>
+            <span id="cue-text">Louder</span>
+        </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div id="controls">
+        <div id="toggle-handle" onclick="toggleControls()">
+            <i class="fas fa-chevron-down" id="toggle-icon"></i>
+        </div>
+
+        <!-- Timer Controls -->
+        <div class="control-group border-b border-gray-700 pb-4 mb-4">
+            <button class="btn" onclick="adjustTime(-30)">-30s</button>
+            <button class="btn" onclick="adjustTime(30)">+30s</button>
+            <div class="w-4"></div>
+            <button class="btn btn-primary" id="start-btn" onclick="toggleTimer()">
+                <i class="fas fa-play"></i> Start
+            </button>
+            <button class="btn btn-danger" onclick="resetTimer()">
+                <i class="fas fa-undo"></i> Reset
+            </button>
+        </div>
+
+        <!-- Cue Buttons -->
+        <div class="control-group">
+            <button class="btn btn-cue" onclick="triggerCue('volume-up', 'Louder', 'text-yellow-400')">
+                <i class="fas fa-volume-up"></i> Louder
+            </button>
+            <button class="btn btn-cue" onclick="triggerCue('shipping-fast', 'Faster', 'text-green-400')">
+                <i class="fas fa-shipping-fast"></i> Faster
+            </button>
+            <button class="btn btn-cue" onclick="triggerCue('hourglass-half', 'Slow Down', 'text-blue-400')">
+                <i class="fas fa-hourglass-half"></i> Slower
+            </button>
+            <button class="btn btn-cue" onclick="triggerCue('eye', 'Eye Contact', 'text-white')">
+                <i class="fas fa-eye"></i> Eyes
+            </button>
+            <button class="btn btn-cue" onclick="triggerCue('smile', 'Smile', 'text-pink-400')">
+                <i class="fas fa-smile"></i> Smile
+            </button>
+            <button class="btn btn-cue" onclick="triggerCue('stop-circle', 'Wrap Up', 'text-red-500')">
+                <i class="fas fa-stop-circle"></i> Wrap Up
+            </button>
+        </div>
+        
+        <div class="text-center text-xs text-gray-500 mt-2">
+            The Silent Director v1.0
+        </div>
+    </div>
+
+    <script>
+        let timeLeft = 120; // Default 2 minutes
+        let totalTime = 120;
+        let timerInterval = null;
+        let isRunning = false;
+        let cueTimeout = null;
+
+        const display = document.getElementById('timer-display');
+        const stage = document.getElementById('stage');
+        const progressBar = document.getElementById('progress-bar');
+        const startBtn = document.getElementById('start-btn');
+        const controls = document.getElementById('controls');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateDisplay() {
+            display.textContent = formatTime(timeLeft);
+            
+            // Progress Bar Logic
+            let percentage = (timeLeft / totalTime) * 100;
+            progressBar.style.width = `${percentage}%`;
+
+            // Color Coding based on percentage
+            if (percentage > 50) {
+                progressBar.style.backgroundColor = '#48bb78'; // Green
+                display.className = '';
+            } else if (percentage > 20) {
+                progressBar.style.backgroundColor = '#ecc94b'; // Yellow
+                display.className = '';
+            } else {
+                progressBar.style.backgroundColor = '#f56565'; // Red
+                display.className = 'urgent';
+            }
+        }
+
+        function adjustTime(amount) {
+            timeLeft += amount;
+            if (timeLeft < 0) timeLeft = 0;
+            // Only update totalTime if we are adjusting while stopped/reset, 
+            // otherwise we are just adding bonus time to an existing run
+            if (!isRunning && timeLeft === totalTime + amount) {
+                totalTime = timeLeft;
+            }
+            updateDisplay();
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                startBtn.innerHTML = '<i class="fas fa-play"></i> Resume';
+                startBtn.classList.remove('btn-danger');
+                startBtn.classList.add('btn-primary');
+            } else {
+                totalTime = Math.max(totalTime, timeLeft); // Ensure bar makes sense
+                timerInterval = setInterval(() => {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        updateDisplay();
+                    } else {
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        stage.style.backgroundColor = "#2d0a0a"; // Subtle red tint on end
+                        startBtn.innerHTML = '<i class="fas fa-play"></i> Start';
+                    }
+                }, 1000);
+                startBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                startBtn.classList.remove('btn-primary');
+                startBtn.classList.add('btn-danger');
+            }
+            isRunning = !isRunning;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            timeLeft = 120;
+            totalTime = 120;
+            updateDisplay();
+            startBtn.innerHTML = '<i class="fas fa-play"></i> Start';
+            startBtn.classList.remove('btn-danger');
+            startBtn.classList.add('btn-primary');
+            stage.style.backgroundColor = "#000";
+            display.className = '';
+        }
+
+        function triggerCue(iconClass, text, colorClass) {
+            const overlay = document.getElementById('cue-overlay');
+            const icon = document.getElementById('cue-icon');
+            const label = document.getElementById('cue-text');
+
+            // Reset classes
+            icon.className = `fas fa-${iconClass} ${colorClass}`;
+            label.textContent = text;
+            label.style.color = getComputedStyle(document.documentElement).getPropertyValue('--' + colorClass) || '#fff';
+            
+            // Show overlay
+            overlay.classList.add('active');
+
+            // Clear existing timeout if spamming buttons
+            if (cueTimeout) clearTimeout(cueTimeout);
+
+            // Hide after 2 seconds
+            cueTimeout = setTimeout(() => {
+                overlay.classList.remove('active');
+            }, 2000);
+        }
+
+        function toggleControls() {
+            controls.classList.toggle('collapsed');
+            if (controls.classList.contains('collapsed')) {
+                toggleIcon.className = 'fas fa-chevron-up';
+            } else {
+                toggleIcon.className = 'fas fa-chevron-down';
+            }
+        }
+
+        // Initialize
+        updateDisplay();
+
+    </script>
+</body>
+</html>
