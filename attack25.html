@@ -161,6 +161,23 @@
 
         #question-text { font-size: 22px; color: #333; margin-bottom: 5px; }
         
+        /* Media Container */
+        #media-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        #q-video {
+            width: 100%;
+            max-height: 25vh;
+            border-radius: 8px;
+            display: none;
+            background: black;
+        }
+
         /* Audio Button */
         #audio-btn {
             background-color: #8e44ad;
@@ -171,7 +188,7 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            display: none; /* Hidden by default */
+            display: none; 
             align-items: center;
             justify-content: center;
             gap: 8px;
@@ -180,6 +197,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
         #audio-btn:active { transform: scale(0.95); background-color: #732d91; }
+        #audio-btn:disabled { background-color: #bdc3c7; cursor: wait; }
 
         #answer-text { 
             font-size: 20px; 
@@ -241,10 +259,15 @@
         
         <div id="question-text">...</div>
 
-        <!-- Audio Player Button -->
-        <button id="audio-btn" onclick="toggleAudio()">
-            <span>🔊</span> <span id="audio-btn-text">Play Audio</span>
-        </button>
+        <div id="media-container">
+            <!-- Video Player (Hidden initially) -->
+            <video id="q-video" controls playsinline></video>
+            
+            <!-- Audio Player Button -->
+            <button id="audio-btn" onclick="toggleAudio()">
+                <span>🔊</span> <span id="audio-btn-text">Play Audio</span>
+            </button>
+        </div>
         
         <button id="reveal-btn" class="modal-btn btn-reveal" onclick="revealAnswer()">Show Answer</button>
         
@@ -259,11 +282,11 @@
     </div>
 </div>
 
-<!-- Hidden Audio Element for actual files -->
+<!-- Hidden Audio Element for standard files -->
 <audio id="external-audio"></audio>
 
 <script>
-    // --- Data with updated Audio Links ---
+    // --- Data ---
     const questions = [
         { id: 1, q: "What is the capital of the U.K.?", a: "London" },
         { id: 2, q: "What is the money of Australia?", a: "Australian Dollar" },
@@ -271,7 +294,8 @@
         { id: 4, q: "What is the capital of France?", a: "Paris" },
         { id: 5, q: "Who sang 'We Will Rock You'?", a: "Queen", audio: "assets/wewillrockyou.mp3" },
         { id: 6, q: "What city is the Opera House in?", a: "Sydney" },
-        { id: 7, q: "Who sang 'Penny Lane'?", a: "The Beatles" }, 
+        // Updated Question 7 with Video + Reverse Flag
+        { id: 7, q: "Which famous British group is this?", a: "The Beatles", video: "assets/pennylane.mp4", reverse: true }, 
         { id: 8, q: "What is the money of America?", a: "Dollar ($)" },
         { id: 9, q: "What is the money of the U.K.?", a: "Pound (£)" },
         { id: 10, q: "Unscramble: nhtalepe", a: "Elephant" },
@@ -294,9 +318,10 @@
 
     let gridState = Array(25).fill(null); 
     let currentActiveIndex = -1;
-    let audioCtx = null; // Web Audio Context
+    let audioCtx = null; 
+    let reversedBuffer = null; // Stores the flipped audio
+    let reverseSource = null; // Tracks the playing sound to stop it
 
-    // --- Sound Effects Synthesizer ---
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -307,6 +332,69 @@
         }
     }
 
+    // --- Reverse Audio Logic ---
+    async function loadAndReverse(url) {
+        initAudio();
+        const btn = document.getElementById('audio-btn');
+        const btnText = document.getElementById('audio-btn-text');
+        
+        btn.disabled = true;
+        btnText.textContent = "Loading...";
+
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            
+            // Create a new buffer for the reversed audio
+            const reversed = audioCtx.createBuffer(
+                audioBuffer.numberOfChannels,
+                audioBuffer.length,
+                audioBuffer.sampleRate
+            );
+
+            // Copy and reverse each channel
+            for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+                const channelData = audioBuffer.getChannelData(i);
+                const reversedData = reversed.getChannelData(i);
+                for (let j = 0; j < channelData.length; j++) {
+                    reversedData[j] = channelData[channelData.length - 1 - j];
+                }
+            }
+
+            reversedBuffer = reversed;
+            btnText.textContent = "Play Backwards";
+            btn.disabled = false;
+        } catch (e) {
+            console.error(e);
+            btnText.textContent = "Error Loading";
+        }
+    }
+
+    function playReversed() {
+        if (reverseSource) {
+            try { reverseSource.stop(); } catch(e) {}
+            reverseSource = null;
+            document.getElementById('audio-btn-text').textContent = "Play Backwards";
+            return;
+        }
+
+        if (!reversedBuffer) return;
+
+        reverseSource = audioCtx.createBufferSource();
+        reverseSource.buffer = reversedBuffer;
+        reverseSource.connect(audioCtx.destination);
+        reverseSource.start();
+        
+        document.getElementById('audio-btn-text').textContent = "Stop";
+        
+        reverseSource.onended = () => {
+            reverseSource = null;
+            document.getElementById('audio-btn-text').textContent = "Play Backwards";
+        };
+    }
+
+    // --- Synthesizer for SFX ---
     function playTone(freq, type, duration, startTime = 0) {
         if (!audioCtx) initAudio();
         const osc = audioCtx.createOscillator();
@@ -382,7 +470,7 @@
     }
 
     function handleTileClick(index) {
-        initAudio(); // Ensure audio context is ready on first user interaction
+        initAudio(); 
         sfx.click();
         
         currentActiveIndex = index;
@@ -392,22 +480,39 @@
         document.getElementById('question-text').textContent = qData.q;
         document.getElementById('answer-text').textContent = qData.a;
         
-        // Handle Audio Button
+        // Reset Media Elements
         const audioBtn = document.getElementById('audio-btn');
+        const videoEl = document.getElementById('q-video');
         const externalPlayer = document.getElementById('external-audio');
         
-        externalPlayer.pause(); // Reset
-        externalPlayer.currentTime = 0;
-        document.getElementById('audio-btn-text').textContent = "Play Audio";
+        // Stop all previous audio
+        stopAllAudio();
 
+        // 1. Handle Video
+        if (qData.video) {
+            videoEl.src = qData.video;
+            videoEl.style.display = 'none'; // Hidden initially
+            
+            // Check if we need reverse audio
+            if (qData.reverse) {
+                audioBtn.style.display = 'flex';
+                loadAndReverse(qData.video); // Extract and reverse audio from video file
+            } else {
+                audioBtn.style.display = 'none';
+            }
+        } else {
+            videoEl.style.display = 'none';
+            videoEl.removeAttribute('src');
+            audioBtn.style.display = 'none';
+        }
+
+        // 2. Handle Audio (Standard)
         if (qData.audio) {
             audioBtn.style.display = 'flex';
             externalPlayer.src = qData.audio;
-        } else {
-            audioBtn.style.display = 'none';
-            externalPlayer.removeAttribute('src');
+            document.getElementById('audio-btn-text').textContent = "Play Audio";
         }
-        
+
         document.getElementById('reveal-btn').style.display = 'block';
         document.getElementById('answer-text').style.display = 'none';
         document.getElementById('team-selector').style.display = 'none';
@@ -415,6 +520,15 @@
     }
 
     function toggleAudio() {
+        const qData = questions[currentActiveIndex];
+        
+        // If it's the reverse logic
+        if (qData.video && qData.reverse) {
+            playReversed();
+            return;
+        }
+
+        // Standard Audio
         const player = document.getElementById('external-audio');
         const btnText = document.getElementById('audio-btn-text');
         
@@ -428,11 +542,31 @@
         }
     }
 
+    function stopAllAudio() {
+        document.getElementById('external-audio').pause();
+        document.getElementById('external-audio').currentTime = 0;
+        document.getElementById('q-video').pause();
+        if (reverseSource) {
+            try { reverseSource.stop(); } catch(e) {}
+            reverseSource = null;
+        }
+    }
+
     function revealAnswer() {
         sfx.reveal();
+        stopAllAudio(); // Stop reversed audio or standard audio
+        
         document.getElementById('reveal-btn').style.display = 'none';
         document.getElementById('answer-text').style.display = 'block';
         document.getElementById('team-selector').style.display = 'grid';
+
+        // Show and Play Video if it exists
+        const qData = questions[currentActiveIndex];
+        if (qData.video) {
+            const videoEl = document.getElementById('q-video');
+            videoEl.style.display = 'block';
+            videoEl.play();
+        }
     }
 
     function captureSquare(color) {
@@ -456,7 +590,7 @@
 
     function closeModal() {
         document.getElementById('modal-overlay').style.display = 'none';
-        document.getElementById('external-audio').pause();
+        stopAllAudio();
         currentActiveIndex = -1;
     }
 
