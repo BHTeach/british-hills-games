@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Science Challenge</title>
+    
+    <!-- GOOGLE FONTS: Now possible since we are hosted on GitHub! -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --speed: 0.8s; /* Fast, sleek feel */
+            --sci-blue: #00d2ff;
+            --sci-white: #f0f0f0;
+            --sci-dark: #0a192f;
+            --danger: #ff3333;
+            --success: #00ff88;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
+            background-color: var(--sci-dark);
+            /* Updated Font Stack to use Orbitron */
+            font-family: "Orbitron", "Segoe UI", sans-serif; 
+            color: var(--sci-dark);
+        }
+
+        /* --- THE QUANTUM TUNNEL --- */
+        #viewport {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            perspective: 800px;
+            overflow: hidden;
+            z-index: 1;
+            background: radial-gradient(circle at center, #1a2a4f 0%, #000 100%);
+        }
+
+        #tunnel {
+            position: absolute; width: 100%; height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        /* Tech Panel Textures */
+        .wall {
+            position: absolute;
+            width: 200%; height: 400%;
+            left: -50%; top: -50%;
+            background: 
+                /* Data Lines */
+                linear-gradient(90deg, rgba(0, 210, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(rgba(0, 210, 255, 0.1) 1px, transparent 1px),
+                /* Panels - Darkened from White to Dark Blue/Black */
+                linear-gradient(to bottom, #0d1b2a 0%, #050a10 100%);
+            background-size: 100px 100px, 100px 100px, 100% 100%;
+            animation: moveTunnel var(--speed) linear infinite;
+            opacity: 1;
+        }
+
+        .floor {
+            position: absolute; width: 100%; height: 100%;
+            bottom: -50%;
+            background: 
+                linear-gradient(90deg, transparent 49%, var(--sci-blue) 50%, transparent 51%),
+                repeating-linear-gradient(to bottom, transparent 0px, transparent 98px, var(--sci-blue) 100px);
+            background-size: 100% 100px;
+            transform: rotateX(80deg);
+            transform-origin: center bottom;
+            animation: moveFloor var(--speed) linear infinite;
+            box-shadow: 0 0 50px var(--sci-blue);
+        }
+
+        .ceiling {
+            position: absolute; width: 100%; height: 100%;
+            top: -50%;
+            background: rgba(0, 210, 255, 0.05);
+            transform: rotateX(-80deg);
+            transform-origin: center top;
+            border-bottom: 2px solid var(--sci-blue);
+        }
+
+        @keyframes moveTunnel { from { transform: translateZ(-500px); } to { transform: translateZ(0px); } }
+        @keyframes moveFloor { from { background-position-y: 0px; } to { background-position-y: 100px; } }
+
+        /* --- UI LAYER --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 20;
+            display: flex; flex-direction: column; justify-content: space-between;
+            pointer-events: none; 
+            padding: 20px;
+        }
+
+        .hud-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--sci-white);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--sci-blue);
+        }
+
+        /* --- ENCOUNTER --- */
+        #encounter-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 30;
+            pointer-events: auto;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Icon Badge */
+        #science-icon {
+            font-size: 6rem;
+            background: white;
+            width: 140px; height: 140px;
+            line-height: 140px;
+            border-radius: 50%;
+            text-align: center;
+            border: 5px solid var(--sci-blue);
+            box-shadow: 0 0 30px var(--sci-blue);
+            z-index: 2;
+            transform: scale(0);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: -30px; /* Overlap box */
+        }
+
+        #data-pad {
+            width: 85vw; max-width: 650px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--sci-blue);
+            border-radius: 20px;
+            padding: 40px 30px 30px 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: scale(0);
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .approaching #science-icon { transform: scale(1); }
+        .approaching #data-pad { transform: scale(1); }
+
+        #q-text { 
+            font-size: 1.6rem; margin: 10px 0 30px 0; color: #333; font-weight: 700;
+            font-family: "Orbitron", sans-serif;
+        }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .sci-btn {
+            background: linear-gradient(to bottom, #ffffff, #e6e6e6);
+            border: 1px solid #ccc;
+            border-bottom: 5px solid #bbb;
+            padding: 25px; font-size: 1.2rem;
+            border-radius: 12px;
+            font-weight: bold; color: #333;
+            cursor: pointer; transition: all 0.1s;
+            font-family: "Orbitron", sans-serif;
+        }
+        .sci-btn:active { transform: translateY(4px); border-bottom-width: 1px; }
+
+        .sci-btn.blue { border-top: 4px solid var(--sci-blue); color: #007bb5; }
+        .sci-btn.purple { border-top: 4px solid #9d00ff; color: #6a00ad; }
+
+        /* Timer */
+        .timer-track {
+            width: 100%; height: 10px; background: #ddd; margin-top: 25px; border-radius: 5px;
+        }
+        .timer-bar { height: 100%; background: var(--sci-blue); border-radius: 5px; width: 100%; }
+
+        /* --- FEEDBACK --- */
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-5px, 0, 0); }
+            20%, 80% { transform: translate3d(5px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
+            40%, 60% { transform: translate3d(5px, 0, 0); }
+        }
+
+        #flash-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; opacity: 0; transition: opacity 0.5s; z-index: 100;
+        }
+        
+        /* --- MENU --- */
+        #menu-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(10, 25, 47, 0.95); z-index: 200;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+            color: white;
+        }
+        h1 { 
+            font-size: 3.5rem; margin: 0; 
+            background: linear-gradient(to right, var(--sci-blue), #fff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px var(--sci-blue);
+        }
+        .money-display { font-size: 2.5rem; color: var(--success); margin: 20px 0; font-family: monospace; }
+        
+        #final-msg { font-size: 1.2rem; color: #ccc; margin-bottom: 30px; max-width: 80%; }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Environment -->
+    <div id="viewport">
+        <div id="tunnel">
+            <div class="ceiling"></div>
+            <div class="wall"></div>
+            <div class="floor"></div>
+        </div>
+    </div>
+
+    <!-- UI -->
+    <div id="ui-layer">
+        <div class="hud-bar">
+            <div id="score-el">£0</div>
+            <div id="level-el">Q: 1/10</div>
+        </div>
+    </div>
+
+    <!-- Encounter -->
+    <div id="encounter-container" class="hidden">
+        <div id="science-icon">🔬</div>
+        <div id="data-pad">
+            <div id="q-text">Question Loading...</div>
+            <div class="btn-grid">
+                <button id="btn-l" class="sci-btn blue" onclick="answer(0)">Option A</button>
+                <button id="btn-r" class="sci-btn purple" onclick="answer(1)">Option B</button>
+            </div>
+            <div class="timer-track"><div id="timer" class="timer-bar"></div></div>
+        </div>
+    </div>
+
+    <!-- Effects -->
+    <div id="flash-overlay"></div>
+
+    <!-- Menu -->
+    <div id="menu-overlay">
+        <h1>SCIENCE<br>CHALLENGE</h1>
+        <p style="color: #8892b0; margin-top: 10px;">10 Questions. £50 each.</p>
+        
+        <div class="money-display" id="menu-money">£0</div>
+        <div id="final-msg"></div>
+
+        <button class="sci-btn blue" style="width: 250px; font-size: 1.5rem;" onclick="startRun()">INITIALIZE</button>
+    </div>
+
+<script>
+    // --- QUESTION POOL (20 Items) ---
+    const POOL = [
+        { q: "Symbol for Gold?", l: "Au", r: "Ag", c: 0, i: "⚗️" },
+        { q: "Powerhouse of the cell?", l: "Nucleus", r: "Mitochondria", c: 1, i: "🧫" },
+        { q: "H2O is...", l: "Water", r: "Acid", c: 0, i: "💧" },
+        { q: "Force = Mass x ...", l: "Velocity", r: "Acceleration", c: 1, i: "📐" },
+        { q: "Photosynthesis needs...", l: "Sunlight", r: "Moonlight", c: 0, i: "☀️" },
+        { q: "Earth's core is mostly...", l: "Iron", r: "Rock", c: 0, i: "🌎" },
+        { q: "pH 1 is...", l: "Acid", r: "Base", c: 0, i: "🧪" },
+        { q: "Which travels faster?", l: "Sound", r: "Light", c: 1, i: "⚡" },
+        { q: "Planet closest to Sun?", l: "Mercury", r: "Venus", c: 0, i: "🪐" },
+        { q: "Body temperature?", l: "37°C", r: "98°C", c: 0, i: "🌡️" },
+        { q: "Electron charge?", l: "Positive", r: "Negative", c: 1, i: "⚛️" },
+        { q: "Shape of DNA?", l: "Double Helix", r: "Spiral", c: 0, i: "🧬" },
+        { q: "Hardest mineral?", l: "Quartz", r: "Diamond", c: 1, i: "💎" },
+        { q: "We breathe in...", l: "Oxygen", r: "Helium", c: 0, i: "🫁" },
+        { q: "We breathe out...", l: "Nitrogen", r: "Carbon Dioxide", c: 1, i: "💨" },
+        { q: "Gravity pulls us...", l: "Up", r: "Down", c: 1, i: "🍎" },
+        { q: "Water boils at...", l: "100°C", r: "50°C", c: 0, i: "🔥" },
+        { q: "Largest organ?", l: "Liver", r: "Skin", c: 1, i: "🤚" },
+        { q: "Types of atoms in H2O?", l: "Two", r: "Three", c: 0, i: "🔬" },
+        { q: "Isaac Newton studied...", l: "Gravity", r: "Electricity", c: 0, i: "🍏" }
+    ];
+
+    // --- STATE ---
+    let bank = 0;
+    let questionIndex = 0; 
+    let deck = [];
+    let isRunning = false;
+    let timerRef = null;
+    const PRIZE_PER_Q = 50;
+    const RIDE_TIME = 2000;
+    const Q_TIME = 8000;
+
+    // --- DOM ---
+    const tunnel = document.querySelector('.wall');
+    const floor = document.querySelector('.floor');
+    const encounter = document.getElementById('encounter-container');
+    const menu = document.getElementById('menu-overlay');
+    const menuMoney = document.getElementById('menu-money');
+    const finalMsg = document.getElementById('final-msg');
+    const hudScore = document.getElementById('score-el');
+    const hudLevel = document.getElementById('level-el');
+    const timerBar = document.getElementById('timer');
+    const flashOverlay = document.getElementById('flash-overlay');
+
+    // --- AUDIO ---
+    const Sound = {
+        ctx: null,
+        init: function() {
+            try {
+                if (!this.ctx) {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AC();
+                }
+                if(this.ctx.state === 'suspended') this.ctx.resume();
+            } catch(e) {
+                console.log("Audio not supported");
+            }
+        },
+        playTone: function(type) {
+            if(!this.ctx) return;
+            try {
+                const t = this.ctx.currentTime;
+                const o = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                o.connect(g);
+                g.connect(this.ctx.destination);
+
+                if(type === 'win') {
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(600, t);
+                    o.frequency.exponentialRampToValueAtTime(1200, t+0.1);
+                    g.gain.setValueAtTime(0.2, t);
+                    g.gain.linearRampToValueAtTime(0, t+0.5);
+                    o.start(t); o.stop(t+0.5);
+                } else {
+                    o.type = 'sawtooth';
+                    o.frequency.setValueAtTime(100, t);
+                    o.frequency.linearRampToValueAtTime(50, t+0.5);
+                    g.gain.setValueAtTime(0.3, t);
+                    g.gain.linearRampToValueAtTime(0, t+0.5);
+                    o.start(t); o.stop(t+0.5);
+                }
+            } catch(e) {
+                // Ignore audio errors during gameplay
+            }
+        }
+    };
+
+    // --- LOGIC ---
+    function shuffleDeck() {
+        let temp = [...POOL];
+        for (let i = temp.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [temp[i], temp[j]] = [temp[j], temp[i]];
+        }
+        return temp.slice(0, 10); 
+    }
+
+    function startRun() {
+        Sound.init();
+        deck = shuffleDeck();
+        bank = 0;
+        questionIndex = 0;
+        isRunning = true;
+        
+        menu.style.display = 'none';
+        tunnel.style.animationPlayState = 'running';
+        floor.style.animationPlayState = 'running';
+        document.body.classList.remove('shake');
+        
+        updateHUD();
+        phaseTunnel();
+    }
+
+    function phaseTunnel() {
+        if(!isRunning) return;
+        
+        encounter.classList.add('hidden');
+        encounter.classList.remove('approaching');
+        tunnel.style.animationPlayState = 'running';
+        floor.style.animationPlayState = 'running';
+
+        setTimeout(() => {
+            if(isRunning) phaseQuestion();
+        }, RIDE_TIME);
+    }
+
+    function phaseQuestion() {
+        if (questionIndex >= deck.length) {
+            endGame();
+            return;
+        }
+
+        const data = deck[questionIndex];
+        document.getElementById('q-text').innerText = data.q;
+        document.getElementById('btn-l').innerText = data.l;
+        document.getElementById('btn-r').innerText = data.r;
+        document.getElementById('science-icon').innerText = data.i;
+
+        // Freeze
+        tunnel.style.animationPlayState = 'paused';
+        floor.style.animationPlayState = 'paused';
+
+        // Show
+        encounter.classList.remove('hidden');
+        setTimeout(() => encounter.classList.add('approaching'), 50);
+
+        // Timer
+        timerBar.style.transition = 'none';
+        timerBar.style.width = '100%';
+        setTimeout(() => {
+            timerBar.style.transition = `width ${Q_TIME}ms linear`;
+            timerBar.style.width = '0%';
+        }, 100);
+
+        timerRef = setTimeout(() => {
+            answer(-1);
+        }, Q_TIME);
+    }
+
+    function answer(choice) {
+        clearTimeout(timerRef);
+        const correct = deck[questionIndex].c;
+
+        if (choice === correct) {
+            // Correct
+            Sound.playTone('win');
+            triggerFlash('white'); 
+            bank += PRIZE_PER_Q;
+        } else {
+            // Wrong - NO SUDDEN DEATH, JUST NO POINTS
+            Sound.playTone('lose');
+            triggerFlash('red'); 
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 500);
+        }
+
+        // Always proceed
+        questionIndex++;
+        updateHUD();
+        phaseTunnel();
+    }
+
+    function endGame() {
+        isRunning = false;
+        
+        tunnel.style.animationPlayState = 'paused';
+        floor.style.animationPlayState = 'paused';
+        encounter.classList.add('hidden');
+        encounter.classList.remove('approaching');
+
+        setTimeout(() => {
+            menu.style.display = 'flex';
+            menuMoney.innerText = `£${bank}`;
+            
+            finalMsg.innerText = "SIMULATION COMPLETE";
+            finalMsg.style.color = "#00ff88";
+            
+            document.querySelector('#menu-overlay h1').innerText = "YOUR TEAM\nHAS WON...";
+            
+        }, 1000);
+    }
+
+    function updateHUD() {
+        hudScore.innerText = `£${bank}`;
+        hudLevel.innerText = `Q: ${questionIndex + 1}/10`;
+    }
+
+    function triggerFlash(color) { 
+        flashOverlay.style.backgroundColor = color === 'red' ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.8)';
+        flashOverlay.style.opacity = 1;
+        setTimeout(() => flashOverlay.style.opacity = 0, 300);
+    }
+</script>
+</body>
+</html>
