@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Safe</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --safe-color: #2c3e50;
+            --safe-highlight: #34495e;
+            --metal-gradient: linear-gradient(145deg, #3a4b5c, #253545);
+            --keypad-bg: #111;
+            --display-bg: #000;
+            --display-text: #4ade80; /* Matrix Green */
+            --led-red: #ef4444;
+            --led-green: #22c55e;
+            --gold: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Prevent text selection on iPad taps */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* 3D Perspective Container */
+        .scene {
+            width: 90vw;
+            height: 85vh;
+            max-width: 800px;
+            perspective: 1500px;
+            position: relative;
+        }
+
+        .vault-body {
+            width: 100%;
+            height: 100%;
+            background-color: #0f172a;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+            /* The inside of the safe */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            border: 15px solid #334155;
+            z-index: 1;
+        }
+
+        /* The Content Inside */
+        .vault-interior {
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease 0.5s;
+            color: white;
+            padding: 20px;
+        }
+
+        .vault-interior.visible {
+            opacity: 1;
+        }
+
+        .congrats-text {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--gold);
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .treasure-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            display: block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .lock-btn {
+            background: #334155;
+            color: white;
+            border: 2px solid #475569;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* The Door */
+        .vault-door {
+            position: absolute;
+            top: -15px; /* Offset for border */
+            left: -15px;
+            width: calc(100% + 30px);
+            height: calc(100% + 30px);
+            background: var(--metal-gradient);
+            border-radius: 20px;
+            transform-origin: left center;
+            transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 10px 0 20px rgba(255,255,255,0.1), 10px 0 30px rgba(0,0,0,0.5);
+            border: 2px solid #475569;
+        }
+
+        .vault-door.open {
+            transform: rotateY(-105deg);
+        }
+
+        /* UI Elements on Door */
+        .status-light {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: var(--led-red);
+            box-shadow: 0 0 10px var(--led-red);
+            margin-bottom: 20px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .status-light.unlocked {
+            background-color: var(--led-green);
+            box-shadow: 0 0 10px var(--led-green);
+        }
+
+        .display-panel {
+            background: #000;
+            border: 4px solid #555;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            height: 80px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        #code-display {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2.5rem;
+            color: var(--display-text);
+            letter-spacing: 5px;
+            text-shadow: 0 0 5px var(--display-text);
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .key {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            color: white;
+            border: 1px solid #444;
+            height: 70px;
+            border-radius: 10px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 5px 5px 10px #151515, -5px -5px 10px #353535;
+            transition: transform 0.1s;
+        }
+
+        .key:active {
+            transform: scale(0.95);
+            box-shadow: inset 5px 5px 10px #151515, inset -5px -5px 10px #353535;
+        }
+
+        .key.clear {
+            background: linear-gradient(145deg, #7f1d1d, #991b1b);
+            border-color: #ef4444;
+        }
+        
+        .key.enter {
+            background: linear-gradient(145deg, #064e3b, #065f46);
+            border-color: #34d399;
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .shake-anim {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* Responsive adjustments for smaller/larger iPads */
+        @media (min-width: 1024px) {
+            .scene { width: 70vw; max-width: 700px; }
+            .key { height: 90px; font-size: 2rem; }
+            #code-display { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scene">
+    <!-- The Vault Box (Inside) -->
+    <div class="vault-body">
+        <div class="vault-interior" id="interior">
+            <div class="treasure-icon">💎 ✨</div>
+            <div class="congrats-text">Congratulations</div>
+            <div style="font-size: 1.2rem; color: #cbd5e1;">Access Granted</div>
+            <button class="lock-btn" onclick="app.lockSafe()">🔒 Lock Safe</button>
+        </div>
+    </div>
+
+    <!-- The Door (Front) -->
+    <div class="vault-door" id="door">
+        <div class="status-light" id="status-light"></div>
+        
+        <div class="display-panel" id="display-container">
+            <div id="code-display">Enter Code</div>
+        </div>
+
+        <div class="keypad">
+            <div class="key" onclick="app.press(1)">1</div>
+            <div class="key" onclick="app.press(2)">2</div>
+            <div class="key" onclick="app.press(3)">3</div>
+            <div class="key" onclick="app.press(4)">4</div>
+            <div class="key" onclick="app.press(5)">5</div>
+            <div class="key" onclick="app.press(6)">6</div>
+            <div class="key" onclick="app.press(7)">7</div>
+            <div class="key" onclick="app.press(8)">8</div>
+            <div class="key" onclick="app.press(9)">9</div>
+            <div class="key clear" onclick="app.clear()">C</div>
+            <div class="key" onclick="app.press(0)">0</div>
+            <div class="key enter" onclick="app.enter()">↵</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const app = {
+        correctCode: "13897542",
+        currentInput: "",
+        isLocked: true,
+        audioCtx: null,
+        
+        elements: {
+            door: document.getElementById('door'),
+            display: document.getElementById('code-display'),
+            displayContainer: document.getElementById('display-container'),
+            statusLight: document.getElementById('status-light'),
+            interior: document.getElementById('interior')
+        },
+
+        init() {
+            // Setup Web Audio API
+            // Note: Browsers require a user gesture (first click) to resume AudioContext
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.audioCtx = new AudioContext();
+
+            // Load state from local storage
+            const savedState = localStorage.getItem('safe_state');
+            if (savedState === 'unlocked') {
+                this.isLocked = false;
+                this.openDoor(true); // true = immediate
+            } else {
+                this.resetDisplay();
+            }
+        },
+
+        // Synth Sound Generator
+        playTone(freq, type = 'sine', duration = 0.15) {
+            if (!this.audioCtx) return;
+            
+            // Wake up the audio context on user interaction if needed
+            if (this.audioCtx.state === 'suspended') {
+                this.audioCtx.resume();
+            }
+
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+
+            osc.type = type; // sine, square, sawtooth, triangle
+            osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+            
+            // Volume Envelope (Avoids clicking/popping)
+            gain.gain.setValueAtTime(0.05, this.audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+
+            osc.start();
+            osc.stop(this.audioCtx.currentTime + duration);
+        },
+
+        press(num) {
+            if (!this.isLocked) return;
+
+            // Musical Tones (C Major Scale-ish)
+            // 1:C4, 2:D4, 3:E4, 4:F4, 5:G4, 6:A4, 7:B4, 8:C5, 9:D5, 0:Low A
+            const tones = {
+                1: 261.63, 2: 293.66, 3: 329.63, 
+                4: 349.23, 5: 392.00, 6: 440.00, 
+                7: 493.88, 8: 523.25, 9: 587.33, 
+                0: 220.00
+            };
+            
+            this.playTone(tones[num] || 440);
+
+            if (this.currentInput.length < 12) {
+                this.currentInput += num;
+                this.updateDisplay();
+            }
+        },
+
+        clear() {
+            if (!this.isLocked) return;
+            
+            // "Undo" sound (Triangle wave is softer but distinct)
+            this.playTone(150, 'triangle', 0.25);
+            
+            this.currentInput = "";
+            this.updateDisplay();
+        },
+
+        enter() {
+            if (!this.isLocked) return;
+
+            // Confirmation beep
+            this.playTone(880, 'sine', 0.1);
+
+            if (this.currentInput === this.correctCode) {
+                this.unlockSafe();
+            } else {
+                // Short delay so the Enter beep finishes before Error buzzer
+                setTimeout(() => this.triggerError(), 150);
+            }
+        },
+
+        triggerError() {
+            // Error Buzzer (Sawtooth is harsh)
+            this.playTone(110, 'sawtooth', 0.4);
+            
+            this.elements.display.innerText = "ERROR";
+            this.elements.display.style.color = "red";
+            this.elements.displayContainer.classList.add('shake-anim');
+            
+            setTimeout(() => {
+                this.elements.displayContainer.classList.remove('shake-anim');
+                this.resetDisplay();
+            }, 500);
+        },
+
+        unlockSafe() {
+            this.isLocked = false;
+            localStorage.setItem('safe_state', 'unlocked');
+            this.elements.display.innerText = "OPEN";
+            this.elements.statusLight.classList.add('unlocked');
+            
+            // Success Chime (Two notes)
+            setTimeout(() => {
+                this.playTone(523.25, 'sine', 0.2); // C5
+                setTimeout(() => this.playTone(659.25, 'sine', 0.4), 100); // E5
+            }, 100);
+            
+            setTimeout(() => {
+                this.openDoor();
+            }, 400);
+        },
+
+        openDoor(immediate = false) {
+            this.elements.door.classList.add('open');
+            this.elements.interior.classList.add('visible');
+        },
+
+        lockSafe() {
+            this.isLocked = true;
+            this.currentInput = "";
+            localStorage.setItem('safe_state', 'locked');
+            
+            this.playTone(220, 'sine', 0.2); // Locking sound
+            
+            this.elements.interior.classList.remove('visible');
+            this.elements.door.classList.remove('open');
+            this.elements.statusLight.classList.remove('unlocked');
+            this.resetDisplay();
+        }
+    };
+
+    // Initialize on load
+    app.init();
+</script>
+
+</body>
+</html>
