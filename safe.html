@@ -350,6 +350,22 @@
             this.updateDisplay();
         },
 
+        updateDisplay() {
+            if (this.currentInput === "") {
+                this.elements.display.innerText = "Enter Code";
+                this.elements.display.style.fontSize = "2rem";
+            } else {
+                this.elements.display.innerText = this.currentInput;
+                this.elements.display.style.fontSize = "2.5rem";
+            }
+        },
+
+        resetDisplay() {
+            this.currentInput = "";
+            this.elements.display.innerText = "Enter Code";
+            this.elements.display.style.color = "var(--display-text)";
+        },
+
         enter() {
             if (!this.isLocked) return;
 
