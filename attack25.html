@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Attack 25</title>
+    <title>Attack 25 v2</title>
     <style>
         :root {
-            --bg-color: #f0f2f5;
-            --grid-gap: 1vmin;
-            --tile-color: #ffffff;
-            --text-color: #333;
-            --red: #e74c3c;
-            --blue: #3498db;
-            --green: #2ecc71;
-            --yellow: #f1c40f;
-            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            /* Visual Theme: Modern Gradient */
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.3);
+            --shadow-soft: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            
+            --grid-gap: 1.2vmin;
+            --tile-base: #ffffff;
+            --text-color: #2c3e50;
+            
+            /* Team Colors (Vibrant) */
+            --red: #ff4757;
+            --blue: #1e90ff;
+            --green: #2ed573;
+            --yellow: #ffa502;
         }
 
         * {
@@ -28,75 +34,111 @@
         body {
             margin: 0;
             padding: 10px;
-            background-color: var(--bg-color);
+            background: var(--bg-gradient);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
+            color: var(--text-color);
         }
 
-        /* Views */
+        /* Views System */
         .view-section {
             display: none;
             width: 100%;
             height: 100%;
             flex-direction: column;
             align-items: center;
+            animation: fadeIn 0.3s ease-out;
         }
         .view-section.active { display: flex; }
 
-        /* Start Menu */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Start Menu (Glassmorphism) --- */
         #start-menu {
             justify-content: center;
-            gap: 20px;
+            gap: 25px;
             height: 100vh;
         }
+        
+        .logo-placeholder {
+            font-size: 8vmin;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--blue), var(--red));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            text-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .menu-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: var(--shadow-soft);
+            border: var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 90%;
+            max-width: 450px;
+            align-items: center;
+        }
+
         .menu-btn {
             background: white;
-            border: 2px solid #ddd;
-            padding: 20px 40px;
-            font-size: 24px;
-            border-radius: 15px;
-            width: 80%;
-            max-width: 400px;
+            border: 1px solid #e1e1e1;
+            padding: 18px 0;
+            font-size: 20px;
+            border-radius: 12px;
+            width: 100%;
             cursor: pointer;
-            box-shadow: var(--shadow);
-            font-weight: bold;
-            color: #333;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .menu-btn:active { transform: scale(0.98); background: #eee; }
-        .menu-btn.primary { background: var(--blue); color: white; border: none; }
+        .menu-btn:active { transform: scale(0.98); }
+        .menu-btn.primary { 
+            background: linear-gradient(135deg, var(--blue), #0984e3); 
+            color: white; 
+            border: none;
+            box-shadow: 0 4px 15px rgba(30, 144, 255, 0.3);
+        }
         
         .team-selector {
             display: flex;
-            gap: 10px;
-            background: white;
-            padding: 10px;
-            border-radius: 15px;
-            box-shadow: var(--shadow);
+            gap: 8px;
+            width: 100%;
         }
         .ts-btn {
-            padding: 10px 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background: #f9f9f9;
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #f8f9fa;
             cursor: pointer;
-            font-size: 18px;
+            font-weight: bold;
+            color: #777;
         }
-        .ts-btn.selected { background: var(--blue); color: white; border-color: var(--blue); }
+        .ts-btn.selected { 
+            background: var(--blue); 
+            color: white; 
+            border-color: var(--blue);
+            box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
+        }
 
-        /* Editor */
-        #editor-view {
-            padding: 20px;
-            height: 100vh;
-            overflow: hidden;
-        }
+        /* --- Editor --- */
+        #editor-view { padding: 20px; height: 100vh; overflow: hidden; }
         .editor-header {
             display: flex;
             justify-content: space-between;
             width: 100%;
             max-width: 800px;
             margin-bottom: 20px;
+            align-items: center;
         }
         .editor-list {
             flex: 1;
@@ -107,22 +149,25 @@
         }
         .edit-item {
             background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #f0f0f0;
         }
-        .edit-row { display: flex; gap: 10px; margin-bottom: 5px; }
+        .edit-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
         .edit-input {
             flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 10px;
+            border: 1px solid #eee;
+            background: #fcfcfc;
+            border-radius: 8px;
             font-size: 16px;
         }
-        .edit-label { font-size: 12px; color: #777; width: 60px; padding-top: 10px;}
+        .edit-input:focus { outline: none; border-color: var(--blue); background: white; }
+        .edit-label { font-size: 13px; font-weight: 600; color: #999; width: 60px; }
 
-        /* Game Header */
+        /* --- Game Header --- */
         header {
             width: 95vmin;
             display: flex;
@@ -131,58 +176,54 @@
             height: 50px;
             margin-bottom: 10px;
         }
-
-        h1 { margin: 0; font-size: 24px; color: var(--text-color); }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px;
-        }
-
+        .icon-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-color); }
         .reset-btn {
-            background: #95a5a6;
-            color: white;
+            background: rgba(0,0,0,0.1);
+            color: var(--text-color);
             border: none;
             padding: 8px 16px;
-            font-size: 16px;
-            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 20px;
             cursor: pointer;
+            transition: background 0.2s;
         }
+        .reset-btn:hover { background: rgba(0,0,0,0.2); }
 
-        /* Scoreboard */
+        /* --- Scoreboard --- */
         #scoreboard {
             display: flex;
             justify-content: space-between;
-            gap: 10px;
+            gap: 12px;
             width: 95vmin;
-            height: 60px;
-            margin-bottom: 10px;
+            height: 70px;
+            margin-bottom: 15px;
         }
-
         .score-card {
             flex: 1;
-            display: flex;
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-radius: 8px;
+            border-radius: 16px;
             color: white;
-            box-shadow: var(--shadow);
-            font-weight: bold;
-            display: none; /* Hidden by default, shown via JS */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
         }
-        .score-card span { font-size: 12px; opacity: 0.9; }
-        .score-card strong { font-size: 24px; }
+        .score-card::after {
+            content: ''; position: absolute; top:0; left:0; right:0; height: 30%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
+        }
+        .score-card span { font-size: 12px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+        .score-card strong { font-size: 28px; line-height: 1; margin-bottom: 4px; }
 
-        .sc-red { background-color: var(--red); }
-        .sc-blue { background-color: var(--blue); }
-        .sc-green { background-color: var(--green); }
-        .sc-yellow { background-color: var(--yellow); color: #333; }
+        .sc-red { background: var(--red); }
+        .sc-blue { background: var(--blue); }
+        .sc-green { background: var(--green); }
+        .sc-yellow { background: var(--yellow); color: #333; }
 
-        /* Grid */
+        /* --- Grid (3D Effect) --- */
         #game-board {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -191,93 +232,124 @@
             width: 90vmin;
             height: 90vmin;
             margin: 0 auto;
-            background-color: #ddd;
-            border: 1px solid #ccc;
+            background: rgba(255,255,255,0.5);
             padding: var(--grid-gap);
-            border-radius: 12px;
+            border-radius: 24px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
         }
 
         .tile {
-            background-color: var(--tile-color);
-            border-radius: 8px;
+            background-color: var(--tile-base);
+            border-radius: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 4vmin;
-            font-weight: bold;
-            color: #ccc;
+            font-weight: 800;
+            color: #dcdcdc;
             cursor: pointer;
-            box-shadow: var(--shadow);
+            box-shadow: 0 4px 0 #e0e0e0;
             width: 100%;
             height: 100%;
-            transition: transform 0.1s;
+            transition: transform 0.1s, background-color 0.3s, color 0.3s;
+            position: relative;
         }
 
-        .tile:active { transform: scale(0.95); }
-        .tile.taken { color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-        .tile[data-color="red"] { background-color: var(--red); }
-        .tile[data-color="blue"] { background-color: var(--blue); }
-        .tile[data-color="green"] { background-color: var(--green); }
-        .tile[data-color="yellow"] { background-color: var(--yellow); color: #333; text-shadow: none; }
+        .tile:active { transform: translateY(4px); box-shadow: 0 0 0 transparent; }
+        
+        .tile.taken { 
+            color: white; 
+            text-shadow: 0 2px 0 rgba(0,0,0,0.2); 
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+        
+        .tile[data-color="red"] { background-color: var(--red); box-shadow: 0 4px 0 #c41e30; }
+        .tile[data-color="blue"] { background-color: var(--blue); box-shadow: 0 4px 0 #0c71c3; }
+        .tile[data-color="green"] { background-color: var(--green); box-shadow: 0 4px 0 #218c53; }
+        .tile[data-color="yellow"] { background-color: var(--yellow); color: #333; text-shadow: none; box-shadow: 0 4px 0 #e1b12c; }
 
-        /* Modal */
+        /* --- Modal (Modern) --- */
         #modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 100;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
         }
 
         .modal-content {
             background: white;
-            padding: 20px;
-            border-radius: 20px;
+            padding: 30px;
+            border-radius: 30px;
             width: 85%;
-            max-width: 500px;
+            max-width: 550px;
             text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
             position: relative;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         .close-icon {
-            position: absolute;
-            top: 10px; right: 15px;
-            font-size: 24px;
-            background: none; border: none;
-            cursor: pointer; color: #999;
+            position: absolute; top: 15px; right: 20px;
+            font-size: 28px; background: none; border: none;
+            cursor: pointer; color: #bbb;
+        }
+        .close-icon:hover { color: #333; }
+
+        #question-number {
+            color: var(--blue);
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
         }
 
-        #question-text { font-size: 22px; color: #333; margin-bottom: 5px; }
+        #question-text { 
+            font-size: 24px; 
+            color: #333; 
+            font-weight: 600;
+            line-height: 1.3;
+        }
         
         #media-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             width: 100%;
+        }
+
+        /* Image Styling */
+        #q-image {
+            max-width: 100%;
+            max-height: 30vh;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            object-fit: contain;
         }
 
         #q-video {
             width: 100%;
             max-height: 25vh;
-            border-radius: 8px;
+            border-radius: 12px;
             display: none;
             background: black;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         #audio-btn {
-            background-color: #8e44ad;
+            background-color: var(--blue);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 14px 28px;
             border-radius: 50px;
             font-size: 16px;
             font-weight: bold;
@@ -285,47 +357,49 @@
             display: none; 
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin: 0 auto;
-            width: fit-content;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            gap: 10px;
+            box-shadow: 0 4px 10px rgba(30, 144, 255, 0.3);
+            transition: transform 0.1s;
         }
-        #audio-btn:active { transform: scale(0.95); background-color: #732d91; }
-        #audio-btn:disabled { background-color: #bdc3c7; cursor: wait; }
+        #audio-btn:active { transform: scale(0.95); }
 
         #answer-text { 
-            font-size: 20px; 
-            color: #27ae60; 
-            font-weight: bold; 
+            font-size: 22px; 
+            color: var(--green); 
+            font-weight: 800; 
             display: none; 
-            padding: 10px; 
-            background: #e8f8f5; 
-            border-radius: 10px; 
+            padding: 20px; 
+            background: #f0fdf4; 
+            border: 2px solid #dcfce7;
+            border-radius: 16px; 
         }
 
         .modal-btn {
-            padding: 15px;
+            padding: 16px;
             font-size: 18px;
             border: none;
-            border-radius: 10px;
+            border-radius: 16px;
             cursor: pointer;
             width: 100%;
             color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
         }
+        .modal-btn:active { transform: translateY(2px); box-shadow: none; }
 
-        .btn-reveal { background-color: #34495e; }
+        .btn-reveal { background-color: #34495e; box-shadow: 0 4px 0 #2c3e50; }
         
         .team-select {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 12px;
             display: none;
         }
 
-        .btn-red { background-color: var(--red); }
-        .btn-blue { background-color: var(--blue); }
-        .btn-green { background-color: var(--green); }
-        .btn-yellow { background-color: var(--yellow); color: #333; }
+        .btn-red { background: var(--red); box-shadow: 0 4px 0 #c41e30; }
+        .btn-blue { background: var(--blue); box-shadow: 0 4px 0 #0c71c3; }
+        .btn-green { background: var(--green); box-shadow: 0 4px 0 #218c53; }
+        .btn-yellow { background: var(--yellow); color: #333; box-shadow: 0 4px 0 #e1b12c; }
         
     </style>
 </head>
@@ -333,29 +407,33 @@
 
 <!-- START MENU VIEW -->
 <div id="start-menu" class="view-section active">
-    <h1>Attack 25</h1>
+    <div class="logo-placeholder">ATTACK 25</div>
     
-    <div style="text-align: center; margin-bottom: 10px;">Select Teams:</div>
-    <div class="team-selector">
-        <button class="ts-btn" onclick="selectTeams(2)" id="ts-2">2 Teams</button>
-        <button class="ts-btn" onclick="selectTeams(3)" id="ts-3">3 Teams</button>
-        <button class="ts-btn selected" onclick="selectTeams(4)" id="ts-4">4 Teams</button>
+    <div class="menu-card">
+        <div style="width: 100%;">
+            <div style="margin-bottom: 8px; font-weight: 600; color: #666; font-size: 14px;">NUMBER OF TEAMS</div>
+            <div class="team-selector">
+                <button class="ts-btn" onclick="selectTeams(2)" id="ts-2">2</button>
+                <button class="ts-btn" onclick="selectTeams(3)" id="ts-3">3</button>
+                <button class="ts-btn selected" onclick="selectTeams(4)" id="ts-4">4</button>
+            </div>
+        </div>
+        
+        <button class="menu-btn primary" onclick="startGame()">Start Game</button>
+        <button class="menu-btn" onclick="openEditor()">Edit Questions</button>
     </div>
-
-    <button class="menu-btn primary" onclick="startGame()">Start Game</button>
-    <button class="menu-btn" onclick="openEditor()">Edit Questions</button>
 </div>
 
 <!-- EDITOR VIEW -->
 <div id="editor-view" class="view-section">
     <div class="editor-header">
         <button class="reset-btn" onclick="showMenu()">← Back</button>
-        <h2>Edit Questions</h2>
-        <button class="reset-btn" style="background:#e74c3c" onclick="resetQuestionsToDefault()">Reset Defaults</button>
+        <h2 style="margin:0; font-size: 18px;">Question Editor</h2>
+        <button class="reset-btn" style="color:var(--red); background:rgba(231, 76, 60, 0.1);" onclick="resetQuestionsToDefault()">Reset Defaults</button>
     </div>
     <div id="editor-list" class="editor-list"></div>
-    <div style="padding: 10px; width: 100%; max-width: 800px; display: flex; gap: 10px;">
-        <button class="menu-btn primary" style="width:100%" onclick="saveQuestions()">Save Changes</button>
+    <div style="padding: 10px; width: 100%; max-width: 800px;">
+        <button class="menu-btn primary" onclick="saveQuestions()">Save Changes</button>
     </div>
 </div>
 
@@ -363,7 +441,7 @@
 <div id="game-view" class="view-section">
     <header>
         <button class="icon-btn" onclick="showMenu()">☰</button>
-        <h1>Attack 25</h1>
+        <h1 style="font-size: 20px; font-weight: 800; letter-spacing: 1px;">ATTACK 25</h1>
         <button class="reset-btn" onclick="confirmReset()">Reset Board</button>
     </header>
 
@@ -381,16 +459,18 @@
 <div id="modal-overlay">
     <div class="modal-content">
         <button class="close-icon" onclick="closeModal()">×</button>
-        <div id="question-number" style="color: #7f8c8d; font-size: 14px;">QUESTION</div>
+        <div id="question-number">QUESTION</div>
         
-        <div id="question-text">...</div>
-
         <div id="media-container">
+            <!-- New Image Element -->
+            <img id="q-image" src="" alt="Question Image">
             <video id="q-video" controls playsinline></video>
             <button id="audio-btn" onclick="toggleAudio()">
                 <span>🔊</span> <span id="audio-btn-text">Play Audio</span>
             </button>
         </div>
+
+        <div id="question-text">...</div>
         
         <button id="reveal-btn" class="modal-btn btn-reveal" onclick="revealAnswer()">Show Answer</button>
         
@@ -408,29 +488,38 @@
 <audio id="external-audio"></audio>
 
 <script>
-    // --- Initial Data ---
+    // --- Initial Data with LIVE IMAGES ---
     const defaultQuestions = [
         { id: 1, q: "What is the capital of the U.K.?", a: "London" },
-        { id: 2, q: "What is the money of Australia?", a: "Australian Dollar" },
+        // Wikimedia Commons Image for Australian Dollar
+        { id: 2, q: "What is the money of Australia?", a: "Australian Dollar", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Australian_50_dollar_note_2018_design.jpg/640px-Australian_50_dollar_note_2018_design.jpg" },
         { id: 3, q: "What are the 3 most popular sports in the UK?", a: "Football, Rugby, Cricket" },
         { id: 4, q: "What is the capital of France?", a: "Paris" },
         { id: 5, q: "Who sang 'We Will Rock You'?", a: "Queen", audio: "assets/wewillrockyou.mp3" },
-        { id: 6, q: "What city is the Opera House in?", a: "Sydney" },
+        // Sydney Opera House
+        { id: 6, q: "What city is the Opera House in?", a: "Sydney", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Sydney_Opera_House_Sails.jpg/640px-Sydney_Opera_House_Sails.jpg" },
         { id: 7, q: "Which famous British group is this?", a: "The Beatles", video: "assets/pennylane.mp4", reverse: true }, 
         { id: 8, q: "What is the money of America?", a: "Dollar ($)" },
         { id: 9, q: "What is the money of the U.K.?", a: "Pound (£)" },
-        { id: 10, q: "Unscramble: nhtalepe", a: "Elephant" },
+        // Elephant
+        { id: 10, q: "Unscramble: nhtalepe", a: "Elephant", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Elephant_Diversity.jpg/640px-Elephant_Diversity.jpg" },
         { id: 11, q: "Unscramble: clash its smart", a: "Last Christmas" }, 
         { id: 12, q: "What is the most popular sport in Australia?", a: "Australian Rules Football" },
         { id: 13, q: "What is the capital of Canada?", a: "Ottawa" },
-        { id: 14, q: "What country is the Kiwi bird from?", a: "New Zealand" },
-        { id: 15, q: "What country is the Lemur from?", a: "Madagascar" },
-        { id: 16, q: "What country are the Pyramids in?", a: "Egypt" },
-        { id: 17, q: "What country is Machu Picchu in?", a: "Peru" },
-        { id: 18, q: "What city is the Statue of Liberty in?", a: "New York" },
+        // Kiwi
+        { id: 14, q: "What country is this animal from?", a: "New Zealand", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Te_Papa_Kiwi_%28cropped%29.jpg/640px-Te_Papa_Kiwi_%28cropped%29.jpg" },
+        // Lemur
+        { id: 15, q: "What country is this animal from?", a: "Madagascar", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Ring-tailed_lemur_%28Lemur_catta%29.jpg/640px-Ring-tailed_lemur_%28Lemur_catta%29.jpg" },
+        // Pyramids
+        { id: 16, q: "What country are the Pyramids in?", a: "Egypt", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kheops-Pyramid.jpg/640px-Kheops-Pyramid.jpg" },
+        // Machu Picchu
+        { id: 17, q: "What country is Machu Picchu in?", a: "Peru", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Machu_Picchu%2C_Peru.jpg/640px-Machu_Picchu%2C_Peru.jpg" },
+        // Statue of Liberty
+        { id: 18, q: "What city is the Statue of Liberty in?", a: "New York", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Statue_of_Liberty_7.jpg/640px-Statue_of_Liberty_7.jpg" },
         { id: 19, q: "What is the money of Germany?", a: "The Euro (€)" },
         { id: 20, q: "What is the capital of China?", a: "Beijing" },
-        { id: 21, q: "What city is the Merlion from?", a: "Singapore" },
+        // Merlion
+        { id: 21, q: "What city is the Merlion from?", a: "Singapore", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Merlion_Singapore_2.jpg/640px-Merlion_Singapore_2.jpg" },
         { id: 22, q: "What are the four countries of the UK?", a: "England, Scotland, Wales, N. Ireland" },
         { id: 23, q: "What country's national anthem is this?", a: "Canada", audio: "assets/canadaanthem.mp3" },
         { id: 24, q: "What day is December 25th?", a: "Christmas Day" },
@@ -449,18 +538,13 @@
 
     // --- Persistence ---
     function loadData() {
-        // Load Grid State
-        const savedGrid = localStorage.getItem('attack25_gh_state');
+        const savedGrid = localStorage.getItem('attack25_v2_state');
         if (savedGrid) gridState = JSON.parse(savedGrid);
 
-        // Load Questions
-        const savedQs = localStorage.getItem('attack25_questions');
-        if (savedQs) {
-            questions = JSON.parse(savedQs);
-        }
+        const savedQs = localStorage.getItem('attack25_v2_questions');
+        if (savedQs) questions = JSON.parse(savedQs);
 
-        // Load Settings
-        const savedTeams = localStorage.getItem('attack25_teamcount');
+        const savedTeams = localStorage.getItem('attack25_v2_teamcount');
         if (savedTeams) {
             teamCount = parseInt(savedTeams);
             updateTeamUI(teamCount);
@@ -468,9 +552,9 @@
     }
 
     function saveData() {
-        localStorage.setItem('attack25_gh_state', JSON.stringify(gridState));
-        localStorage.setItem('attack25_questions', JSON.stringify(questions));
-        localStorage.setItem('attack25_teamcount', teamCount);
+        localStorage.setItem('attack25_v2_state', JSON.stringify(gridState));
+        localStorage.setItem('attack25_v2_questions', JSON.stringify(questions));
+        localStorage.setItem('attack25_v2_teamcount', teamCount);
     }
 
     // --- View Management ---
@@ -479,9 +563,7 @@
         document.getElementById(viewId).classList.add('active');
     }
 
-    function showMenu() {
-        showView('start-menu');
-    }
+    function showMenu() { showView('start-menu'); }
 
     function startGame() {
         renderGrid();
@@ -513,18 +595,15 @@
         document.getElementById('btn-green').style.display = count >= 3 ? 'block' : 'none';
         document.getElementById('btn-yellow').style.display = count >= 4 ? 'block' : 'none';
         
-        // Grid styling to match team count? Not necessary, modal handles input.
         updateScoreboard();
     }
     
-    // Variable capture for team count in configuration
-    let count = 4; // internal helper
+    let count = 4;
     const _oldConfig = configureTeamsInGame;
     configureTeamsInGame = function() {
         count = teamCount;
         _oldConfig();
     }
-
 
     // --- Editor Logic ---
     function openEditor() {
@@ -544,12 +623,16 @@
                     <input class="edit-input" id="ea-${idx}" value="${q.a.replace(/"/g, '&quot;')}" placeholder="Answer text">
                 </div>
                 <div class="edit-row">
+                    <label class="edit-label">Image:</label>
+                    <input class="edit-input" id="eimg-${idx}" value="${q.image || ''}" placeholder="assets/image.jpg">
+                </div>
+                <div class="edit-row">
                     <label class="edit-label">Audio:</label>
-                    <input class="edit-input" id="eau-${idx}" value="${q.audio || ''}" placeholder="assets/filename.mp3">
+                    <input class="edit-input" id="eau-${idx}" value="${q.audio || ''}" placeholder="assets/sound.mp3">
                 </div>
                 <div class="edit-row">
                     <label class="edit-label">Video:</label>
-                    <input class="edit-input" id="ev-${idx}" value="${q.video || ''}" placeholder="assets/filename.mp4">
+                    <input class="edit-input" id="ev-${idx}" value="${q.video || ''}" placeholder="assets/video.mp4">
                 </div>
                 <div class="edit-row">
                     <label class="edit-label" style="width:auto; margin-right:10px;">Reverse Video Audio?</label>
@@ -565,10 +648,12 @@
         questions.forEach((_, idx) => {
             questions[idx].q = document.getElementById(`eq-${idx}`).value;
             questions[idx].a = document.getElementById(`ea-${idx}`).value;
+            const img = document.getElementById(`eimg-${idx}`).value;
             const audio = document.getElementById(`eau-${idx}`).value;
             const video = document.getElementById(`ev-${idx}`).value;
             const reverse = document.getElementById(`er-${idx}`).checked;
 
+            if(img) questions[idx].image = img; else delete questions[idx].image;
             if(audio) questions[idx].audio = audio; else delete questions[idx].audio;
             if(video) questions[idx].video = video; else delete questions[idx].video;
             if(reverse) questions[idx].reverse = true; else delete questions[idx].reverse;
@@ -586,16 +671,13 @@
         }
     }
 
-
-    // --- Audio System ---
+    // --- Audio/Video System ---
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
         }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') { audioCtx.resume(); }
     }
 
     async function loadAndReverse(url) {
@@ -681,7 +763,6 @@
         }
     };
 
-
     // --- Game Logic ---
     function renderGrid() {
         const board = document.getElementById('game-board');
@@ -727,10 +808,19 @@
         // Reset Media
         const audioBtn = document.getElementById('audio-btn');
         const videoEl = document.getElementById('q-video');
+        const imageEl = document.getElementById('q-image');
         const externalPlayer = document.getElementById('external-audio');
         stopAllAudio();
 
-        // Video
+        // 1. Image
+        if (qData.image) {
+            imageEl.src = qData.image;
+            imageEl.style.display = 'block';
+        } else {
+            imageEl.style.display = 'none';
+        }
+
+        // 2. Video
         if (qData.video) {
             videoEl.src = qData.video;
             videoEl.style.display = 'none'; 
@@ -746,11 +836,14 @@
             audioBtn.style.display = 'none';
         }
 
-        // Audio
+        // 3. Audio
         if (qData.audio) {
             audioBtn.style.display = 'flex';
             externalPlayer.src = qData.audio;
             document.getElementById('audio-btn-text').textContent = "Play Audio";
+        } else if (!qData.video) {
+             // Only hide if not used by video reverse logic
+            audioBtn.style.display = 'none';
         }
 
         document.getElementById('reveal-btn').style.display = 'block';
