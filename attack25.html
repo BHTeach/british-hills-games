@@ -35,7 +35,94 @@
             align-items: center;
         }
 
-        /* Header */
+        /* Views */
+        .view-section {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+        .view-section.active { display: flex; }
+
+        /* Start Menu */
+        #start-menu {
+            justify-content: center;
+            gap: 20px;
+            height: 100vh;
+        }
+        .menu-btn {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 20px 40px;
+            font-size: 24px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 400px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            font-weight: bold;
+            color: #333;
+        }
+        .menu-btn:active { transform: scale(0.98); background: #eee; }
+        .menu-btn.primary { background: var(--blue); color: white; border: none; }
+        
+        .team-selector {
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+        .ts-btn {
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .ts-btn.selected { background: var(--blue); color: white; border-color: var(--blue); }
+
+        /* Editor */
+        #editor-view {
+            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+        .editor-list {
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 800px;
+            padding-bottom: 50px;
+        }
+        .edit-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .edit-row { display: flex; gap: 10px; margin-bottom: 5px; }
+        .edit-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .edit-label { font-size: 12px; color: #777; width: 60px; padding-top: 10px;}
+
+        /* Game Header */
         header {
             width: 95vmin;
             display: flex;
@@ -46,6 +133,14 @@
         }
 
         h1 { margin: 0; font-size: 24px; color: var(--text-color); }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
 
         .reset-btn {
             background: #95a5a6;
@@ -77,6 +172,7 @@
             color: white;
             box-shadow: var(--shadow);
             font-weight: bold;
+            display: none; /* Hidden by default, shown via JS */
         }
         .score-card span { font-size: 12px; opacity: 0.9; }
         .score-card strong { font-size: 24px; }
@@ -161,7 +257,6 @@
 
         #question-text { font-size: 22px; color: #333; margin-bottom: 5px; }
         
-        /* Media Container */
         #media-container {
             display: flex;
             flex-direction: column;
@@ -178,7 +273,6 @@
             background: black;
         }
 
-        /* Audio Button */
         #audio-btn {
             background-color: #8e44ad;
             color: white;
@@ -237,19 +331,51 @@
 </head>
 <body>
 
-<header>
+<!-- START MENU VIEW -->
+<div id="start-menu" class="view-section active">
     <h1>Attack 25</h1>
-    <button class="reset-btn" onclick="confirmReset()">Reset</button>
-</header>
+    
+    <div style="text-align: center; margin-bottom: 10px;">Select Teams:</div>
+    <div class="team-selector">
+        <button class="ts-btn" onclick="selectTeams(2)" id="ts-2">2 Teams</button>
+        <button class="ts-btn" onclick="selectTeams(3)" id="ts-3">3 Teams</button>
+        <button class="ts-btn selected" onclick="selectTeams(4)" id="ts-4">4 Teams</button>
+    </div>
 
-<div id="scoreboard">
-    <div class="score-card sc-red"><span>Red</span><strong id="score-red">0</strong></div>
-    <div class="score-card sc-blue"><span>Blue</span><strong id="score-blue">0</strong></div>
-    <div class="score-card sc-green"><span>Green</span><strong id="score-green">0</strong></div>
-    <div class="score-card sc-yellow"><span>Yellow</span><strong id="score-yellow">0</strong></div>
+    <button class="menu-btn primary" onclick="startGame()">Start Game</button>
+    <button class="menu-btn" onclick="openEditor()">Edit Questions</button>
 </div>
 
-<div id="game-board"></div>
+<!-- EDITOR VIEW -->
+<div id="editor-view" class="view-section">
+    <div class="editor-header">
+        <button class="reset-btn" onclick="showMenu()">← Back</button>
+        <h2>Edit Questions</h2>
+        <button class="reset-btn" style="background:#e74c3c" onclick="resetQuestionsToDefault()">Reset Defaults</button>
+    </div>
+    <div id="editor-list" class="editor-list"></div>
+    <div style="padding: 10px; width: 100%; max-width: 800px; display: flex; gap: 10px;">
+        <button class="menu-btn primary" style="width:100%" onclick="saveQuestions()">Save Changes</button>
+    </div>
+</div>
+
+<!-- GAME VIEW -->
+<div id="game-view" class="view-section">
+    <header>
+        <button class="icon-btn" onclick="showMenu()">☰</button>
+        <h1>Attack 25</h1>
+        <button class="reset-btn" onclick="confirmReset()">Reset Board</button>
+    </header>
+
+    <div id="scoreboard">
+        <div class="score-card sc-red" id="card-red"><span>Red</span><strong id="score-red">0</strong></div>
+        <div class="score-card sc-blue" id="card-blue"><span>Blue</span><strong id="score-blue">0</strong></div>
+        <div class="score-card sc-green" id="card-green"><span>Green</span><strong id="score-green">0</strong></div>
+        <div class="score-card sc-yellow" id="card-yellow"><span>Yellow</span><strong id="score-yellow">0</strong></div>
+    </div>
+
+    <div id="game-board"></div>
+</div>
 
 <!-- Modal -->
 <div id="modal-overlay">
@@ -260,10 +386,7 @@
         <div id="question-text">...</div>
 
         <div id="media-container">
-            <!-- Video Player (Hidden initially) -->
             <video id="q-video" controls playsinline></video>
-            
-            <!-- Audio Player Button -->
             <button id="audio-btn" onclick="toggleAudio()">
                 <span>🔊</span> <span id="audio-btn-text">Play Audio</span>
             </button>
@@ -274,27 +397,25 @@
         <div id="answer-text">...</div>
 
         <div id="team-selector" class="team-select">
-            <button class="modal-btn btn-red" onclick="captureSquare('red')">Red</button>
-            <button class="modal-btn btn-blue" onclick="captureSquare('blue')">Blue</button>
-            <button class="modal-btn btn-green" onclick="captureSquare('green')">Green</button>
-            <button class="modal-btn btn-yellow" onclick="captureSquare('yellow')">Yellow</button>
+            <button class="modal-btn btn-red" id="btn-red" onclick="captureSquare('red')">Red</button>
+            <button class="modal-btn btn-blue" id="btn-blue" onclick="captureSquare('blue')">Blue</button>
+            <button class="modal-btn btn-green" id="btn-green" onclick="captureSquare('green')">Green</button>
+            <button class="modal-btn btn-yellow" id="btn-yellow" onclick="captureSquare('yellow')">Yellow</button>
         </div>
     </div>
 </div>
 
-<!-- Hidden Audio Element for standard files -->
 <audio id="external-audio"></audio>
 
 <script>
-    // --- Data ---
-    const questions = [
+    // --- Initial Data ---
+    const defaultQuestions = [
         { id: 1, q: "What is the capital of the U.K.?", a: "London" },
         { id: 2, q: "What is the money of Australia?", a: "Australian Dollar" },
         { id: 3, q: "What are the 3 most popular sports in the UK?", a: "Football, Rugby, Cricket" },
         { id: 4, q: "What is the capital of France?", a: "Paris" },
         { id: 5, q: "Who sang 'We Will Rock You'?", a: "Queen", audio: "assets/wewillrockyou.mp3" },
         { id: 6, q: "What city is the Opera House in?", a: "Sydney" },
-        // Updated Question 7 with Video + Reverse Flag
         { id: 7, q: "Which famous British group is this?", a: "The Beatles", video: "assets/pennylane.mp4", reverse: true }, 
         { id: 8, q: "What is the money of America?", a: "Dollar ($)" },
         { id: 9, q: "What is the money of the U.K.?", a: "Pound (£)" },
@@ -316,12 +437,157 @@
         { id: 25, q: "What is the capital of Australia?", a: "Canberra" }
     ];
 
+    let questions = [...defaultQuestions];
     let gridState = Array(25).fill(null); 
     let currentActiveIndex = -1;
+    let teamCount = 4;
+    
+    // Audio Context
     let audioCtx = null; 
-    let reversedBuffer = null; // Stores the flipped audio
-    let reverseSource = null; // Tracks the playing sound to stop it
+    let reversedBuffer = null; 
+    let reverseSource = null;
 
+    // --- Persistence ---
+    function loadData() {
+        // Load Grid State
+        const savedGrid = localStorage.getItem('attack25_gh_state');
+        if (savedGrid) gridState = JSON.parse(savedGrid);
+
+        // Load Questions
+        const savedQs = localStorage.getItem('attack25_questions');
+        if (savedQs) {
+            questions = JSON.parse(savedQs);
+        }
+
+        // Load Settings
+        const savedTeams = localStorage.getItem('attack25_teamcount');
+        if (savedTeams) {
+            teamCount = parseInt(savedTeams);
+            updateTeamUI(teamCount);
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('attack25_gh_state', JSON.stringify(gridState));
+        localStorage.setItem('attack25_questions', JSON.stringify(questions));
+        localStorage.setItem('attack25_teamcount', teamCount);
+    }
+
+    // --- View Management ---
+    function showView(viewId) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+    }
+
+    function showMenu() {
+        showView('start-menu');
+    }
+
+    function startGame() {
+        renderGrid();
+        configureTeamsInGame();
+        showView('game-view');
+    }
+
+    function selectTeams(count) {
+        teamCount = count;
+        updateTeamUI(count);
+        saveData();
+    }
+
+    function updateTeamUI(count) {
+        document.querySelectorAll('.ts-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('ts-' + count).classList.add('selected');
+    }
+
+    function configureTeamsInGame() {
+        // Scoreboard
+        document.getElementById('card-red').style.display = 'flex';
+        document.getElementById('card-blue').style.display = 'flex';
+        document.getElementById('card-green').style.display = count >= 3 ? 'flex' : 'none';
+        document.getElementById('card-yellow').style.display = count >= 4 ? 'flex' : 'none';
+
+        // Modal Buttons
+        document.getElementById('btn-red').style.display = 'block';
+        document.getElementById('btn-blue').style.display = 'block';
+        document.getElementById('btn-green').style.display = count >= 3 ? 'block' : 'none';
+        document.getElementById('btn-yellow').style.display = count >= 4 ? 'block' : 'none';
+        
+        // Grid styling to match team count? Not necessary, modal handles input.
+        updateScoreboard();
+    }
+    
+    // Variable capture for team count in configuration
+    let count = 4; // internal helper
+    const _oldConfig = configureTeamsInGame;
+    configureTeamsInGame = function() {
+        count = teamCount;
+        _oldConfig();
+    }
+
+
+    // --- Editor Logic ---
+    function openEditor() {
+        const list = document.getElementById('editor-list');
+        list.innerHTML = '';
+        questions.forEach((q, idx) => {
+            const div = document.createElement('div');
+            div.className = 'edit-item';
+            div.innerHTML = `
+                <strong>Question ${idx + 1}</strong>
+                <div class="edit-row">
+                    <label class="edit-label">Q:</label>
+                    <input class="edit-input" id="eq-${idx}" value="${q.q.replace(/"/g, '&quot;')}" placeholder="Question text">
+                </div>
+                <div class="edit-row">
+                    <label class="edit-label">A:</label>
+                    <input class="edit-input" id="ea-${idx}" value="${q.a.replace(/"/g, '&quot;')}" placeholder="Answer text">
+                </div>
+                <div class="edit-row">
+                    <label class="edit-label">Audio:</label>
+                    <input class="edit-input" id="eau-${idx}" value="${q.audio || ''}" placeholder="assets/filename.mp3">
+                </div>
+                <div class="edit-row">
+                    <label class="edit-label">Video:</label>
+                    <input class="edit-input" id="ev-${idx}" value="${q.video || ''}" placeholder="assets/filename.mp4">
+                </div>
+                <div class="edit-row">
+                    <label class="edit-label" style="width:auto; margin-right:10px;">Reverse Video Audio?</label>
+                    <input type="checkbox" id="er-${idx}" ${q.reverse ? 'checked' : ''}>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+        showView('editor-view');
+    }
+
+    function saveQuestions() {
+        questions.forEach((_, idx) => {
+            questions[idx].q = document.getElementById(`eq-${idx}`).value;
+            questions[idx].a = document.getElementById(`ea-${idx}`).value;
+            const audio = document.getElementById(`eau-${idx}`).value;
+            const video = document.getElementById(`ev-${idx}`).value;
+            const reverse = document.getElementById(`er-${idx}`).checked;
+
+            if(audio) questions[idx].audio = audio; else delete questions[idx].audio;
+            if(video) questions[idx].video = video; else delete questions[idx].video;
+            if(reverse) questions[idx].reverse = true; else delete questions[idx].reverse;
+        });
+        saveData();
+        alert("Questions Saved!");
+        showMenu();
+    }
+
+    function resetQuestionsToDefault() {
+        if(confirm("Are you sure? This will erase all custom edits.")) {
+            questions = JSON.parse(JSON.stringify(defaultQuestions));
+            saveData();
+            openEditor();
+        }
+    }
+
+
+    // --- Audio System ---
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -332,7 +598,6 @@
         }
     }
 
-    // --- Reverse Audio Logic ---
     async function loadAndReverse(url) {
         initAudio();
         const btn = document.getElementById('audio-btn');
@@ -346,14 +611,12 @@
             const arrayBuffer = await response.arrayBuffer();
             const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             
-            // Create a new buffer for the reversed audio
             const reversed = audioCtx.createBuffer(
                 audioBuffer.numberOfChannels,
                 audioBuffer.length,
                 audioBuffer.sampleRate
             );
 
-            // Copy and reverse each channel
             for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
                 const channelData = audioBuffer.getChannelData(i);
                 const reversedData = reversed.getChannelData(i);
@@ -378,23 +641,19 @@
             document.getElementById('audio-btn-text').textContent = "Play Backwards";
             return;
         }
-
         if (!reversedBuffer) return;
 
         reverseSource = audioCtx.createBufferSource();
         reverseSource.buffer = reversedBuffer;
         reverseSource.connect(audioCtx.destination);
         reverseSource.start();
-        
         document.getElementById('audio-btn-text').textContent = "Stop";
-        
         reverseSource.onended = () => {
             reverseSource = null;
             document.getElementById('audio-btn-text').textContent = "Play Backwards";
         };
     }
 
-    // --- Synthesizer for SFX ---
     function playTone(freq, type, duration, startTime = 0) {
         if (!audioCtx) initAudio();
         const osc = audioCtx.createOscillator();
@@ -422,23 +681,8 @@
         }
     };
 
+
     // --- Game Logic ---
-    function safeSave() {
-        try { localStorage.setItem('attack25_gh_state', JSON.stringify(gridState)); } catch(e) {}
-    }
-
-    function safeLoad() {
-        try {
-            const saved = localStorage.getItem('attack25_gh_state');
-            if (saved) gridState = JSON.parse(saved);
-        } catch(e) {}
-    }
-
-    function init() {
-        safeLoad();
-        renderGrid();
-    }
-
     function renderGrid() {
         const board = document.getElementById('game-board');
         board.innerHTML = '';
@@ -480,23 +724,19 @@
         document.getElementById('question-text').textContent = qData.q;
         document.getElementById('answer-text').textContent = qData.a;
         
-        // Reset Media Elements
+        // Reset Media
         const audioBtn = document.getElementById('audio-btn');
         const videoEl = document.getElementById('q-video');
         const externalPlayer = document.getElementById('external-audio');
-        
-        // Stop all previous audio
         stopAllAudio();
 
-        // 1. Handle Video
+        // Video
         if (qData.video) {
             videoEl.src = qData.video;
-            videoEl.style.display = 'none'; // Hidden initially
-            
-            // Check if we need reverse audio
+            videoEl.style.display = 'none'; 
             if (qData.reverse) {
                 audioBtn.style.display = 'flex';
-                loadAndReverse(qData.video); // Extract and reverse audio from video file
+                loadAndReverse(qData.video); 
             } else {
                 audioBtn.style.display = 'none';
             }
@@ -506,7 +746,7 @@
             audioBtn.style.display = 'none';
         }
 
-        // 2. Handle Audio (Standard)
+        // Audio
         if (qData.audio) {
             audioBtn.style.display = 'flex';
             externalPlayer.src = qData.audio;
@@ -521,14 +761,10 @@
 
     function toggleAudio() {
         const qData = questions[currentActiveIndex];
-        
-        // If it's the reverse logic
         if (qData.video && qData.reverse) {
             playReversed();
             return;
         }
-
-        // Standard Audio
         const player = document.getElementById('external-audio');
         const btnText = document.getElementById('audio-btn-text');
         
@@ -554,13 +790,12 @@
 
     function revealAnswer() {
         sfx.reveal();
-        stopAllAudio(); // Stop reversed audio or standard audio
+        stopAllAudio(); 
         
         document.getElementById('reveal-btn').style.display = 'none';
         document.getElementById('answer-text').style.display = 'block';
         document.getElementById('team-selector').style.display = 'grid';
 
-        // Show and Play Video if it exists
         const qData = questions[currentActiveIndex];
         if (qData.video) {
             const videoEl = document.getElementById('q-video');
@@ -583,7 +818,7 @@
         if (isSteal || trapped) sfx.steal();
         else sfx.click();
 
-        safeSave();
+        saveData();
         renderGrid();
         closeModal();
     }
@@ -598,11 +833,7 @@
         let didTrap = false;
         const row = Math.floor(index / 5);
         const col = index % 5;
-        const directions = [
-            [-1, -1], [-1, 0], [-1, 1],
-            [0, -1],           [0, 1],
-            [1, -1],  [1, 0],  [1, 1]
-        ];
+        const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 
         directions.forEach(dir => {
             const tilesToFlip = [];
@@ -612,7 +843,6 @@
             while (r >= 0 && r < 5 && c >= 0 && c < 5) {
                 const checkIndex = r * 5 + c;
                 const checkColor = gridState[checkIndex];
-
                 if (!checkColor) break; 
                 if (checkColor === color) {
                     if (tilesToFlip.length > 0) didTrap = true;
@@ -621,8 +851,7 @@
                 } else {
                     tilesToFlip.push(checkIndex);
                 }
-                r += dir[0];
-                c += dir[1];
+                r += dir[0]; c += dir[1];
             }
         });
         return didTrap;
@@ -632,16 +861,17 @@
         const btn = document.querySelector('.reset-btn');
         if (btn.textContent === 'Confirm?') {
             gridState = Array(25).fill(null);
-            safeSave();
+            saveData();
             renderGrid();
-            btn.textContent = 'Reset';
+            btn.textContent = 'Reset Board';
         } else {
             btn.textContent = 'Confirm?';
-            setTimeout(() => btn.textContent = 'Reset', 3000);
+            setTimeout(() => btn.textContent = 'Reset Board', 3000);
         }
     }
 
-    window.addEventListener('load', init);
+    // Initialize
+    window.addEventListener('load', loadData);
 
 </script>
 </body>
