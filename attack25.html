@@ -489,9 +489,9 @@
 
 <script>
     // --- Initial Data with LOCAL ASSET PATHS (Standardized to .jpg) ---
+    // Note to user: Ensure files in 'assets' folder are named EXACTLY like this (lowercase .jpg)
     const defaultQuestions = [
         { id: 1, q: "What is the capital of the U.K.?", a: "London", image: "assets/london.jpg" },
-        // CHANGED: Standardized to .jpg
         { id: 2, q: "What is the money of Australia?", a: "Australian Dollar", image: "assets/aus_dollar.jpg" },
         { id: 3, q: "What are the 3 most popular sports in the UK?", a: "Football, Rugby, Cricket", image: "assets/wembley.jpg" },
         { id: 4, q: "What is the capital of France?", a: "Paris", image: "assets/paris.jpg" },
@@ -528,15 +528,15 @@
     let reversedBuffer = null; 
     let reverseSource = null;
 
-    // --- Persistence ---
+    // --- Persistence (UPDATED TO V3 TO FORCE REFRESH) ---
     function loadData() {
-        const savedGrid = localStorage.getItem('attack25_v2_state');
+        const savedGrid = localStorage.getItem('attack25_v3_state');
         if (savedGrid) gridState = JSON.parse(savedGrid);
 
-        const savedQs = localStorage.getItem('attack25_v2_questions');
+        const savedQs = localStorage.getItem('attack25_v3_questions');
         if (savedQs) questions = JSON.parse(savedQs);
 
-        const savedTeams = localStorage.getItem('attack25_v2_teamcount');
+        const savedTeams = localStorage.getItem('attack25_v3_teamcount');
         if (savedTeams) {
             teamCount = parseInt(savedTeams);
             updateTeamUI(teamCount);
@@ -544,9 +544,9 @@
     }
 
     function saveData() {
-        localStorage.setItem('attack25_v2_state', JSON.stringify(gridState));
-        localStorage.setItem('attack25_v2_questions', JSON.stringify(questions));
-        localStorage.setItem('attack25_v2_teamcount', teamCount);
+        localStorage.setItem('attack25_v3_state', JSON.stringify(gridState));
+        localStorage.setItem('attack25_v3_questions', JSON.stringify(questions));
+        localStorage.setItem('attack25_v3_teamcount', teamCount);
     }
 
     // --- View Management ---
