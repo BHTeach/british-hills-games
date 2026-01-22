@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Attack 25 v2</title>
+    <title>Attack 25</title>
     <style>
         :root {
             /* Visual Theme: Modern Gradient */
@@ -488,11 +488,11 @@
 <audio id="external-audio"></audio>
 
 <script>
-    // --- Initial Data with LOCAL ASSET PATHS ---
-    // Note: You must upload images to your 'assets' folder with these names.
+    // --- Initial Data with LOCAL ASSET PATHS (Standardized to .jpg) ---
     const defaultQuestions = [
         { id: 1, q: "What is the capital of the U.K.?", a: "London", image: "assets/london.jpg" },
-        { id: 2, q: "What is the money of Australia?", a: "Australian Dollar", image: "assets/aus_dollar.jpeg" },
+        // CHANGED: Standardized to .jpg
+        { id: 2, q: "What is the money of Australia?", a: "Australian Dollar", image: "assets/aus_dollar.jpg" },
         { id: 3, q: "What are the 3 most popular sports in the UK?", a: "Football, Rugby, Cricket", image: "assets/wembley.jpg" },
         { id: 4, q: "What is the capital of France?", a: "Paris", image: "assets/paris.jpg" },
         { id: 5, q: "Who sang 'We Will Rock You'?", a: "Queen", audio: "assets/wewillrockyou.mp3" },
