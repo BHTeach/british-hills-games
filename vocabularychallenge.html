@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Word & Memory Pop!</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
-        /* iOS Safari prevents bounce scrolling which ruins game feel */
         body {
             overscroll-behavior: none;
             touch-action: manipulation;
@@ -19,11 +15,9 @@
         }
 
         /* --- ANIMATIONS --- */
-
-        /* Explosion (Word Pop) */
         @keyframes explode {
             0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.4); opacity: 0.8; }
+            50% { transform: scale(1.4); opacity: 0.8; filter: brightness(1.5); }
             100% { transform: scale(2); opacity: 0; }
         }
         .exploding {
@@ -31,18 +25,15 @@
             pointer-events: none;
         }
 
-        /* Flip Out (Memory Pop - Hide) */
         @keyframes flipOut {
             0% { transform: perspective(600px) rotateY(0deg); opacity: 1; }
-            50% { transform: perspective(600px) rotateY(90deg); opacity: 0.5; }
             100% { transform: perspective(600px) rotateY(180deg); opacity: 0; }
         }
         .flipped-hidden {
-            animation: flipOut 0.6s ease-in forwards;
+            animation: flipOut 0.5s ease-in forwards;
             pointer-events: none;
         }
 
-        /* Pop In (Memory Pop - Reveal) */
         @keyframes popIn {
             0% { transform: scale(0); opacity: 0; }
             80% { transform: scale(1.1); opacity: 1; }
@@ -52,150 +43,133 @@
             animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
-        /* Grid Item Styling */
         .vocab-card {
-            transition: transform 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         
-        /* Pulse animation for the mic icon when active */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); opacity: 0.5; }
-            100% { transform: scale(1.3); opacity: 0; }
+            100% { transform: scale(1.5); opacity: 0; }
         }
         .mic-active::after {
             content: '';
             position: absolute;
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             border-radius: 50%;
-            border: 2px solid white;
-            top: 0;
-            left: 0;
-            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            border: 4px solid #22c55e;
+            top: 0; left: 0;
+            animation: pulse-ring 1.5s infinite;
         }
 
-        /* Custom Select Styling */
-        select {
-            -webkit-appearance: none;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1em;
+        /* Confetti piece styling */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            z-index: 100;
         }
     </style>
 </head>
-<body class="bg-gray-100 h-screen w-screen overflow-hidden flex flex-col font-sans">
+<body class="bg-slate-50 h-screen w-screen overflow-hidden flex flex-col font-sans">
 
-    <!-- TOP BAR: Controls & Status -->
-    <div class="h-16 bg-white shadow-md flex items-center justify-between px-6 z-10 shrink-0">
+    <!-- TOP BAR -->
+    <div class="h-20 bg-white border-b flex items-center justify-between px-6 z-10 shrink-0">
         <div class="flex flex-col">
-            <div class="text-xl font-bold text-gray-700 leading-tight">
-                <span id="gameTitleDisplay">Word Pop!</span>
-            </div>
-            <span id="currentLevelName" class="text-xs font-normal text-gray-400">Select a level</span>
+            <h1 id="gameTitleDisplay" class="text-2xl font-black text-slate-800 tracking-tight">Word Pop!</h1>
+            <span id="currentLevelName" class="text-xs font-bold text-blue-500 uppercase tracking-widest">Select Category</span>
         </div>
         
-        <!-- Controls Container -->
         <div class="flex items-center gap-4">
-            
-            <!-- Memory Pop Specific Control: Hide Button -->
-            <button id="hideBtn" onclick="hideRandomItems()" class="hidden bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow transition transform active:scale-95">
-                <i class="fa-solid fa-eye-slash mr-2"></i> Hide 4!
+            <button id="hideBtn" onclick="hideRandomItems()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-full shadow-lg transition transform active:scale-95 flex items-center gap-2">
+                <i class="fa-solid fa-ghost"></i> Hide 4!
             </button>
 
-            <!-- Timer Display (Only for Word Pop) -->
-            <div id="timerContainer" class="flex items-center gap-2">
-                <i class="fa-regular fa-clock text-gray-500"></i>
-                <span id="timerDisplay" class="text-3xl font-bold text-blue-600 font-mono">45</span>
+            <div id="timerContainer" class="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200">
+                <i class="fa-regular fa-clock text-slate-400"></i>
+                <span id="timerDisplay" class="text-2xl font-black text-slate-700 font-mono w-8 text-center">45</span>
             </div>
         </div>
     </div>
 
-    <!-- GAME AREA: Grid -->
-    <div id="gameContainer" class="flex-1 p-4 relative flex items-center justify-center min-h-0">
-        <!-- The Grid -->
-        <div id="grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl h-full max-h-full content-center">
-            <!-- Items injected by JS -->
+    <!-- GAME AREA -->
+    <div id="gameContainer" class="flex-1 p-6 relative flex items-center justify-center min-h-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
+        <div id="grid" class="grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-4xl h-full max-h-[600px] content-center">
+            <!-- Dynamic Grid Items -->
         </div>
 
-        <!-- OVERLAYS -->
-        
         <!-- Start Screen -->
-        <div id="startScreen" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm px-4">
-            
-            <!-- Mode Switcher -->
-            <div class="bg-gray-800 p-1 rounded-lg flex mb-6">
-                <button id="modeWordPop" onclick="setMode('word-pop')" class="px-6 py-2 rounded-md font-bold text-sm transition-colors bg-blue-600 text-white shadow-sm">
-                    Word Pop
-                </button>
-                <button id="modeMemoryPop" onclick="setMode('memory-pop')" class="px-6 py-2 rounded-md font-bold text-sm transition-colors text-gray-400 hover:text-white">
-                    Memory Pop
-                </button>
+        <div id="startScreen" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50 px-6 text-center">
+            <div class="bg-slate-100 p-1.5 rounded-2xl flex mb-8">
+                <button id="modeWordPop" onclick="setMode('word-pop')" class="px-8 py-3 rounded-xl font-bold transition-all bg-white text-blue-600 shadow-sm">Word Pop</button>
+                <button id="modeMemoryPop" onclick="setMode('memory-pop')" class="px-8 py-3 rounded-xl font-bold transition-all text-slate-400 hover:text-slate-600">Memory Pop</button>
             </div>
 
-            <h1 id="mainTitle" class="text-5xl font-extrabold text-white mb-2 tracking-wider text-center">WORD POP</h1>
-            <p id="mainDesc" class="text-gray-300 mb-8 text-lg text-center max-w-md">Shout the words to pop them before time runs out!</p>
+            <h2 id="mainTitle" class="text-6xl font-black text-slate-800 mb-4 uppercase italic">Word Pop</h2>
+            <p id="mainDesc" class="text-slate-500 mb-10 text-lg max-w-md font-medium leading-relaxed">Shout the words to pop them before time runs out!</p>
             
-            <!-- Category Selector -->
-            <div class="w-full max-w-xs mb-8">
-                <label class="block text-gray-400 text-sm font-bold mb-2 ml-1">SELECT CATEGORY</label>
-                <div class="relative">
-                    <select id="categorySelect" class="block w-full bg-gray-700 border border-gray-600 hover:border-gray-500 text-white py-4 px-4 pr-8 rounded-xl shadow leading-tight focus:outline-none focus:shadow-outline text-lg">
-                        <!-- Options populated by JS -->
-                    </select>
-                </div>
+            <div class="w-full max-w-xs mb-10">
+                <label class="block text-slate-400 text-xs font-black mb-3 tracking-widest uppercase">Choose Category</label>
+                <select id="categorySelect" class="block w-full bg-white border-2 border-slate-200 text-slate-700 py-4 px-6 rounded-2xl shadow-sm focus:border-blue-500 focus:outline-none text-xl font-bold appearance-none cursor-pointer">
+                    <!-- Loaded by JS -->
+                </select>
             </div>
 
-            <button onclick="startGame()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-5 px-12 rounded-full text-2xl shadow-lg transform transition hover:scale-105 active:scale-95 flex items-center gap-3 w-full max-w-xs justify-center">
-                <i class="fa-solid fa-play"></i> START
+            <button onclick="startGame()" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-6 px-16 rounded-3xl text-3xl shadow-[0_10px_0_rgb(29,78,216)] transform transition hover:-translate-y-1 active:translate-y-1 active:shadow-none flex items-center gap-4">
+                <i class="fa-solid fa-play"></i> START GAME
             </button>
             
-            <p id="httpsWarning" class="hidden text-red-400 mt-4 text-sm font-bold bg-red-900/50 p-2 rounded text-center">
-                ⚠️ Warning: Microphone requires HTTPS or Localhost.
+            <p id="httpsWarning" class="hidden text-amber-600 mt-8 text-sm font-bold bg-amber-50 p-3 rounded-xl border border-amber-200">
+                ⚠️ Voice requires a Secure Connection (HTTPS).
             </p>
         </div>
 
-        <!-- Game Over Screen (Win/Lose) -->
-        <div id="endScreen" class="hidden absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 px-4">
-            <h2 id="endTitle" class="text-6xl font-bold text-white mb-4 text-center">GAME OVER</h2>
-            <p id="endMessage" class="text-2xl text-gray-300 mb-8 text-center">Time's up!</p>
-            <button onclick="resetGame()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-10 rounded-xl text-xl shadow-lg">
+        <!-- End Screen -->
+        <div id="endScreen" class="hidden absolute inset-0 bg-white/98 flex flex-col items-center justify-center z-50 px-6 text-center animate-in fade-in zoom-in duration-300">
+            <div id="endEmoji" class="text-8xl mb-6">🎉</div>
+            <h2 id="endTitle" class="text-6xl font-black text-slate-800 mb-4">GREAT JOB!</h2>
+            <p id="endMessage" class="text-2xl text-slate-500 mb-12 font-medium"></p>
+            <button onclick="resetGame()" class="bg-slate-800 hover:bg-black text-white font-black py-5 px-12 rounded-2xl text-xl transition transform hover:scale-105 active:scale-95">
                 Back to Menu
             </button>
         </div>
     </div>
 
-    <!-- BOTTOM BAR: Speech & Manual Input -->
-    <div class="h-14 bg-gray-800 flex items-center px-4 justify-between shrink-0 gap-4">
-        
-        <!-- Mic Status -->
-        <div class="flex items-center gap-3 text-white shrink-0">
-            <div id="micIcon" class="relative w-3 h-3 bg-red-500 rounded-full transition-colors"></div>
-            <span class="hidden sm:inline text-xs text-gray-400 uppercase tracking-widest">Mic</span>
+    <!-- BOTTOM BAR -->
+    <div class="h-20 bg-white border-t flex items-center px-6 justify-between shrink-0 gap-6">
+        <div class="flex items-center gap-4">
+            <div id="micIcon" class="relative w-5 h-5 bg-slate-200 rounded-full transition-all duration-300"></div>
+            <div class="hidden sm:block">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Voice Input</p>
+                <p id="micStatusText" class="text-xs font-bold text-slate-600">Standby</p>
+            </div>
         </div>
 
-        <!-- Manual Input (Useful for Memory Game) -->
-        <div class="flex-1 max-w-md relative">
-            <input type="text" id="manualInput" placeholder="Type or shout answer..." 
-                   class="w-full bg-gray-700 text-white rounded-full py-1.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center placeholder-gray-500"
+        <div class="flex-1 max-w-lg relative">
+            <input type="text" id="manualInput" placeholder="Type or shout the answer..." 
+                   class="w-full bg-slate-100 border-2 border-transparent focus:border-blue-500 focus:bg-white text-slate-800 rounded-2xl py-3 px-6 transition-all text-center font-bold text-lg outline-none"
                    onkeydown="if(event.key === 'Enter') handleManualInput(this.value)">
         </div>
 
-        <!-- Transcript Display -->
-        <div class="hidden md:flex items-center gap-2 text-center max-w-xs overflow-hidden">
-            <span class="text-gray-500 text-sm whitespace-nowrap">Heard:</span>
-            <span id="transcript" class="text-white font-mono font-bold text-lg italic truncate">...</span>
+        <div class="hidden md:flex flex-col items-end">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Recognized</p>
+            <span id="transcript" class="text-blue-600 font-black text-xl italic truncate max-w-[200px]">...</span>
         </div>
     </div>
 
-    <!-- LOGIC -->
     <script>
-        // --- CONFIGURATION ---
-        const GAME_DURATION = 45; // Seconds (Word Pop)
+        const GAME_DURATION = 45;
         
-        // --- DATA STRUCTURE ---
+        // Gentle, high-quality UI sounds
+        const SOUNDS = {
+            pop: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'), // Bubble pop
+            win: new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'), // Happy chime
+            lose: new Audio('https://assets.mixkit.co/active_storage/sfx/251/251-preview.mp3'),  // Gentle "uhoh"
+            flip: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), // Card swoosh
+            tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2567/2567-preview.mp3')  // Short click
+        };
+
         const GAME_DATA = {
             colors: [
                 { id: 'red', keywords: ['red', 'read'], type: 'color', val: '#EF4444' }, 
@@ -208,336 +182,286 @@
                 { id: 'black', keywords: ['black'], type: 'color', val: '#1F2937' }
             ],
             animals: [
-                { id: 'dog', keywords: ['dog'], type: 'image', val: 'assets/dog.jpg' },
-                { id: 'sheep', keywords: ['sheep'], type: 'image', val: 'assets/sheep.jpg' },
-                { id: 'cat', keywords: ['cat'], type: 'image', val: 'assets/cat.jpg' },
-                { id: 'tiger', keywords: ['tiger'], type: 'image', val: 'assets/tiger.jpg' },
-                { id: 'lion', keywords: ['lion'], type: 'image', val: 'assets/lion.jpg' },
-                { id: 'cow', keywords: ['cow'], type: 'image', val: 'assets/cow.jpg' },
-                { id: 'duck', keywords: ['duck'], type: 'image', val: 'assets/duck.jpg' },
-                { id: 'fox', keywords: ['fox'], type: 'image', val: 'assets/fox.jpg' }
-            ],
-            countries: [
-                { id: 'south_africa', keywords: ['south africa'], type: 'image', val: 'assets/southafrica.png' },
-                { id: 'japan', keywords: ['japan'], type: 'image', val: 'assets/japan.png' },
-                { id: 'trinidad', keywords: ['trinidad', 'tobago'], type: 'image', val: 'assets/trinidad-and-tobago.png' },
-                { id: 'jamaica', keywords: ['jamaica'], type: 'image', val: 'assets/jamaica.png' },
-                { id: 'canada', keywords: ['canada'], type: 'image', val: 'assets/canada.png' },
-                { id: 'uk', keywords: ['uk', 'united kingdom', 'britain', 'england'], type: 'image', val: 'assets/uk.png' },
-                { id: 'new_zealand', keywords: ['new zealand'], type: 'image', val: 'assets/newzealand.png' },
-                { id: 'australia', keywords: ['australia'], type: 'image', val: 'assets/australia.png' }
+                { id: 'dog', keywords: ['dog'], type: 'emoji', val: '🐶' },
+                { id: 'sheep', keywords: ['sheep', 'sleep'], type: 'emoji', val: '🐑' },
+                { id: 'cat', keywords: ['cat'], type: 'emoji', val: '🐱' },
+                { id: 'tiger', keywords: ['tiger'], type: 'emoji', val: '🐯' },
+                { id: 'lion', keywords: ['lion'], type: 'emoji', val: '🦁' },
+                { id: 'cow', keywords: ['cow'], type: 'emoji', val: '🐮' },
+                { id: 'duck', keywords: ['duck'], type: 'emoji', val: '🦆' },
+                { id: 'fox', keywords: ['fox'], type: 'emoji', val: '🦊' }
             ],
             shapes: [
-                { id: 'triangle', keywords: ['triangle'], type: 'image', val: 'assets/triangle.png' },
-                { id: 'rectangle', keywords: ['rectangle'], type: 'image', val: 'assets/rectangle.png' },
-                { id: 'circle', keywords: ['circle'], type: 'image', val: 'assets/circle.png' },
-                { id: 'square', keywords: ['square'], type: 'image', val: 'assets/square.png' },
-                { id: 'heart', keywords: ['heart', 'love'], type: 'image', val: 'assets/heart.png' },
-                { id: 'star', keywords: ['star'], type: 'image', val: 'assets/star.png' },
-                { id: 'diamond', keywords: ['diamond'], type: 'image', val: 'assets/diamond.png' },
-                { id: 'oval', keywords: ['oval'], type: 'image', val: 'assets/oval.png' }
+                { id: 'triangle', keywords: ['triangle'], type: 'emoji', val: '🔺' },
+                { id: 'circle', keywords: ['circle'], type: 'emoji', val: '🔴' },
+                { id: 'square', keywords: ['square'], type: 'emoji', val: '⬛' },
+                { id: 'heart', keywords: ['heart', 'love'], type: 'emoji', val: '❤️' },
+                { id: 'star', keywords: ['star'], type: 'emoji', val: '⭐' },
+                { id: 'diamond', keywords: ['diamond'], type: 'emoji', val: '💎' },
+                { id: 'moon', keywords: ['moon'], type: 'emoji', val: '🌙' },
+                { id: 'sun', keywords: ['sun'], type: 'emoji', val: '☀️' }
             ]
         };
 
-        const SOUNDS = {
-            pop: new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3'),
-            win: new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'),
-            lose: new Audio('https://www.soundjay.com/misc/sounds/fail-buzzer-01.mp3'),
-            flip: new Audio('https://www.soundjay.com/misc/sounds/swish-1.mp3')
-        };
-
-        // --- STATE MANAGEMENT ---
         let state = {
-            mode: 'word-pop', // 'word-pop' or 'memory-pop'
+            mode: 'word-pop',
             isPlaying: false,
             timer: GAME_DURATION,
-            activeItems: [], // Items currently on screen
-            hiddenItemIds: [], // IDs of items currently hidden in Memory mode
+            activeItems: [],
+            hiddenItemIds: [],
             recognition: null,
             currentCategory: 'colors'
         };
 
         let timerInterval;
 
-        // --- INITIALIZATION ---
-        try {
+        // Initialize UI
+        function initApp() {
             const select = document.getElementById('categorySelect');
-            if (select) {
-                Object.keys(GAME_DATA).forEach(key => {
-                    const opt = document.createElement('option');
-                    opt.value = key;
-                    opt.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ');
-                    select.appendChild(opt);
-                });
-            }
-        } catch (e) { console.error("Error populating dropdown:", e); }
+            Object.keys(GAME_DATA).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+                select.appendChild(opt);
+            });
 
-        window.onload = () => {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Voice Control not supported. Please use Chrome/Safari.");
-            }
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
                 document.getElementById('httpsWarning').classList.remove('hidden');
             }
-        };
+        }
 
-        // --- MODE SWITCHING ---
+        window.onload = initApp;
+
         function setMode(mode) {
             state.mode = mode;
-            
-            // UI Updates
             const btnWord = document.getElementById('modeWordPop');
             const btnMem = document.getElementById('modeMemoryPop');
             const title = document.getElementById('mainTitle');
             const desc = document.getElementById('mainDesc');
 
             if (mode === 'word-pop') {
-                btnWord.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors bg-blue-600 text-white shadow-sm";
-                btnMem.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors text-gray-400 hover:text-white";
+                btnWord.className = "px-8 py-3 rounded-xl font-bold transition-all bg-white text-blue-600 shadow-sm";
+                btnMem.className = "px-8 py-3 rounded-xl font-bold transition-all text-slate-400 hover:text-slate-600";
                 title.textContent = "WORD POP";
                 desc.textContent = "Shout the words to pop them before time runs out!";
             } else {
-                btnWord.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors text-gray-400 hover:text-white";
-                btnMem.className = "px-6 py-2 rounded-md font-bold text-sm transition-colors bg-purple-600 text-white shadow-sm";
+                btnWord.className = "px-8 py-3 rounded-xl font-bold transition-all text-slate-400 hover:text-slate-600";
+                btnMem.className = "px-8 py-3 rounded-xl font-bold transition-all bg-white text-indigo-600 shadow-sm";
                 title.textContent = "MEMORY POP";
-                desc.textContent = "Hide items, then shout or type the missing ones to reveal them!";
+                desc.textContent = "A card will vanish. Shout or type the missing one to reveal it!";
             }
         }
 
-        // --- SPEECH RECOGNITION ---
         function initSpeech() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
             state.recognition = new SpeechRecognition();
-            state.recognition.continuous = true; 
-            state.recognition.interimResults = true; 
+            state.recognition.continuous = true;
+            state.recognition.interimResults = true;
             state.recognition.lang = 'en-US';
 
             state.recognition.onstart = () => {
-                document.getElementById('micIcon').classList.replace('bg-red-500', 'bg-green-500');
-                document.getElementById('micIcon').classList.add('mic-active');
+                document.getElementById('micIcon').classList.add('bg-green-500', 'mic-active');
+                document.getElementById('micStatusText').textContent = "Listening...";
+                document.getElementById('micStatusText').className = "text-xs font-bold text-green-600 animate-pulse";
             };
 
             state.recognition.onend = () => {
-                if (state.isPlaying) {
-                    try { state.recognition.start(); } catch(e) {}
-                } else {
-                    document.getElementById('micIcon').classList.replace('bg-green-500', 'bg-red-500');
-                    document.getElementById('micIcon').classList.remove('mic-active');
+                if (state.isPlaying) try { state.recognition.start(); } catch(e) {}
+                else {
+                    document.getElementById('micIcon').classList.remove('bg-green-500', 'mic-active');
+                    document.getElementById('micStatusText').textContent = "Standby";
+                    document.getElementById('micStatusText').className = "text-xs font-bold text-slate-600";
                 }
             };
 
             state.recognition.onresult = (event) => {
-                const lastResult = event.results[event.results.length - 1];
-                const transcript = lastResult[0].transcript.toLowerCase().trim();
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 document.getElementById('transcript').textContent = transcript;
                 processInput(transcript);
             };
         }
 
-        function handleManualInput(text) {
-            processInput(text.toLowerCase().trim());
-            document.getElementById('manualInput').value = '';
-        }
-
-        // --- GAME LOGIC ---
-
         function startGame() {
-            // Setup Audio context
+            // Warm up audio for iOS
             Object.values(SOUNDS).forEach(s => {
-                s.volume = 0; s.play().catch(e => {}); s.pause(); s.currentTime = 0; s.volume = 1;
+                s.volume = 0; s.play().then(() => { s.pause(); s.volume = 1; }).catch(() => {});
             });
 
-            // Start Mic
             if (!state.recognition) initSpeech();
-            try { state.recognition.start(); } catch (e) {}
+            try { state.recognition.start(); } catch(e) {}
 
-            // Common Setup
-            const selectedCat = document.getElementById('categorySelect').value || 'colors';
-            state.currentCategory = selectedCat;
-            const categoryItems = GAME_DATA[selectedCat];
-            state.activeItems = JSON.parse(JSON.stringify(categoryItems));
+            const cat = document.getElementById('categorySelect').value;
+            state.currentCategory = cat;
+            state.activeItems = [...GAME_DATA[cat]];
             state.isPlaying = true;
             state.hiddenItemIds = [];
+            state.timer = GAME_DURATION;
 
-            // UI Reset
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('endScreen').classList.add('hidden');
-            document.getElementById('timerDisplay').classList.remove('text-red-600');
-            document.getElementById('currentLevelName').textContent = selectedCat.toUpperCase();
+            document.getElementById('currentLevelName').textContent = cat;
             
             renderGrid();
 
             if (state.mode === 'word-pop') {
-                // WORD POP SETUP
-                document.getElementById('gameTitleDisplay').textContent = "Word Pop!";
-                document.getElementById('timerContainer').classList.remove('hidden');
                 document.getElementById('hideBtn').classList.add('hidden');
-                
-                state.timer = GAME_DURATION;
+                document.getElementById('timerContainer').classList.remove('hidden');
                 clearInterval(timerInterval);
                 updateTimerDisplay();
                 timerInterval = setInterval(() => {
                     state.timer--;
                     updateTimerDisplay();
+                    if (state.timer % 10 === 0) playSound('tick');
                     if (state.timer <= 0) gameOver(false);
                 }, 1000);
-
             } else {
-                // MEMORY POP SETUP
-                document.getElementById('gameTitleDisplay').textContent = "Memory Pop!";
-                document.getElementById('timerContainer').classList.add('hidden'); // Hide timer
-                document.getElementById('hideBtn').classList.remove('hidden'); // Show hide button
-                clearInterval(timerInterval); // No timer in memory mode
+                document.getElementById('hideBtn').classList.remove('hidden');
+                document.getElementById('timerContainer').classList.add('hidden');
             }
         }
-
-        // --- MEMORY POP SPECIFIC FUNCTIONS ---
-
-        function hideRandomItems() {
-            if (state.activeItems.length < 4) return; // Safety check
-            
-            // Create a pool of indices
-            let indices = Array.from(Array(state.activeItems.length).keys());
-            // Shuffle
-            indices.sort(() => Math.random() - 0.5);
-            // Pick first 4
-            const toHideIndices = indices.slice(0, 4);
-            
-            state.hiddenItemIds = []; // Reset hidden list
-            
-            SOUNDS.flip.play().catch(e=>{});
-
-            toHideIndices.forEach(index => {
-                const item = state.activeItems[index];
-                state.hiddenItemIds.push(item.id);
-                
-                const el = document.getElementById(`item-${item.id}`);
-                if (el) {
-                    el.classList.add('flipped-hidden');
-                }
-            });
-
-            // Disable button after hiding
-            document.getElementById('hideBtn').classList.add('hidden');
-        }
-
-        function revealItem(itemId) {
-            const el = document.getElementById(`item-${itemId}`);
-            if (el) {
-                // Remove hidden class, add reveal animation
-                el.classList.remove('flipped-hidden');
-                el.classList.add('revealed');
-                
-                // Sound
-                SOUNDS.pop.currentTime = 0;
-                SOUNDS.pop.play().catch(e => {});
-
-                // Remove from hidden list
-                state.hiddenItemIds = state.hiddenItemIds.filter(id => id !== itemId);
-
-                // Check Win for Memory Pop
-                if (state.hiddenItemIds.length === 0) {
-                    setTimeout(() => gameOver(true), 1000);
-                }
-            }
-        }
-
-        // --- COMMON LOGIC ---
 
         function renderGrid() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = ''; 
-
+            grid.innerHTML = '';
             state.activeItems.forEach(item => {
                 const el = document.createElement('div');
                 el.id = `item-${item.id}`;
-                el.className = 'vocab-card w-full aspect-square rounded-2xl flex items-center justify-center text-4xl shadow-sm border-4 border-white bg-white overflow-hidden relative backface-hidden';
+                el.className = 'vocab-card w-full aspect-square rounded-3xl flex items-center justify-center text-6xl shadow-xl border-4 border-white bg-white overflow-hidden relative transition-transform hover:scale-105';
                 
                 if (item.type === 'color') {
                     el.style.backgroundColor = item.val;
-                } else if (item.type === 'image') {
-                    el.style.backgroundImage = `url('${item.val}')`;
-                    el.style.backgroundSize = 'contain';
-                    el.style.backgroundRepeat = 'no-repeat';
-                    el.style.backgroundPosition = 'center';
+                } else if (item.type === 'emoji') {
+                    el.textContent = item.val;
                 }
                 grid.appendChild(el);
             });
         }
 
-        function processInput(spokenPhrase) {
+        function hideRandomItems() {
+            if (state.activeItems.length < 4) return;
+            playSound('flip');
+            
+            let indices = [...Array(state.activeItems.length).keys()].sort(() => Math.random() - 0.5);
+            const toHide = indices.slice(0, 4);
+            
+            state.hiddenItemIds = [];
+            toHide.forEach(idx => {
+                const item = state.activeItems[idx];
+                state.hiddenItemIds.push(item.id);
+                document.getElementById(`item-${item.id}`).classList.add('flipped-hidden');
+            });
+
+            document.getElementById('hideBtn').classList.add('hidden');
+        }
+
+        function processInput(phrase) {
             if (!state.isPlaying) return;
 
             if (state.mode === 'word-pop') {
-                // WORD POP LOGIC: Find matches -> Remove them
-                const matchedItemIndex = state.activeItems.findIndex(item => {
-                    return item.keywords.some(keyword => spokenPhrase.includes(keyword));
-                });
+                const idx = state.activeItems.findIndex(item => 
+                    item.keywords.some(k => phrase.includes(k))
+                );
 
-                if (matchedItemIndex !== -1) {
-                    const item = state.activeItems[matchedItemIndex];
-                    const element = document.getElementById(`item-${item.id}`);
-                    if (element) {
-                        element.classList.add('exploding');
-                        SOUNDS.pop.currentTime = 0;
-                        SOUNDS.pop.play().catch(e => {});
-                        state.activeItems.splice(matchedItemIndex, 1);
-                        if (state.activeItems.length === 0) setTimeout(() => gameOver(true), 500);
+                if (idx !== -1) {
+                    const item = state.activeItems[idx];
+                    const el = document.getElementById(`item-${item.id}`);
+                    if (el) {
+                        el.classList.add('exploding');
+                        playSound('pop');
+                        state.activeItems.splice(idx, 1);
+                        if (state.activeItems.length === 0) setTimeout(() => gameOver(true), 600);
                     }
                 }
             } else {
-                // MEMORY POP LOGIC: Find matches in HIDDEN list -> Reveal them
-                const matchedHiddenItem = state.activeItems.find(item => {
-                    // Check if this item is currently hidden AND matches the keyword
-                    return state.hiddenItemIds.includes(item.id) && 
-                           item.keywords.some(keyword => spokenPhrase.includes(keyword));
-                });
+                const item = state.activeItems.find(item => 
+                    state.hiddenItemIds.includes(item.id) && 
+                    item.keywords.some(k => phrase.includes(k))
+                );
 
-                if (matchedHiddenItem) {
-                    revealItem(matchedHiddenItem.id);
+                if (item) {
+                    const el = document.getElementById(`item-${item.id}`);
+                    el.classList.remove('flipped-hidden');
+                    el.classList.add('revealed');
+                    playSound('pop');
+                    state.hiddenItemIds = state.hiddenItemIds.filter(id => id !== item.id);
+                    if (state.hiddenItemIds.length === 0) setTimeout(() => gameOver(true), 1000);
                 }
             }
         }
 
-        function updateTimerDisplay() {
-            const display = document.getElementById('timerDisplay');
-            display.textContent = state.timer;
-            if (state.timer <= 10) display.classList.add('text-red-600');
+        function handleManualInput(val) {
+            processInput(val.toLowerCase().trim());
+            document.getElementById('manualInput').value = '';
         }
 
-        function resetGame() {
-            document.getElementById('endScreen').classList.add('hidden');
-            document.getElementById('startScreen').classList.remove('hidden');
-            clearInterval(timerInterval);
-            state.isPlaying = false;
-            if(state.recognition) state.recognition.stop();
+        function updateTimerDisplay() {
+            const d = document.getElementById('timerDisplay');
+            d.textContent = state.timer;
+            d.className = state.timer <= 10 ? "text-2xl font-black text-red-500 font-mono w-8 text-center animate-pulse" : "text-2xl font-black text-slate-700 font-mono w-8 text-center";
         }
 
         function gameOver(win) {
             state.isPlaying = false;
             clearInterval(timerInterval);
-            if(state.recognition) state.recognition.stop();
+            if (state.recognition) state.recognition.stop();
 
             const screen = document.getElementById('endScreen');
             const title = document.getElementById('endTitle');
             const msg = document.getElementById('endMessage');
+            const emoji = document.getElementById('endEmoji');
 
             screen.classList.remove('hidden');
 
             if (win) {
-                title.textContent = "GREAT JOB!";
-                title.className = "text-6xl font-bold text-green-400 mb-4 text-center";
-                if (state.mode === 'word-pop') {
-                    msg.textContent = `Cleared in ${GAME_DURATION - state.timer}s!`;
-                } else {
-                    msg.textContent = "You found all the missing items!";
-                }
-                SOUNDS.win.play().catch(e => {});
+                emoji.textContent = "🏆";
+                title.textContent = "FANTASTIC!";
+                title.className = "text-6xl font-black text-green-500 mb-4";
+                msg.textContent = state.mode === 'word-pop' ? `You popped them all in ${GAME_DURATION - state.timer} seconds!` : "Perfect memory! You found every hidden item.";
+                playSound('win');
+                createConfetti();
             } else {
-                title.textContent = "GAME OVER";
-                title.className = "text-6xl font-bold text-red-500 mb-4 text-center";
-                msg.textContent = "Time's up!";
-                SOUNDS.lose.play().catch(e => {});
+                emoji.textContent = "⏰";
+                title.textContent = "TIME'S UP";
+                title.className = "text-6xl font-black text-slate-400 mb-4";
+                msg.textContent = "Almost there! Give it another shot?";
+                playSound('lose');
+            }
+        }
+
+        function resetGame() {
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            state.isPlaying = false;
+        }
+
+        function playSound(key) {
+            const s = SOUNDS[key];
+            if (s) {
+                s.currentTime = 0;
+                s.play().catch(() => {});
+            }
+        }
+
+        function createConfetti() {
+            for(let i=0; i<50; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + 'vw';
+                c.style.top = '-10px';
+                c.style.backgroundColor = ['#ff0', '#f0f', '#0ff', '#0f0'][Math.floor(Math.random()*4)];
+                c.style.transform = `rotate(${Math.random()*360}deg)`;
+                document.body.appendChild(c);
+                
+                const anim = c.animate([
+                    { transform: `translate(0, 0) rotate(0deg)`, opacity: 1 },
+                    { transform: `translate(${(Math.random()-0.5)*200}px, 100vh) rotate(720deg)`, opacity: 0 }
+                ], {
+                    duration: 2000 + Math.random()*3000,
+                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                });
+                anim.onfinish = () => c.remove();
             }
         }
     </script>
