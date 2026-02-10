@@ -282,12 +282,6 @@
                     setShowManualInput(true);
                 }
 
-                // 2. Play Video Sound
-                if (videoRef.current) {
-                    videoRef.current.muted = false;
-                    videoRef.current.play().catch(e => console.log("Video Play Error", e));
-                }
-
                 setGameState('playing');
                 setTimeLeft(45);
                 setTranscript("");
@@ -382,6 +376,53 @@
                 setManualInput("");
             };
 
+            // --- Determine Video Properties ---
+            const isDefeating = gameState === 'defeating';
+            const isVictory = gameState === 'victory';
+            const isLosing = gameState === 'losing';
+            const isDefeated = gameState === 'defeated';
+            const isGameOver = gameState === 'gameover';
+            
+            let currentVideoSrc;
+            let shouldLoop = true;
+
+            if (isGameOver) {
+                currentVideoSrc = "./assets/victory.mp4";
+                shouldLoop = true;
+            } else if ((isDefeating || isVictory) && currentStage.defeatVideoSrc) {
+                currentVideoSrc = currentStage.defeatVideoSrc;
+                shouldLoop = false;
+            } else if (isLosing && currentStage.lossVideoSrc) {
+                currentVideoSrc = currentStage.lossVideoSrc;
+                shouldLoop = false;
+            } else if (isDefeated) {
+                currentVideoSrc = null;
+                shouldLoop = false;
+            } else {
+                currentVideoSrc = currentStage.videoSrc;
+                shouldLoop = true;
+            }
+
+            // --- FIXED VIDEO TRANSITION LOGIC ---
+            // This useEffect handles playing video whenever source changes
+            // WITHOUT destroying the video element (which causes mobile hangs)
+            useEffect(() => {
+                if (videoRef.current && currentVideoSrc) {
+                    // 1. Load the new source
+                    videoRef.current.load();
+                    // 2. Explicitly play
+                    const playPromise = videoRef.current.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.error("Auto-play prevented (mobile restrictions):", error);
+                            // If this happens often, we might need a "Tap to Continue" UI
+                            // But usually reusing the ref fixes it.
+                        });
+                    }
+                }
+            }, [currentVideoSrc]);
+
             // --- Components ---
 
             if (gameState === 'setup') {
@@ -424,47 +465,20 @@
                 );
             }
 
-            // Determine Video Properties
-            const isDefeating = gameState === 'defeating';
-            const isVictory = gameState === 'victory';
-            const isLosing = gameState === 'losing';
-            const isDefeated = gameState === 'defeated';
-            const isGameOver = gameState === 'gameover';
-            
-            let currentVideoSrc;
-            let shouldLoop = true;
-
-            if (isGameOver) {
-                currentVideoSrc = "./assets/victory.mp4";
-                shouldLoop = true;
-            } else if ((isDefeating || isVictory) && currentStage.defeatVideoSrc) {
-                currentVideoSrc = currentStage.defeatVideoSrc;
-                shouldLoop = false;
-            } else if (isLosing && currentStage.lossVideoSrc) {
-                currentVideoSrc = currentStage.lossVideoSrc;
-                shouldLoop = false;
-            } else if (isDefeated) {
-                // When fully defeated (after video), show no video (black background)
-                currentVideoSrc = null;
-                shouldLoop = false;
-            } else {
-                currentVideoSrc = currentStage.videoSrc;
-                shouldLoop = true;
-            }
-
             // Stage List for Skip Menu
             const stagesList = gameStages.length > 0 ? gameStages : ROOM_CONFIG;
 
             return (
                 <div className="relative w-screen h-screen overflow-hidden bg-black">
                     {/* Video Player */}
+                    {/* CRITICAL FIX: Removed key={currentVideoSrc} to prevent element destruction */}
                     {currentVideoSrc && (
                         <video
-                            key={currentVideoSrc}
                             ref={videoRef}
                             src={currentVideoSrc}
                             autoPlay
                             loop={shouldLoop}
+                            muted={false}
                             onEnded={(isDefeating || isLosing) ? handleVideoEnded : undefined}
                             playsInline
                             className="absolute top-0 left-0 w-full h-full object-cover"
