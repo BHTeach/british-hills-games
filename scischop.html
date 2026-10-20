@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whimsical POS System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            user-select: none;
+        }
+
+        /* Whimsical Scrollbar */
+        .receipt-scroll { scrollbar-width: thin; scrollbar-color: #d8b4fe transparent; }
+        .receipt-scroll::-webkit-scrollbar { width: 6px; }
+        .receipt-scroll::-webkit-scrollbar-thumb { 
+            background: linear-gradient(to bottom, #f472b6, #c084fc); 
+            border-radius: 20px; 
+        }
+        
+        /* Dreamy Whimsical Cosmos Background */
+        .whimsical-bg {
+            background: 
+                radial-gradient(circle at 12% 18%, rgba(254, 205, 211, 0.3) 0%, transparent 35%),
+                radial-gradient(circle at 88% 22%, rgba(192, 132, 252, 0.35) 0%, transparent 40%),
+                radial-gradient(circle at 50% 88%, rgba(125, 211, 252, 0.3) 0%, transparent 45%),
+                linear-gradient(135deg, #1f103b 0%, #361752 35%, #461448 70%, #1a0e33 100%);
+        }
+
+        /* Twinkling Pastel Fairy Stars */
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image: 
+                radial-gradient(2px 2px at 25px 35px, #fef08a, rgba(0,0,0,0)),
+                radial-gradient(3px 3px at 55px 85px, #f472b6, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 70px 170px, #67e8f9, rgba(0,0,0,0)),
+                radial-gradient(3px 3px at 110px 50px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 150px 95px, #fbcfe8, rgba(0,0,0,0)),
+                radial-gradient(3px 3px at 180px 135px, #c084fc, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 220px 220px;
+            animation: fairyTwinkle 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes fairyTwinkle {
+            0% { opacity: 0.35; transform: scale(0.99); }
+            100% { opacity: 1; transform: scale(1.01); }
+        }
+
+        /* Floating background doodles */
+        .floating-doodle {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.28;
+            animation: floatAround 8s infinite ease-in-out alternate;
+        }
+        @keyframes floatAround {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-18px) rotate(10deg); }
+        }
+
+        /* Bouncy Wiggle Animation for Egg mascot */
+        @keyframes eggWiggle {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            20% { transform: rotate(-8deg) scale(1.12); }
+            40% { transform: rotate(8deg) scale(1.12); }
+            60% { transform: rotate(-5deg) scale(1.06); }
+            80% { transform: rotate(5deg) scale(1.06); }
+        }
+        .egg-wiggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            animation: eggWiggle 3.5s infinite ease-in-out;
+            cursor: pointer;
+        }
+
+        /* Tactile Macaron Keypad Buttons */
+        .keypad-btn {
+            border-radius: 18px !important;
+            border: 2px solid #e2e8f0 !important;
+            background: linear-gradient(145deg, #ffffff, #faf5ff) !important;
+            box-shadow: 0 5px 0 #cbd5e1, 0 8px 12px rgba(148, 163, 184, 0.25) !important;
+            transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        .keypad-btn:hover {
+            transform: translateY(-2px);
+            background: #ffffff !important;
+            box-shadow: 0 7px 0 #cbd5e1, 0 12px 18px rgba(168, 85, 247, 0.18) !important;
+            border-color: #d8b4fe !important;
+        }
+        .keypad-btn:active {
+            transform: translateY(4px) !important;
+            box-shadow: 0 1px 0 #cbd5e1 !important;
+        }
+
+        .keypad-btn-clear {
+            border-radius: 18px !important;
+            border: 2px solid #fecdd3 !important;
+            background: linear-gradient(145deg, #fff1f2, #ffe4e6) !important;
+            box-shadow: 0 5px 0 #fda4af, 0 8px 12px rgba(244, 63, 94, 0.2) !important;
+            transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        .keypad-btn-clear:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #fda4af, 0 12px 18px rgba(244, 63, 94, 0.28) !important;
+        }
+        .keypad-btn-clear:active {
+            transform: translateY(4px) !important;
+            box-shadow: 0 1px 0 #fda4af !important;
+        }
+
+        /* Special Action Pill Buttons */
+        .special-btn {
+            border-radius: 16px !important;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        .special-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            filter: brightness(1.05);
+        }
+        .special-btn:active {
+            transform: translateY(2px) scale(0.97);
+        }
+
+        /* Dynamically Generated Item Cards Styling */
+        #quick-items-container button {
+            border-radius: 22px !important;
+            border: 2.5px solid #ede9fe !important;
+            background: linear-gradient(145deg, #ffffff 0%, #faf5ff 100%) !important;
+            box-shadow: 0 6px 0 #ddd6fe, 0 10px 18px rgba(168, 85, 247, 0.1) !important;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        #quick-items-container button:hover {
+            transform: translateY(-4px) scale(1.03) !important;
+            border-color: #c084fc !important;
+            box-shadow: 0 10px 0 #ddd6fe, 0 16px 24px rgba(168, 85, 247, 0.2) !important;
+        }
+        #quick-items-container button:active {
+            transform: translateY(3px) scale(0.98) !important;
+            box-shadow: 0 2px 0 #ddd6fe !important;
+        }
+        #quick-items-container button span:first-child {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #quick-items-container button:hover span:first-child {
+            transform: scale(1.18) rotate(-6deg);
+        }
+
+        /* Dynamically Generated Receipt Items */
+        #receipt-items > div {
+            border-radius: 18px !important;
+            border: 2px dashed #e9d5ff !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(250, 245, 255, 0.92)) !important;
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.08) !important;
+            transition: all 0.2s ease !important;
+        }
+        #receipt-items > div:hover {
+            border-color: #c084fc !important;
+            transform: translateX(3px);
+        }
+        #receipt-items .bg-gray-100 {
+            background: #f5f3ff !important;
+            border: 1.5px solid #ddd6fe !important;
+            border-radius: 9999px !important;
+            padding: 2px 4px !important;
+        }
+        #receipt-items .bg-gray-100 button {
+            border-radius: 9999px !important;
+            font-weight: 700;
+        }
+        #receipt-items .bg-gray-100 button:active {
+            transform: scale(0.85);
+        }
+        #receipt-items button[title="Remove item"] {
+            font-size: 1.5rem !important;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+        #receipt-items button[title="Remove item"]:hover {
+            transform: scale(1.3) rotate(90deg);
+            color: #f43f5e !important;
+        }
+        #receipt-items > .text-center {
+            font-size: 1.1rem;
+            color: #a855f7 !important;
+            opacity: 0.85;
+            padding: 2.5rem 1rem;
+            border: 2.5px dashed #d8b4fe;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.45);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* Dynamically Generated Teams Tabs */
+        #teams-list button {
+            border-radius: 18px !important;
+            border: 2.5px solid rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        #teams-list button:hover {
+            transform: translateY(-2px) scale(1.06) !important;
+        }
+
+        /* Tactile Pay Button */
+        #pay-btn {
+            border-radius: 22px !important;
+            background: linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #6366f1 100%) !important;
+            border: 3px solid #fbcfe8 !important;
+            box-shadow: 0 6px 0 #7e22ce, 0 12px 24px rgba(168, 85, 247, 0.35) !important;
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            letter-spacing: 0.04em;
+        }
+        #pay-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.02) !important;
+            box-shadow: 0 9px 0 #7e22ce, 0 16px 28px rgba(168, 85, 247, 0.45) !important;
+            filter: brightness(1.08);
+        }
+        #pay-btn:active:not(:disabled) {
+            transform: translateY(4px) !important;
+            box-shadow: 0 1px 0 #7e22ce !important;
+        }
+        #pay-btn:disabled {
+            opacity: 0.45;
+            box-shadow: none !important;
+            filter: grayscale(30%);
+        }
+
+        /* Modals & Dialogs Enhancement */
+        #team-settings-modal .bg-white, #modal .bg-white {
+            border-radius: 32px !important;
+            border: 4px solid #f3e8ff !important;
+            box-shadow: 0 25px 60px rgba(126, 34, 206, 0.35) !important;
+        }
+        #team-settings-list > div {
+            border-radius: 20px !important;
+            border: 2px solid #ede9fe !important;
+            background: #faf5ff !important;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.05) !important;
+        }
+        #team-settings-list input {
+            border-radius: 12px !important;
+            border: 2px solid #ddd6fe !important;
+        }
+        #team-settings-list input:focus {
+            border-color: #a855f7 !important;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2) !important;
+        }
+
+        /* Space background floating animations */
+        @keyframes floatShip {
+            0% { transform: translate(0px, 0px) rotate(-4deg); }
+            25% { transform: translate(12px, -18px) rotate(3deg); }
+            50% { transform: translate(-10px, -28px) rotate(-8deg); }
+            75% { transform: translate(-20px, -10px) rotate(1deg); }
+            100% { transform: translate(0px, 0px) rotate(-4deg); }
+        }
+        .ship-float {
+            animation: floatShip 9s infinite ease-in-out;
+        }
+
+        @keyframes sparkFlicker {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+        .spark-glow {
+            animation: sparkFlicker 1.8s infinite ease-in-out alternate;
+        }
+
+        @keyframes alienBob1 {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-16px) rotate(8deg); }
+        }
+        .alien-bob-1 {
+            animation: alienBob1 5.5s infinite ease-in-out;
+        }
+
+        @keyframes alienBob2 {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(-10deg); }
+        }
+        .alien-bob-2 {
+            animation: alienBob2 6.5s infinite ease-in-out;
+        }
+
+        @keyframes alienBob3 {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-14px) scale(1.05); }
+        }
+        .alien-bob-3 {
+            animation: alienBob3 7s infinite ease-in-out;
+        }
+
+        @keyframes alienBob4 {
+            0%, 100% { transform: translateY(0px) rotate(-3deg); }
+            50% { transform: translateY(-18px) rotate(5deg); }
+        }
+        .alien-bob-4 {
+            animation: alienBob4 6s infinite ease-in-out;
+        }
+
+        @keyframes planetSway {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(3deg); }
+        }
+        .planet-sway {
+            animation: planetSway 10s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="whimsical-bg h-screen w-screen overflow-hidden flex items-center justify-center p-4 relative">
+    <div class="stars"></div>
+
+    <!-- Egg in a Broken Spaceship Floating in Space -->
+    <div class="absolute top-4 left-4 sm:top-8 sm:left-10 z-0 pointer-events-none ship-float">
+        <svg viewBox="0 0 130 110" class="w-28 h-24 sm:w-36 sm:h-32 drop-shadow-[0_10px_25px_rgba(168,85,247,0.35)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Sparks and loose smoke puffs from broken thruster -->
+            <circle cx="22" cy="78" r="4.5" fill="#DDD6FE" opacity="0.6"/>
+            <circle cx="14" cy="85" r="3" fill="#E9D5FF" opacity="0.4"/>
+            <path d="M12 60L16 63L11 67" stroke="#F43F5E" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18 68L22 71L17 76" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
+            <!-- Sparkle star from wire -->
+            <path d="M8 73L10 69L12 73L16 75L12 77L10 81L8 77L4 75L8 73Z" fill="#FDE047" class="spark-glow"/>
+
+            <!-- Saucer Under-ring -->
+            <ellipse cx="68" cy="74" rx="46" ry="14" fill="#7C3AED" opacity="0.6"/>
+            <!-- Main Saucer Base Hull -->
+            <ellipse cx="68" cy="68" rx="48" ry="16" fill="#C084FC" stroke="#6D28D9" stroke-width="3"/>
+            <!-- Broken jagged dent on right wing -->
+            <path d="M110 64L105 69L114 73L108 77" fill="#6D28D9" stroke="#5B21B6" stroke-width="2" stroke-linejoin="round"/>
+            
+            <!-- Saucer lights -->
+            <circle cx="36" cy="70" r="3" fill="#FDE047"/>
+            <circle cx="52" cy="73" r="3" fill="#67E8F9"/>
+            <circle cx="68" cy="74" r="3" fill="#F472B6"/>
+            <circle cx="84" cy="73" r="3" fill="#FDE047"/>
+            <circle cx="98" cy="70" r="3" fill="#67E8F9"/>
+
+            <!-- Band-aid on ship hull -->
+            <g transform="rotate(-18 68 70)">
+                <rect x="58" y="66" width="20" height="7" rx="3.5" fill="#FED7AA" stroke="#EA580C" stroke-width="1.2"/>
+                <circle cx="64" cy="69.5" r="0.8" fill="#C2410C"/>
+                <circle cx="68" cy="69.5" r="0.8" fill="#C2410C"/>
+                <circle cx="72" cy="69.5" r="0.8" fill="#C2410C"/>
+            </g>
+
+            <!-- Glass Dome Base -->
+            <path d="M38 60C38 35 48 20 68 20C88 20 98 35 98 60Z" fill="#A5F3FC" fill-opacity="0.5" stroke="#38BDF8" stroke-width="2.5"/>
+            
+            <!-- Egg Astronaut Inside -->
+            <g>
+                <!-- Egg Body -->
+                <ellipse cx="68" cy="46" rx="16" ry="19" fill="#FEF9C3" stroke="#F59E0B" stroke-width="2.5"/>
+                <!-- Yolk Belly Patch -->
+                <ellipse cx="68" cy="49" rx="10" ry="8" fill="#FDE047"/>
+                <!-- Cute Face -->
+                <circle cx="63" cy="43" r="2" fill="#1F2937"/>
+                <circle cx="73" cy="43" r="2" fill="#1F2937"/>
+                <circle cx="63.8" cy="42.2" r="0.7" fill="#FFFFFF"/>
+                <circle cx="73.8" cy="42.2" r="0.7" fill="#FFFFFF"/>
+                <!-- Rosy Cheeks -->
+                <ellipse cx="59" cy="46" rx="2.5" ry="1.5" fill="#F472B6"/>
+                <ellipse cx="77" cy="46" rx="2.5" ry="1.5" fill="#F472B6"/>
+                <!-- Wobbly cute mouth -->
+                <path d="M65 48C67 50.5 69 50.5 71 48" stroke="#1F2937" stroke-width="1.8" stroke-linecap="round"/>
+                <!-- Antenna with Star -->
+                <path d="M68 27V18" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+                <path d="M68 12L70 16L74 17L70.5 19.5L71.5 24L68 21.5L64.5 24L65.5 19.5L62 17L66 16L68 12Z" fill="#FDE047"/>
+                <!-- Little waving egg arm -->
+                <path d="M52 46C49 42 46 45 48 49" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- Tiny steering wheel -->
+                <ellipse cx="68" cy="58" rx="8" ry="3.5" fill="#E0E7FF" stroke="#6366F1" stroke-width="1.8"/>
+            </g>
+
+            <!-- Big Cracks Across Glass Dome -->
+            <path d="M54 28L60 36L56 42L64 48L61 55" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+            <path d="M60 36L67 38" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M84 32L78 40L83 45" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+
+            <!-- Pink Band-Aid on the Glass Crack -->
+            <g transform="rotate(35 60 36)">
+                <rect x="52" y="33" width="16" height="6" rx="3" fill="#FDA4AF" stroke="#E11D48" stroke-width="1.2"/>
+                <circle cx="56" cy="36" r="0.7" fill="#BE123C"/>
+                <circle cx="60" cy="36" r="0.7" fill="#BE123C"/>
+                <circle cx="64" cy="36" r="0.7" fill="#BE123C"/>
+            </g>
+        </svg>
+    </div>
+
+    <!-- Planet 1: Candy Saturn Ringed Planet (Top Right) -->
+    <div class="absolute top-6 right-8 sm:top-10 sm:right-24 z-0 pointer-events-none planet-sway">
+        <svg viewBox="0 0 110 90" class="w-24 h-20 sm:w-32 sm:h-28 drop-shadow-[0_8px_20px_rgba(244,114,182,0.3)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Back Ring -->
+            <ellipse cx="55" cy="46" rx="50" ry="13" fill="none" stroke="#FDE047" stroke-width="7" stroke-dasharray="140 100" stroke-linecap="round" opacity="0.75" transform="rotate(-18 55 46)"/>
+            <!-- Planet Globe -->
+            <circle cx="55" cy="46" r="26" fill="url(#candyPlanetGrad)" stroke="#DB2777" stroke-width="2.5"/>
+            <!-- Planet stripes -->
+            <path d="M32 40C40 46 70 46 78 40" stroke="#FDE047" stroke-width="3" stroke-linecap="round"/>
+            <path d="M35 52C45 58 65 58 75 52" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="48" cy="34" r="3" fill="#F472B6"/>
+            <!-- Front Ring -->
+            <ellipse cx="55" cy="46" rx="50" ry="13" fill="none" stroke="#FBCFE8" stroke-width="7" stroke-dasharray="80 140" stroke-linecap="round" transform="rotate(-18 55 46)"/>
+            <ellipse cx="55" cy="46" rx="44" ry="10" fill="none" stroke="#C084FC" stroke-width="2" stroke-linecap="round" transform="rotate(-18 55 46)"/>
+            <defs>
+                <linearGradient id="candyPlanetGrad" x1="55" y1="20" x2="55" y2="72" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#F472B6"/>
+                    <stop offset="0.5" stop-color="#C084FC"/>
+                    <stop offset="1" stop-color="#818CF8"/>
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <!-- Planet 2: Minty Crater Moonlet (Bottom Left) -->
+    <div class="absolute bottom-6 left-6 sm:bottom-12 sm:left-20 z-0 pointer-events-none planet-sway" style="animation-delay: -3s;">
+        <svg viewBox="0 0 80 80" class="w-18 h-18 sm:w-24 sm:h-24 drop-shadow-[0_8px_18px_rgba(52,211,153,0.25)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="32" fill="#6EE7B7" stroke="#059669" stroke-width="3"/>
+            <!-- Craters -->
+            <ellipse cx="30" cy="30" rx="7" ry="5.5" fill="#34D399" stroke="#059669" stroke-width="1.5"/>
+            <ellipse cx="52" cy="46" rx="9" ry="7" fill="#34D399" stroke="#059669" stroke-width="1.8"/>
+            <circle cx="34" cy="56" r="4" fill="#34D399"/>
+            <circle cx="56" cy="24" r="3.5" fill="#34D399"/>
+            <!-- Cute highlight -->
+            <ellipse cx="26" cy="22" rx="4" ry="2" fill="#FFFFFF" opacity="0.6"/>
+        </svg>
+    </div>
+
+    <!-- Planet 3: Swirly Lavender Planet with Orbiting Starlet (Bottom Right) -->
+    <div class="absolute bottom-8 right-6 sm:bottom-16 sm:right-28 z-0 pointer-events-none planet-sway" style="animation-delay: -5s;">
+        <svg viewBox="0 0 90 90" class="w-20 h-20 sm:w-28 sm:h-28 drop-shadow-[0_8px_20px_rgba(139,92,246,0.3)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="45" cy="45" r="28" fill="#A78BFA" stroke="#6D28D9" stroke-width="2.5"/>
+            <path d="M22 40C30 33 60 33 68 40C64 47 42 49 22 40Z" fill="#C4B5FD"/>
+            <path d="M25 52C35 48 55 48 65 52" stroke="#EDE9FE" stroke-width="3" stroke-linecap="round"/>
+            <!-- Orbit Path -->
+            <ellipse cx="45" cy="45" rx="40" ry="16" fill="none" stroke="#E9D5FF" stroke-width="1.5" stroke-dasharray="3 4" transform="rotate(28 45 45)"/>
+            <!-- Mini Orbiting Moon -->
+            <circle cx="75" cy="30" r="5" fill="#FDE047" stroke="#D97706" stroke-width="1.5"/>
+        </svg>
+    </div>
+
+    <!-- Planet 4: Rosy Bubble Planetoid (Mid Left) -->
+    <div class="absolute top-1/2 left-2 sm:left-6 -translate-y-1/2 z-0 pointer-events-none planet-sway" style="animation-delay: -2s;">
+        <svg viewBox="0 0 60 60" class="w-12 h-12 sm:w-16 sm:h-16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="30" r="18" fill="#FDA4AF" stroke="#E11D48" stroke-width="2"/>
+            <ellipse cx="23" cy="24" rx="4" ry="2.5" fill="#FFFFFF" opacity="0.7"/>
+            <path d="M16 34C22 38 38 38 44 34" stroke="#FECDD3" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </div>
+
+    <!-- Alien 1: Three-Eyed Lime Alien in a Tiny Bubble Saucer (Top Right) -->
+    <div class="absolute top-36 right-3 sm:top-40 sm:right-12 z-0 pointer-events-none alien-bob-1">
+        <svg viewBox="0 0 70 70" class="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-[0_4px_12px_rgba(52,211,153,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Bubble Saucer Base -->
+            <ellipse cx="35" cy="52" rx="26" ry="9" fill="#6EE7B7" stroke="#059669" stroke-width="2"/>
+            <circle cx="20" cy="53" r="1.8" fill="#FDE047"/>
+            <circle cx="35" cy="54" r="1.8" fill="#F472B6"/>
+            <circle cx="50" cy="53" r="1.8" fill="#38BDF8"/>
+            <!-- Alien Head -->
+            <ellipse cx="35" cy="36" rx="14" ry="13" fill="#86EFAC" stroke="#15803D" stroke-width="2"/>
+            <!-- Antenna with glowing tip -->
+            <path d="M35 23V16" stroke="#15803D" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="35" cy="14" r="3" fill="#FDE047"/>
+            <!-- 3 Cute Eyes -->
+            <circle cx="27" cy="33" r="3.2" fill="#FFFFFF" stroke="#15803D" stroke-width="1"/>
+            <circle cx="35" cy="31" r="3.8" fill="#FFFFFF" stroke="#15803D" stroke-width="1"/>
+            <circle cx="43" cy="33" r="3.2" fill="#FFFFFF" stroke="#15803D" stroke-width="1"/>
+            <circle cx="27.5" cy="33" r="1.5" fill="#1F2937"/>
+            <circle cx="35" cy="31" r="1.7" fill="#1F2937"/>
+            <circle cx="42.5" cy="33" r="1.5" fill="#1F2937"/>
+            <!-- Smile and Cheeks -->
+            <ellipse cx="23" cy="38" rx="2" ry="1.2" fill="#F472B6"/>
+            <ellipse cx="47" cy="38" rx="2" ry="1.2" fill="#F472B6"/>
+            <path d="M32 40C33.5 42 36.5 42 38 40" stroke="#15803D" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- Little waving hand -->
+            <path d="M47 38C52 35 55 38 52 42" stroke="#15803D" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </div>
+
+    <!-- Alien 2: Lavender Star Cyclops (Mid-Bottom Right) -->
+    <div class="absolute bottom-32 right-3 sm:bottom-44 sm:right-8 z-0 pointer-events-none alien-bob-2">
+        <svg viewBox="0 0 64 64" class="w-14 h-14 sm:w-18 sm:h-18 drop-shadow-[0_4px_12px_rgba(192,132,252,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Balloon String -->
+            <path d="M48 24C48 34 38 38 38 46" stroke="#E9D5FF" stroke-width="1.5" stroke-dasharray="2 2"/>
+            <!-- Star Balloon -->
+            <path d="M48 6L50 11L55 12L51 15L52 20L48 17.5L44 20L45 15L41 12L46 11L48 6Z" fill="#FDE047" stroke="#CA8A04" stroke-width="1.2"/>
+            <!-- Alien Body -->
+            <ellipse cx="30" cy="44" rx="14" ry="15" fill="#C084FC" stroke="#7E22CE" stroke-width="2"/>
+            <!-- Antenna -->
+            <path d="M26 30C26 25 32 23 31 18" stroke="#7E22CE" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="31" cy="17" r="2.5" fill="#67E8F9"/>
+            <!-- Single Big Eye -->
+            <circle cx="30" cy="41" r="6" fill="#FFFFFF" stroke="#7E22CE" stroke-width="1.5"/>
+            <circle cx="30.5" cy="41.5" r="3.2" fill="#3B82F6"/>
+            <circle cx="31.5" cy="40" r="1.2" fill="#FFFFFF"/>
+            <!-- Cheeks & Happy Mouth -->
+            <ellipse cx="21" cy="46" rx="2" ry="1.2" fill="#F472B6"/>
+            <ellipse cx="39" cy="46" rx="2" ry="1.2" fill="#F472B6"/>
+            <path d="M28 48C29.5 50 31.5 50 33 48" stroke="#7E22CE" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- Feet -->
+            <ellipse cx="24" cy="58" rx="4" ry="2.5" fill="#A855F7"/>
+            <ellipse cx="36" cy="58" rx="4" ry="2.5" fill="#A855F7"/>
+        </svg>
+    </div>
+
+    <!-- Alien 3: Bubblegum Pink Octo-Alien (Mid-Left) -->
+    <div class="absolute top-40 left-3 sm:top-56 sm:left-10 z-0 pointer-events-none alien-bob-3">
+        <svg viewBox="0 0 64 64" class="w-14 h-14 sm:w-18 sm:h-18 drop-shadow-[0_4px_12px_rgba(244,114,182,0.35)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Dome head -->
+            <path d="M18 36C18 24 24 16 32 16C40 16 46 24 46 36C46 41 42 43 32 43C22 43 18 41 18 36Z" fill="#FDA4AF" stroke="#E11D48" stroke-width="2"/>
+            <!-- Tentacles -->
+            <path d="M20 41C18 48 14 50 16 54C18 56 22 52 23 44" stroke="#E11D48" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M26 43C25 50 23 54 26 56C28 56 30 51 30 44" stroke="#E11D48" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M34 44C34 51 36 56 38 56C41 54 39 50 38 43" stroke="#E11D48" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M41 42C42 47 46 52 48 54C50 50 46 48 44 41" stroke="#E11D48" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <!-- Eyes -->
+            <circle cx="27" cy="32" r="2.5" fill="#1F2937"/>
+            <circle cx="37" cy="32" r="2.5" fill="#1F2937"/>
+            <circle cx="28" cy="31" r="0.8" fill="#FFFFFF"/>
+            <circle cx="38" cy="31" r="0.8" fill="#FFFFFF"/>
+            <!-- Rosy blush -->
+            <ellipse cx="23" cy="35" rx="2" ry="1.2" fill="#FB7185"/>
+            <ellipse cx="41" cy="35" rx="2" ry="1.2" fill="#FB7185"/>
+            <!-- Open cute mouth -->
+            <circle cx="32" cy="36" r="1.5" fill="#9F1239"/>
+            <!-- Little Heart floating above -->
+            <path d="M32 9C30 6 26 7 26 10C26 13 32 16 32 16C32 16 38 13 38 10C38 7 34 6 32 9Z" fill="#F43F5E"/>
+        </svg>
+    </div>
+
+    <!-- Alien 4: Cosmic Aqua Star-Bunny Alien (Bottom Left) -->
+    <div class="absolute bottom-24 left-3 sm:bottom-36 sm:left-12 z-0 pointer-events-none alien-bob-4">
+        <svg viewBox="0 0 64 64" class="w-14 h-14 sm:w-18 sm:h-18 drop-shadow-[0_4px_12px_rgba(103,232,249,0.35)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Bunny Ears -->
+            <path d="M26 30C23 20 18 10 23 8C27 7 28 18 30 28" fill="#A5F3FC" stroke="#0891B2" stroke-width="2"/>
+            <path d="M38 30C41 20 46 10 41 8C37 7 36 18 34 28" fill="#A5F3FC" stroke="#0891B2" stroke-width="2"/>
+            <!-- Ear Stars -->
+            <circle cx="23" cy="9" r="2" fill="#FDE047"/>
+            <circle cx="41" cy="9" r="2" fill="#FDE047"/>
+            <!-- Bunny Face Body -->
+            <ellipse cx="32" cy="42" rx="14" ry="13" fill="#67E8F9" stroke="#0891B2" stroke-width="2"/>
+            <!-- Happy Closed Eyes -->
+            <path d="M26 40C27 38 29 38 30 40" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M34 40C35 38 37 38 38 40" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="32" cy="43" r="1.2" fill="#0891B2"/>
+            <!-- Blushing cheeks -->
+            <ellipse cx="23" cy="43" rx="2.5" ry="1.5" fill="#F472B6"/>
+            <ellipse cx="41" cy="43" rx="2.5" ry="1.5" fill="#F472B6"/>
+            <!-- Tiny Paws -->
+            <ellipse cx="26" cy="51" rx="3" ry="2" fill="#A5F3FC" stroke="#0891B2" stroke-width="1.5"/>
+            <ellipse cx="38" cy="51" rx="3" ry="2" fill="#A5F3FC" stroke="#0891B2" stroke-width="1.5"/>
+        </svg>
+    </div>
+
+    <!-- Main POS Container with Frosted Glass & Candy Borders -->
+    <div class="bg-white/90 backdrop-blur-xl w-full max-w-6xl h-full max-h-[900px] rounded-[36px] shadow-[0_20px_60px_-10px_rgba(168,85,247,0.35),0_0_0_6px_rgba(255,255,255,0.65)] flex flex-col overflow-hidden border-4 border-white/80 z-10">
+        
+        <!-- Whimsical Teams Bar with Custom Egg Mascot SVG -->
+        <div class="w-full bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 p-3.5 flex items-center gap-3 shrink-0 shadow-lg z-20 border-b border-purple-500/20">
+            <div class="select-none cursor-help px-2 flex items-center gap-1.5" title="Team Manager">
+                <span class="egg-wiggle">
+                    <!-- Whimsical Egg Mascot SVG -->
+                    <svg viewBox="0 0 64 64" class="w-11 h-11 inline-block drop-shadow-[0_4px_8px_rgba(251,191,36,0.5)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="32" cy="35" rx="21" ry="25" fill="#FEF9C3" stroke="#F59E0B" stroke-width="3"/>
+                        <ellipse cx="32" cy="38" rx="13" ry="11" fill="#FDE047"/>
+                        <circle cx="26" cy="33" r="2.5" fill="#1F2937"/>
+                        <circle cx="38" cy="33" r="2.5" fill="#1F2937"/>
+                        <circle cx="27" cy="32" r="0.9" fill="#FFFFFF"/>
+                        <circle cx="39" cy="32" r="0.9" fill="#FFFFFF"/>
+                        <path d="M29 38C30.5 41 33.5 41 35 38" stroke="#1F2937" stroke-width="2.5" stroke-linecap="round"/>
+                        <ellipse cx="20" cy="36" rx="3.5" ry="2" fill="#F472B6" opacity="0.85"/>
+                        <ellipse cx="44" cy="36" rx="3.5" ry="2" fill="#F472B6" opacity="0.85"/>
+                        <path d="M49 14L50.5 18.5L55 20L50.5 21.5L49 26L47.5 21.5L43 20L47.5 18.5L49 14Z" fill="#F472B6"/>
+                        <path d="M14 18L15 21L18 22L15 23L14 26L13 23L10 22L13 21L14 18Z" fill="#67E8F9"/>
+                    </svg>
+                </span>
+            </div>
+            <div id="teams-list" class="flex-1 flex gap-2.5 overflow-x-auto receipt-scroll py-1">
+                <!-- Team tabs go here -->
+            </div>
+            <!-- Whimsical ESL Science & Space Random Question Button -->
+            <button onclick="openQuestionModal()" class="bg-gradient-to-r from-cyan-400/25 to-blue-500/25 hover:from-cyan-400/40 hover:to-blue-500/40 border-2 border-cyan-300/40 text-cyan-200 hover:text-white px-3.5 py-2 rounded-2xl font-bold shadow-md whitespace-nowrap transition-all duration-200 flex items-center gap-2 active:scale-95 hover:shadow-cyan-400/30">
+                <!-- Telescope / Star Sparkle SVG -->
+                <svg viewBox="0 0 24 24" class="w-5 h-5 inline-block text-cyan-300" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m10.065 12.493-6.18 1.318a.934.934 0 0 1-1.108-.702l-.537-2.15a1.07 1.07 0 0 1 .691-1.265l13.504-4.44" />
+                    <path d="m13.56 11.747 4.332-.924" />
+                    <path d="m16 21-3.105-6.21" />
+                    <path d="M16.485 5.94a2 2 0 0 1 1.455-2.425l1.09-.272a2 2 0 0 1 2.425 1.455l1.378 5.514a2 2 0 0 1-1.455 2.425l-1.09.272a2 2 0 0 1-2.425-1.455Z" />
+                    <path d="m6 21 3.105-6.21" />
+                    <circle cx="19" cy="3" r="1.5" fill="#FDE047" stroke="none" />
+                </svg>
+                <span>Random Questions</span>
+            </button>
+            <button onclick="openTeamSettings()" class="bg-white/20 hover:bg-white/30 border-2 border-white/30 text-white px-4 py-2 rounded-2xl font-bold shadow-md whitespace-nowrap transition-all duration-200 flex items-center gap-2 active:scale-95 hover:shadow-purple-400/30">
+                <!-- Defined Whimsical Settings Gear SVG -->
+                <svg viewBox="0 0 24 24" class="w-5 h-5 inline-block text-pink-300" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" fill="#F472B6" fill-opacity="0.25" />
+                    <circle cx="12" cy="12" r="3.2" fill="#F472B6" stroke="#FFFFFF" stroke-width="1.8" />
+                </svg>
+                <span>Team Settings</span>
+            </button>
+        </div>
+
+        <!-- Student Speaking Practice Guide Banner -->
+        <div class="w-full bg-gradient-to-r from-pink-100/95 via-purple-100/95 to-cyan-100/95 border-b-2 border-dashed border-purple-200/90 px-4 py-2 flex items-center justify-center text-purple-950 shrink-0 shadow-sm">
+            <div class="text-sm sm:text-base md:text-lg font-black text-purple-950 tracking-wide flex items-center flex-wrap justify-center gap-1.5">
+                <span>“May we have</span>
+                <span class="inline-block px-3 py-0.5 bg-white/95 rounded-xl border-2 border-dashed border-pink-400 text-pink-600 font-extrabold shadow-inner text-xs sm:text-sm md:text-base tracking-widest">
+                    .........
+                </span>
+                <span>, please?”</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row flex-1 min-h-0">
+            <!-- Left Panel: Receipt Area (Ticket Scroll Aesthetic) -->
+            <div class="w-full md:w-1/3 bg-purple-50/40 border-r-2 border-dashed border-purple-200 flex flex-col">
+                <!-- Header -->
+                <div class="p-4 bg-white/70 backdrop-blur border-b-2 border-dashed border-purple-200 shadow-sm z-10 flex justify-between items-center">
+                    <h1 id="order-title" class="text-xl font-black text-purple-900 flex items-center gap-2">
+                        <!-- Receipt SVG -->
+                        <svg viewBox="0 0 28 28" class="w-6 h-6 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 4C5 3.44772 5.44772 3 6 3H22C22.5523 3 23 3.44772 23 4V24L19.5 22L16 24L12.5 22L9 24L5 22V4Z" fill="#F3E8FF" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M9 8H19" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M9 12H16" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="18.5" cy="16.5" r="1.5" fill="#EC4899"/>
+                        </svg>
+                        Current Order
+                    </h1>
+                    <button onclick="clearCart()" class="text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 font-bold text-xs px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 active:scale-95 shadow-sm">
+                        <!-- Whimsical Whisk / Broom SVG -->
+                        <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 3L11 8" stroke="#F43F5E" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M12 9L6 13L3 17L7 15L11 11" fill="#FECDD3" stroke="#F43F5E" stroke-width="1.8" stroke-linejoin="round"/>
+                            <path d="M4 17L7 13" stroke="#F43F5E" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        <span>Clear</span>
+                    </button>
+                </div>
+                
+                <!-- Receipt Items List -->
+                <div id="receipt-items" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 receipt-scroll">
+                    <!-- Items populated by JS -->
+                </div>
+
+                <!-- Totals Area -->
+                <div class="p-5 bg-white/85 backdrop-blur border-t-2 border-dashed border-purple-200 shadow-[0_-6px_20px_rgba(168,85,247,0.08)]">
+                    <div class="flex justify-between items-center bg-purple-100/70 px-3 py-2 rounded-xl mb-2 text-purple-900 font-semibold text-sm border border-purple-200">
+                        <span class="flex items-center gap-1.5">
+                            <!-- Budget Purse SVG -->
+                            <svg viewBox="0 0 24 24" class="w-5 h-5 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 9C5 7.34 6.34 6 8 6H16C17.66 6 19 7.34 19 9V17C19 19.2 17.2 21 15 21H9C6.8 21 5 19.2 5 17V9Z" fill="#F3E8FF" stroke="#9333EA" stroke-width="2"/>
+                                <circle cx="10" cy="5" r="1.5" fill="#9333EA"/>
+                                <circle cx="14" cy="5" r="1.5" fill="#9333EA"/>
+                                <circle cx="12" cy="14" r="2.5" fill="#E9D5FF" stroke="#9333EA" stroke-width="1.5"/>
+                            </svg>
+                            Budget
+                        </span>
+                        <span id="budget-display" class="font-extrabold text-purple-800 text-base">£0</span>
+                    </div>
+                    <div class="flex justify-between items-center px-3 py-1 text-purple-800/80 font-medium text-sm mb-1">
+                        <span class="flex items-center gap-1.5">
+                            <!-- Subtotal Tag SVG -->
+                            <svg viewBox="0 0 24 24" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M20.59 13.41L13.42 20.58C12.64 21.36 11.38 21.36 10.6 20.58L3 13V3H13L20.59 10.59C21.37 11.37 21.37 12.63 20.59 13.41Z" fill="#FEF3C7" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="7.5" cy="7.5" r="1.5" fill="#D97706"/>
+                            </svg>
+                            Subtotal
+                        </span>
+                        <span id="subtotal-display" class="font-bold text-purple-900">£0</span>
+                    </div>
+                    <div class="flex justify-between items-center px-3.5 py-2.5 my-2.5 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 rounded-2xl border-2 border-purple-200 text-purple-950 font-black text-2xl shadow-inner">
+                        <span class="flex items-center gap-1.5 text-lg font-bold">
+                            <!-- Total Sparkle SVG -->
+                            <svg viewBox="0 0 24 24" class="w-5 h-5 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2L12 2Z" fill="#F472B6" stroke="#DB2777" stroke-width="1.5" stroke-linejoin="round"/>
+                                <circle cx="19" cy="18" r="2" fill="#FDE047"/>
+                            </svg>
+                            Total
+                        </span>
+                        <span id="total-display" class="font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-600">£0</span>
+                    </div>
+                    <button onclick="initiatePayment()" id="pay-btn" class="w-full text-white font-black py-4 px-6 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                        <!-- Magic Wand Pay SVG -->
+                        <svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 4L20 9L7 22L2 17L15 4Z" fill="#DDD6FE" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M14 5L19 10" stroke="#FFFFFF" stroke-width="2"/>
+                            <path d="M2 17L7 22" stroke="#FFFFFF" stroke-width="2"/>
+                            <circle cx="19" cy="4" r="1.5" fill="#FDE047"/>
+                            <circle cx="22" cy="8" r="1.5" fill="#FDE047"/>
+                        </svg>
+                        <span>Pay Now</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Controls (Display, Categories, Numpad) -->
+            <div class="w-full md:w-2/3 p-6 flex flex-col bg-transparent">
+                
+                <!-- Whimsical Crystal Digital Display -->
+                <div class="rounded-2xl p-4 mb-5 shadow-[inset_0_2px_14px_rgba(0,0,0,0.4),0_8px_20px_rgba(124,58,237,0.18)] flex justify-between items-center text-white h-24 border-2 border-indigo-400/40 relative overflow-hidden bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900">
+                    <div class="text-purple-300 font-bold flex items-center gap-2 tracking-wide text-sm" id="display-label">
+                        <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 2L11.5 7L16.5 8.5L11.5 10L10 15L8.5 10L3.5 8.5L8.5 7L10 2Z" fill="#C084FC"/>
+                        </svg>
+                        Keypad Amount
+                    </div>
+                    <div class="text-4xl sm:text-5xl font-mono font-bold tracking-widest text-emerald-300 drop-shadow-[0_0_12px_rgba(52,211,153,0.8)]" id="main-display">0</div>
+                </div>
+
+                <!-- Main Content Area: Flex row for Quick Items and Numpad -->
+                <div class="flex-1 flex gap-6 h-full min-h-0">
+                    
+                    <!-- Quick Items Grid -->
+                    <div class="flex-1 flex flex-col gap-3.5">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xs font-black text-purple-700 uppercase tracking-widest flex items-center gap-1.5">
+                                <!-- Lollipop SVG -->
+                                <svg viewBox="0 0 24 24" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="9" r="6" fill="#F472B6" stroke="#DB2777" stroke-width="1.8"/>
+                                    <path d="M12 5C14.2 5 16 6.8 16 9" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+                                    <line x1="12" y1="15" x2="12" y2="23" stroke="#FDE047" stroke-width="2.5" stroke-linecap="round"/>
+                                </svg>
+                                Quick Goodies
+                            </h2>
+                        </div>
+
+                        <!-- Special Actions with Custom Whimsical SVGs -->
+                        <div class="grid grid-cols-3 gap-2 pb-1">
+                            <button onclick="handleSetBudget()" class="special-btn bg-purple-100 hover:bg-purple-200 text-purple-800 border-2 border-purple-300 px-3 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
+                                <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="2" y="5" width="16" height="11" rx="3" fill="#E9D5FF" stroke="#7C3AED" stroke-width="1.8"/>
+                                    <circle cx="13" cy="10.5" r="1.5" fill="#7C3AED"/>
+                                    <line x1="2" y1="8" x2="18" y2="8" stroke="#7C3AED" stroke-width="1.5"/>
+                                </svg>
+                                <span>Set Budget</span>
+                            </button>
+                            <button onclick="handleEnglishChallenge()" class="special-btn bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-2 border-emerald-300 px-3 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
+                                <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10 2L12.3 6.8L17.6 7.5L13.7 11.2L14.7 16.5L10 13.9L5.3 16.5L6.3 11.2L2.4 7.5L7.7 6.8L10 2Z" fill="#A7F3D0" stroke="#059669" stroke-width="1.8" stroke-linejoin="round"/>
+                                    <path d="M10 8V13M7.5 10.5H12.5" stroke="#047857" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                                <span>English (+)</span>
+                            </button>
+                            <button onclick="handleJapanesePenalty()" class="special-btn bg-rose-100 hover:bg-rose-200 text-rose-800 border-2 border-rose-300 px-3 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
+                                <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="10" cy="5.5" r="3" fill="#FECDD3"/>
+                                    <circle cx="10" cy="14.5" r="3" fill="#FECDD3"/>
+                                    <circle cx="5.5" cy="10" r="3" fill="#FECDD3"/>
+                                    <circle cx="14.5" cy="10" r="3" fill="#FECDD3"/>
+                                    <circle cx="10" cy="10" r="4" fill="#FDA4AF" stroke="#E11D48" stroke-width="1.5"/>
+                                    <line x1="7.5" y1="10" x2="12.5" y2="10" stroke="#BE123C" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                <span>Japanese (-)</span>
+                            </button>
+                        </div>
+
+                        <div id="quick-items-container" class="grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto receipt-scroll pb-4 pr-1">
+                            <!-- Items populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Macaron Numpad -->
+                    <div class="w-64 flex flex-col gap-3.5">
+                        <h2 class="text-xs font-black text-purple-700 uppercase tracking-widest flex items-center gap-1.5">
+                            <!-- Keypad Calc SVG -->
+                            <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="2" width="14" height="16" rx="3" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.8"/>
+                                <rect x="5" y="4" width="10" height="3" rx="1" fill="#C4B5FD"/>
+                                <circle cx="6" cy="10" r="1" fill="#7C3AED"/>
+                                <circle cx="10" cy="10" r="1" fill="#7C3AED"/>
+                                <circle cx="14" cy="10" r="1" fill="#7C3AED"/>
+                                <circle cx="6" cy="14" r="1" fill="#7C3AED"/>
+                                <circle cx="10" cy="14" r="1" fill="#7C3AED"/>
+                                <circle cx="14" cy="14" r="1" fill="#7C3AED"/>
+                            </svg>
+                            Magic Keypad
+                        </h2>
+                        <div class="grid grid-cols-3 gap-2.5 flex-1 pb-1">
+                            <button onclick="appendNum('1')" class="keypad-btn text-purple-950 text-2xl font-bold">1</button>
+                            <button onclick="appendNum('2')" class="keypad-btn text-purple-950 text-2xl font-bold">2</button>
+                            <button onclick="appendNum('3')" class="keypad-btn text-purple-950 text-2xl font-bold">3</button>
+                            
+                            <button onclick="appendNum('4')" class="keypad-btn text-purple-950 text-2xl font-bold">4</button>
+                            <button onclick="appendNum('5')" class="keypad-btn text-purple-950 text-2xl font-bold">5</button>
+                            <button onclick="appendNum('6')" class="keypad-btn text-purple-950 text-2xl font-bold">6</button>
+                            
+                            <button onclick="appendNum('7')" class="keypad-btn text-purple-950 text-2xl font-bold">7</button>
+                            <button onclick="appendNum('8')" class="keypad-btn text-purple-950 text-2xl font-bold">8</button>
+                            <button onclick="appendNum('9')" class="keypad-btn text-purple-950 text-2xl font-bold">9</button>
+                            
+                            <button onclick="clearDisplay()" class="keypad-btn-clear text-rose-600 text-xl font-black">C</button>
+                            <button onclick="appendNum('0')" class="keypad-btn text-purple-950 text-2xl font-bold">0</button>
+                            <button onclick="appendNum('00')" class="keypad-btn text-purple-950 text-xl font-bold">00</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Random Space & Science ESL Question Modal -->
+    <div id="question-modal" class="fixed inset-0 bg-purple-950/70 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-7 flex flex-col border-4 border-cyan-200 relative overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-3 border-b-2 border-cyan-100">
+                <div class="flex items-center gap-2">
+                    <span class="p-2 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center shadow-inner">
+                        <svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9" stroke="#0891B2" fill="#E0F2FE" />
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#0891B2" stroke-width="2.5" />
+                            <circle cx="12" cy="17" r="1" fill="#0891B2" />
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 class="text-xl font-black text-purple-950 leading-tight">Space & Science Q&amp;A.</h2>
+                    </div>
+                </div>
+                <button onclick="closeQuestionModal()" class="text-purple-300 hover:text-purple-600 text-3xl font-bold leading-none transition">&times;</button>
+            </div>
+
+            <!-- Question Card Area -->
+            <div class="my-5 p-5 bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-cyan-50/70 rounded-2xl border-2 border-cyan-100/90 shadow-sm flex flex-col items-center text-center gap-3 min-h-[160px] justify-center">
+                <div id="question-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1.5 shadow-sm">
+                    <span>🚀 Space</span>
+                </div>
+                <p id="question-text" class="text-lg sm:text-xl font-bold text-gray-800 leading-snug px-2">
+                    Loading question...
+                </p>
+
+                <!-- Hidden / Revealed Answer Section -->
+                <div id="answer-container" class="w-full mt-2 pt-3 border-t-2 border-dashed border-cyan-200 hidden">
+                    <span class="text-xs font-black uppercase tracking-wider text-cyan-600 block mb-1">Answer:</span>
+                    <p id="answer-text" class="text-base sm:text-lg font-black text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl py-2 px-3 inline-block shadow-sm">
+                        Answer text
+                    </p>
+                </div>
+            </div>
+
+            <!-- Actions Bar -->
+            <div class="flex flex-col sm:flex-row items-center gap-2.5">
+                <button id="toggle-answer-btn" onclick="toggleAnswerVisibility()" class="w-full sm:flex-1 bg-cyan-100 hover:cyan-200 text-cyan-800 border-2 border-cyan-300 py-3 px-4 rounded-2xl font-black text-sm transition active:scale-95 flex items-center justify-center gap-2 shadow-sm">
+                    <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="10" cy="10" r="3" fill="#0891B2" />
+                        <path d="M2 10C3.5 5.5 6.5 3 10 3C13.5 3 16.5 5.5 18 10C16.5 14.5 13.5 17 10 17C6.5 17 3.5 14.5 2 10Z" stroke="#0891B2" stroke-width="2" />
+                    </svg>
+                    <span id="toggle-answer-label">Show Answer</span>
+                </button>
+
+                <button onclick="drawRandomQuestion()" class="w-full sm:flex-1 bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 hover:brightness-110 text-white py-3 px-4 rounded-2xl font-black text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                    <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 4H8V8H4V4Z" fill="#FDE047" stroke="#FFFFFF" stroke-width="1.5" />
+                        <path d="M12 12H16V16H12V12Z" fill="#67E8F9" stroke="#FFFFFF" stroke-width="1.5" />
+                        <path d="M4 12H8V16H4V12Z" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M12 4H16V8H12V4Z" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>Next Question 🎲</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Settings Modal -->
+    <div id="team-settings-modal" class="fixed inset-0 bg-purple-950/60 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 flex flex-col max-h-[85vh] border-4 border-purple-200">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-purple-100">
+                <div class="flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 inline-block text-purple-600" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" fill="#C084FC" fill-opacity="0.2" />
+                        <circle cx="12" cy="12" r="3.2" fill="#A855F7" stroke="#FFFFFF" stroke-width="1.8" />
+                    </svg>
+                    <h2 class="text-xl font-black text-purple-900">Team Settings</h2>
+                </div>
+                <button onclick="closeTeamSettings()" class="text-purple-300 hover:text-purple-600 text-3xl font-bold leading-none transition">&times;</button>
+            </div>
+            <p class="text-xs text-purple-600 font-medium mt-2 mb-4">Edit team names, customize starting funds, or summon new teams!</p>
+            
+            <div id="team-settings-list" class="flex-1 overflow-y-auto receipt-scroll flex flex-col gap-3 pr-1 py-1">
+                <!-- Rendered by JS -->
+            </div>
+
+            <div class="pt-4 border-t-2 border-purple-100 mt-4 flex items-center justify-between gap-3">
+                <button onclick="addNewTeamFromSettings()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 border-2 border-purple-200 px-4 py-2.5 rounded-2xl font-bold text-sm transition hover:scale-105 active:scale-95 shadow-sm flex items-center gap-1.5">
+                    <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="10" cy="10" r="8" fill="#DDD6FE"/>
+                        <path d="M10 6V14M6 10H14" stroke="#7C3AED" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Add New Team</span>
+                </button>
+                <button onclick="closeTeamSettings()" class="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white px-6 py-2.5 rounded-2xl font-bold text-sm shadow-md transition hover:scale-105 active:scale-95">
+                    Done ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Message Box (replaces alert) -->
+    <div id="modal" class="fixed inset-0 bg-purple-950/60 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center border-4 border-pink-200 relative overflow-hidden">
+            <div class="flex items-center justify-center gap-2 mb-3">
+                <!-- Whimsical Party Celebration SVG Icons -->
+                <svg viewBox="0 0 32 32" class="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 28L10 12L20 22L4 28Z" fill="#F472B6" stroke="#DB2777" stroke-width="1.8" stroke-linejoin="round"/>
+                    <circle cx="17" cy="9" r="2" fill="#FDE047"/>
+                    <circle cx="24" cy="15" r="2" fill="#67E8F9"/>
+                    <circle cx="25" cy="8" r="1.5" fill="#A78BFA"/>
+                </svg>
+                <svg viewBox="0 0 32 32" class="w-9 h-9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 2L19.2 11.8L29 15L19.2 18.2L16 28L12.8 18.2L3 15L12.8 11.8L16 2Z" fill="#FDE047" stroke="#D97706" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+                <svg viewBox="0 0 32 32" class="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="16" cy="14" rx="10" ry="12" fill="#67E8F9" stroke="#0891B2" stroke-width="1.8"/>
+                    <ellipse cx="13" cy="11" rx="2.5" ry="4" fill="#FFFFFF" opacity="0.6"/>
+                    <path d="M16 26L14 28H18L16 26Z" fill="#0891B2"/>
+                </svg>
+            </div>
+            <h2 id="modal-title" class="text-2xl font-black text-purple-900 mb-3">Transaction Complete</h2>
+            <p id="modal-message" class="text-purple-700 mb-6 text-base font-medium">Change Due: £0.00</p>
+            <button onclick="closeModal()" class="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-extrabold py-3.5 rounded-2xl shadow-lg transition transform hover:scale-105 active:scale-95">
+                Awesome! ✨
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let teams = {
+            'Team 1': { cart: [], budget: 0 },
+            'Team 2': { cart: [], budget: 0 },
+            'Team 3': { cart: [], budget: 0 },
+            'Team 4': { cart: [], budget: 0 }
+        };
+        let currentTeam = 'Team 1';
+
+        let currentInput = "0";
+        let mode = 'REGISTER'; // 'REGISTER' or 'PAYMENT'
+        
+        let subtotal = 0;
+        let total = 0;
+
+        const eslQuestions = [
+            { category: "Space 🚀", q: "What planet do we live on?", a: "Earth 🌍" },
+            { category: "Space ☀️", q: "Is the Sun a star or a planet?", a: "It is a star! ⭐" },
+            { category: "Space 🪐", q: "Which planet is famous for having beautiful rings?", a: "Saturn 🪐" },
+            { category: "Science 💨", q: "What gas do humans need to breathe in to live?", a: "Oxygen (Air) 🫁" },
+            { category: "Space 🔴", q: "Which planet is known as the 'Red Planet'?", a: "Mars 🔴" },
+            { category: "Space 🌙", q: "Does the Moon have its own light, or does it reflect the Sun?", a: "It reflects the Sun! ☀️" },
+            { category: "Science 🌱", q: "What two things do green plants need to make food?", a: "Sunlight and Water ☀️💧" },
+            { category: "Space 🛸", q: "Do astronauts float in space? (Yes or No)", a: "Yes! Because of zero gravity 🧑‍🚀" },
+            { category: "Space 🚀", q: "What vehicle carries people into outer space?", a: "A rocket ship 🚀" },
+            { category: "Science 🍎", q: "What invisible force pulls things down to the ground?", a: "Gravity 🍏" },
+            { category: "Space 🔭", q: "Which is bigger: the Earth or the Sun?", a: "The Sun is MUCH bigger! ☀️" },
+            { category: "Space 🌌", q: "How many planets are in our solar system? (7, 8, or 9?)", a: "8 planets! 🪐" },
+            { category: "Science 🧊", q: "What is ice made of?", a: "Frozen water 💧" },
+            { category: "Space 🌑", q: "Can we hear loud sounds in outer space? (Yes or No)", a: "No, space is silent! 🔇" },
+            { category: "Science 🐛", q: "What does a caterpillar turn into?", a: "A butterfly! 🦋" },
+            { category: "Space 🌍", q: "What shape is our Earth? (Flat, square, or round?)", a: "Round (a sphere) 🌐" },
+            { category: "Science 🌧️", q: "What falls from clouds when it rains?", a: "Water droplets 💧" },
+            { category: "Space ☀️", q: "Which planet is closest to the Sun?", a: "Mercury ☄️" },
+            { category: "Science 🌡️", q: "Is the center of the Earth hot or cold?", a: "Very hot! 🔥" },
+            { category: "Space ⭐", q: "What star shines during the daytime?", a: "The Sun! ☀️" },
+            { category: "Science 🌊", q: "What covers most of planet Earth: land or water?", a: "Water (oceans cover ~71%) 🌊" },
+            { category: "Space 🧑‍🚀", q: "What do astronauts wear outside their spaceship?", a: "A spacesuit 👨‍🚀" }
+        ];
+
+        let currentQuestion = null;
+        let isAnswerVisible = false;
+
+        // Inventory with Custom Hand-Crafted Whimsical SVGs
+        let inventory = [
+            { 
+                name: 'Cardboard', 
+                price: 200.00, 
+                icon: `<svg viewBox="0 0 48 48" class="w-11 h-11 inline-block drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 16C9 12.6863 11.6863 10 15 10H33C36.3137 10 39 12.6863 39 16V36C39 39.3137 36.3137 42 33 42H15C11.6863 42 9 39.3137 9 36V16Z" fill="#FDE68A" stroke="#D97706" stroke-width="2.5"/>
+                    <path d="M9 20H39" stroke="#D97706" stroke-width="2.5"/>
+                    <path d="M24 20V42" stroke="#D97706" stroke-width="2.5" stroke-dasharray="3 3"/>
+                    <rect x="18" y="16" width="12" height="8" rx="2" fill="#F472B6" stroke="#DB2777" stroke-width="1.5"/>
+                    <circle cx="18" cy="30" r="1.5" fill="#B45309"/>
+                    <circle cx="30" cy="30" r="1.5" fill="#B45309"/>
+                    <path d="M22 34C23 35.5 25 35.5 26 34" stroke="#B45309" stroke-width="2" stroke-linecap="round"/>
+                </svg>`
+            },
+            { 
+                name: 'Newspaper', 
+                price: 100.00, 
+                icon: `<svg viewBox="0 0 48 48" class="w-11 h-11 inline-block drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="8" y="8" width="32" height="34" rx="6" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="2.5"/>
+                    <rect x="13" y="14" width="10" height="9" rx="3" fill="#DDD6FE"/>
+                    <circle cx="16" cy="17" r="1.2" fill="#7C3AED"/>
+                    <path d="M14 21C16 19.5 19 20 21 21.5" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M27 15H35" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M27 19H33" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M13 28H35" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M13 33H27" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round"/>
+                    <circle cx="33" cy="33" r="2.2" fill="#F472B6"/>
+                </svg>`
+            },
+            { 
+                name: 'Balloons', 
+                price: 150.00, 
+                icon: `<svg viewBox="0 0 48 48" class="w-11 h-11 inline-block drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="17" cy="18" rx="9" ry="11" fill="#FDA4AF" stroke="#E11D48" stroke-width="2"/>
+                    <ellipse cx="14" cy="15" rx="2.5" ry="4" fill="#FFFFFF" opacity="0.65"/>
+                    <ellipse cx="31" cy="17" rx="9" ry="11" fill="#67E8F9" stroke="#0891B2" stroke-width="2"/>
+                    <ellipse cx="28" cy="14" rx="2.5" ry="4" fill="#FFFFFF" opacity="0.65"/>
+                    <ellipse cx="24" cy="22" rx="9.5" ry="11.5" fill="#FDE047" stroke="#CA8A04" stroke-width="2"/>
+                    <ellipse cx="21" cy="19" rx="2.5" ry="4" fill="#FFFFFF" opacity="0.65"/>
+                    <path d="M24 33.5L22 36H26L24 33.5Z" fill="#CA8A04"/>
+                    <path d="M24 36C24 39 21 41 23 44" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
+                </svg>`
+            },
+            { 
+                name: 'Sticky tape', 
+                price: 75.00, 
+                icon: `<svg viewBox="0 0 48 48" class="w-11 h-11 inline-block drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="24" r="14" fill="#A7F3D0" stroke="#059669" stroke-width="2.5"/>
+                    <circle cx="20" cy="24" r="6" fill="#FFFFFF" stroke="#059669" stroke-width="2.5"/>
+                    <path d="M20 38H37C39.76 38 42 35.76 42 33V28C42 26.89 41.1 26 40 26H34" stroke="#059669" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M27 38V30C27 28.9 27.9 28 29 28H41" fill="#6EE7B7" opacity="0.6"/>
+                    <line x1="39" y1="25" x2="39" y2="30" stroke="#EC4899" stroke-width="2" stroke-linecap="round"/>
+                </svg>`
+            },
+            { 
+                name: 'Wooden sticks', 
+                price: 25.00, 
+                icon: `<svg viewBox="0 0 48 48" class="w-11 h-11 inline-block drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="21" y="6" width="6.5" height="36" rx="3.2" transform="rotate(28 24 24)" fill="#FED7AA" stroke="#EA580C" stroke-width="2.5"/>
+                    <path d="M22 14C23 15.5 23 18 22 20" stroke="#FDBA74" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M25 26C26 28 26 31 25 33" stroke="#FDBA74" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="28" cy="11" r="1.5" fill="#F472B6"/>
+                    <path d="M12 36L13.5 39.5L17 40.5L13.5 41.5L12 45L10.5 41.5L7 40.5L10.5 39.5L12 36Z" fill="#FDE047"/>
+                </svg>`
+            },
+            { 
+                name: 'Rubber bands', 
+                price: 10.00, 
+                icon: `<svg viewBox="0 0 48 48" class="w-11 h-11 inline-block drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="20" cy="24" rx="13" ry="8" transform="rotate(-25 20 24)" fill="none" stroke="#F472B6" stroke-width="4"/>
+                    <ellipse cx="28" cy="24" rx="13" ry="8" transform="rotate(25 28 24)" fill="none" stroke="#C084FC" stroke-width="4"/>
+                    <ellipse cx="24" cy="24" rx="8" ry="14" fill="none" stroke="#38BDF8" stroke-width="3.5"/>
+                    <circle cx="15" cy="18" r="1.5" fill="#FFFFFF"/>
+                    <circle cx="33" cy="18" r="1.5" fill="#FFFFFF"/>
+                </svg>`
+            }
+        ];
+
+        // DOM Elements
+        const displayEl = document.getElementById('main-display');
+        const displayLabelEl = document.getElementById('display-label');
+        const receiptEl = document.getElementById('receipt-items');
+        const budgetEl = document.getElementById('budget-display');
+        const subtotalEl = document.getElementById('subtotal-display');
+        const totalEl = document.getElementById('total-display');
+        const payBtn = document.getElementById('pay-btn');
+        const quickItemsContainer = document.getElementById('quick-items-container');
+        
+        // Formatter
+        const formatMoney = (amount) => (amount < 0 ? '-' : '') + '£' + Math.round(Math.abs(amount));
+
+        // Core Functions
+        const tabColors = [
+            'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-indigo-500', 
+            'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-teal-500'
+        ];
+
+        function getTeamRemaining(teamName) {
+            const t = teams[teamName];
+            if (!t) return 0;
+            const spent = t.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            return t.budget - spent;
+        }
+
+        function renderTeams() {
+            const teamsList = document.getElementById('teams-list');
+            if(!teamsList) return;
+            teamsList.innerHTML = '';
+            
+            Object.keys(teams).forEach((team, index) => {
+                const btn = document.createElement('button');
+                btn.title = `Switch to ${team}`;
+                btn.onclick = () => switchTeam(team);
+                
+                const remaining = getTeamRemaining(team);
+                const remFormatted = formatMoney(remaining);
+                const remColor = remaining < 0 ? 'text-red-200' : 'text-emerald-200';
+
+                const colorClass = tabColors[index % tabColors.length];
+                const baseClasses = `${colorClass} text-white px-4 py-1.5 rounded-xl whitespace-nowrap transition-all duration-200 cursor-pointer shadow-sm flex flex-col items-center justify-center min-w-[95px]`;
+
+                if (team === currentTeam) {
+                    btn.className = `${baseClasses} font-bold ring-2 ring-white ring-offset-2 ring-offset-gray-800 scale-105 z-10`;
+                } else {
+                    btn.className = `${baseClasses} font-medium opacity-75 hover:opacity-100`;
+                }
+
+                btn.innerHTML = `
+                    <span class="text-sm font-bold leading-tight">${team}</span>
+                    <span class="text-[11px] font-semibold ${remColor} opacity-95">${remFormatted} left</span>
+                `;
+                teamsList.appendChild(btn);
+            });
+        }
+
+        function openTeamSettings() {
+            renderTeamSettingsList();
+            const modal = document.getElementById('team-settings-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeTeamSettings() {
+            const modal = document.getElementById('team-settings-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            renderTeams();
+            updateCart();
+        }
+
+        function renderTeamSettingsList() {
+            const list = document.getElementById('team-settings-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            const teamNames = Object.keys(teams);
+
+            teamNames.forEach((teamName, index) => {
+                const card = document.createElement('div');
+                card.className = "bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row items-center gap-3";
+                const colorClass = tabColors[index % tabColors.length];
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                        <div class="w-3.5 h-3.5 rounded-full ${colorClass} shrink-0"></div>
+                        <div class="flex-1">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Team Name</label>
+                            <input type="text" value="${teamName}" onchange="updateTeamName('${teamName}', this.value)" class="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1 text-sm font-semibold text-gray-800 focus:outline-none focus:border-blue-500" />
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-36">
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Budget (£)</label>
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-1.5 text-xs text-gray-400 font-bold">£</span>
+                            <input type="number" min="0" value="${teams[teamName].budget}" onchange="updateTeamBudget('${teamName}', this.value)" class="w-full bg-white border border-gray-300 rounded-lg pl-6 pr-2 py-1 text-sm font-semibold text-gray-800 focus:outline-none focus:border-blue-500" />
+                        </div>
+                    </div>
+                    ${teamNames.length > 1 ? `
+                        <button onclick="deleteTeamFromSettings('${teamName}')" title="Delete Team" class="text-rose-400 hover:text-rose-600 p-2 rounded-xl hover:bg-rose-50 transition self-end sm:self-center">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M6 7L7 19C7 20.1 7.9 21 9 21H15C16.1 21 17 20.1 17 19L18 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M9 7V4C9 3.4 9.4 3 10 3H14C14.6 3 15 3.4 15 4V7" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function updateTeamName(oldName, newName) {
+            const trimmed = newName.trim();
+            if (!trimmed || trimmed === oldName) return;
+            if (teams[trimmed]) {
+                showModal("Name Taken", "A team with that name already exists.");
+                renderTeamSettingsList();
+                return;
+            }
+            teams[trimmed] = teams[oldName];
+            delete teams[oldName];
+            if (currentTeam === oldName) currentTeam = trimmed;
+            renderTeamSettingsList();
+            renderTeams();
+        }
+
+        function updateTeamBudget(teamName, newBudget) {
+            const val = Math.max(0, parseInt(newBudget) || 0);
+            if (teams[teamName]) {
+                teams[teamName].budget = val;
+            }
+            renderTeams();
+            if (currentTeam === teamName) {
+                updateCart();
+            }
+        }
+
+        function deleteTeamFromSettings(teamName) {
+            const teamNames = Object.keys(teams);
+            if (teamNames.length <= 1) {
+                showModal("Cannot Delete", "You must have at least one team.");
+                return;
+            }
+            delete teams[teamName];
+            if (currentTeam === teamName) {
+                currentTeam = Object.keys(teams)[0];
+            }
+            renderTeamSettingsList();
+            renderTeams();
+            updateCart();
+        }
+
+        function addNewTeamFromSettings() {
+            const teamNames = Object.keys(teams);
+            let nextNum = teamNames.length + 1;
+            let newName = `Team ${nextNum}`;
+            while (teams[newName]) {
+                nextNum++;
+                newName = `Team ${nextNum}`;
+            }
+            teams[newName] = { cart: [], budget: 0 };
+            renderTeamSettingsList();
+            renderTeams();
+        }
+
+        function switchTeam(teamName) {
+            currentTeam = teamName;
+            currentInput = "0";
+            updateDisplay();
+            renderTeams();
+            updateCart();
+        }
+
+        function addTeam() {
+            const teamName = prompt("Enter new team name:");
+            if (teamName && teamName.trim() !== "") {
+                const name = teamName.trim();
+                if (!teams[name]) {
+                    teams[name] = { cart: [], budget: 0 };
+                }
+                switchTeam(name);
+            }
+        }
+
+        function renderInventory() {
+            quickItemsContainer.innerHTML = '';
+            
+            inventory.forEach(item => {
+                const btn = document.createElement('button');
+                btn.onclick = () => addQuickItem(item.name, item.price);
+                btn.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition flex flex-col items-center justify-center gap-2 h-28";
+                btn.innerHTML = `<span class="text-2xl">${item.icon}</span><span class="font-semibold text-gray-700 text-center leading-tight">${item.name}</span><span class="text-sm text-gray-500">${formatMoney(item.price)}</span>`;
+                quickItemsContainer.appendChild(btn);
+            });
+        }
+
+        function updateDisplay() {
+            let val = parseInt(currentInput);
+            displayEl.innerText = val.toString();
+        }
+
+        function appendNum(numStr) {
+            if (currentInput === "0") {
+                currentInput = numStr;
+            } else {
+                // Prevent ridiculously large numbers
+                if(currentInput.length < 8) {
+                    currentInput += numStr;
+                }
+            }
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            currentInput = "0";
+            updateDisplay();
+        }
+
+        function addQuickItem(name, price) {
+            const existingItem = teams[currentTeam].cart.find(item => item.name === name);
+            if (existingItem) {
+                existingItem.qty += 1;
+            } else {
+                teams[currentTeam].cart.push({ name, price, qty: 1 });
+            }
+            updateCart();
+        }
+
+        function handleSetBudget() {
+            const val = parseInt(currentInput);
+            if (isNaN(val)) return;
+            teams[currentTeam].budget = Math.max(0, val);
+            currentInput = "0";
+            updateDisplay();
+            updateCart();
+        }
+
+        function handleEnglishChallenge() {
+            const val = parseInt(currentInput);
+            if (isNaN(val) || val <= 0) {
+                showModal("English Reward", "Enter an amount on the keypad first, then press English (+).");
+                return;
+            }
+            // English ADDING to the team's budget
+            teams[currentTeam].budget += val;
+            currentInput = "0";
+            updateDisplay();
+            updateCart();
+        }
+
+        function handleJapanesePenalty() {
+            const val = parseInt(currentInput);
+            if (isNaN(val) || val <= 0) {
+                showModal("Japanese Penalty", "Enter a penalty amount on the keypad first, then press Japanese (-).");
+                return;
+            }
+            // Japanese PENALIZING (subtracting from the team's budget)
+            teams[currentTeam].budget -= val;
+            currentInput = "0";
+            updateDisplay();
+            updateCart();
+        }
+
+        function updateCart() {
+            receiptEl.innerHTML = '';
+            subtotal = 0;
+
+            const cart = teams[currentTeam].cart;
+            const budget = teams[currentTeam].budget;
+
+            const orderTitle = document.getElementById('order-title');
+            if (orderTitle) orderTitle.innerText = `${currentTeam} Order`;
+
+            cart.forEach((item, index) => {
+                const itemTotal = item.price * item.qty;
+                subtotal += itemTotal;
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = "bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center";
+                itemDiv.innerHTML = `
+                    <div class="flex-1">
+                        <div class="font-semibold ${item.price < 0 ? 'text-red-600' : 'text-gray-800'}">${item.name}</div>
+                        <div class="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <span>${formatMoney(item.price)}</span>
+                            <div class="flex items-center bg-gray-100 rounded-md border border-gray-200">
+                                <button onclick="decreaseQty(${index})" class="px-2 py-0.5 text-gray-600 hover:bg-gray-200 hover:text-gray-900 rounded-l-md transition">-</button>
+                                <span class="px-2 font-medium min-w-[1.5rem] text-center">${item.qty}</span>
+                                <button onclick="increaseQty(${index})" class="px-2 py-0.5 text-gray-600 hover:bg-gray-200 hover:text-gray-900 rounded-r-md transition">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right flex items-center gap-2">
+                        <div class="font-bold ${itemTotal < 0 ? 'text-red-600' : 'text-gray-800'}">${formatMoney(itemTotal)}</div>
+                        <button onclick="removeItem(${index})" class="text-gray-400 hover:text-red-500 transition px-1 text-xl font-bold" title="Remove item">
+                            &times;
+                        </button>
+                    </div>
+                `;
+                receiptEl.appendChild(itemDiv);
+            });
+
+            if (cart.length === 0) {
+                receiptEl.innerHTML = `
+                    <div class="text-center text-gray-400 mt-10">
+                        <svg viewBox="0 0 48 48" class="w-12 h-12 inline-block mb-1 opacity-80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 8H10L14 28H38L42 12H12" stroke="#C084FC" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="16" cy="36" r="3.5" fill="#F472B6"/>
+                            <circle cx="34" cy="36" r="3.5" fill="#67E8F9"/>
+                            <path d="M26 18L28 22L32 23L28 25L26 29L24 25L20 23L24 22L26 18Z" fill="#FDE047"/>
+                        </svg>
+                        <span>Cart is empty</span>
+                    </div>`;
+            }
+
+            total = subtotal;
+
+            budgetEl.innerText = formatMoney(budget);
+            subtotalEl.innerText = formatMoney(subtotal);
+            totalEl.innerText = formatMoney(total);
+            
+            payBtn.disabled = cart.length === 0;
+            
+            // Re-render team tabs to keep all team balances live
+            renderTeams();
+
+            // Scroll to bottom
+            receiptEl.scrollTop = receiptEl.scrollHeight;
+        }
+        
+        function removeItem(index) {
+            teams[currentTeam].cart.splice(index, 1);
+            updateCart();
+        }
+
+        function increaseQty(index) {
+            teams[currentTeam].cart[index].qty += 1;
+            updateCart();
+        }
+
+        function decreaseQty(index) {
+            if (teams[currentTeam].cart[index].qty > 1) {
+                teams[currentTeam].cart[index].qty -= 1;
+            } else {
+                removeItem(index);
+                return;
+            }
+            updateCart();
+        }
+
+        function clearCart() {
+            teams[currentTeam].cart = [];
+            currentInput = "0";
+            updateDisplay();
+            updateCart();
+        }
+
+        function initiatePayment() {
+            const cart = teams[currentTeam].cart;
+            if (cart.length === 0) return;
+
+            const orderCost = total;
+            // Deduct the order total directly from the team's budget
+            teams[currentTeam].budget -= orderCost;
+            
+            // Clear the cart
+            teams[currentTeam].cart = [];
+            currentInput = "0";
+            
+            updateDisplay();
+            updateCart();
+
+            const remaining = teams[currentTeam].budget;
+            const remainingColor = remaining < 0 ? 'text-red-500' : 'text-emerald-600';
+
+            showModal(
+                "Order Complete",
+                `<b>${currentTeam}</b> paid <b>${formatMoney(orderCost)}</b>.<br><br>Remaining Budget: <span class="text-2xl font-bold ${remainingColor}">${formatMoney(remaining)}</span>`
+            );
+        }
+
+        // Modal Logic
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+
+        function showModal(title, message) {
+            modalTitle.innerText = title;
+            modalMessage.innerHTML = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openQuestionModal() {
+            const qModal = document.getElementById('question-modal');
+            if (!qModal) return;
+            drawRandomQuestion();
+            qModal.classList.remove('hidden');
+            qModal.classList.add('flex');
+        }
+
+        function closeQuestionModal() {
+            const qModal = document.getElementById('question-modal');
+            if (!qModal) return;
+            qModal.classList.add('hidden');
+            qModal.classList.remove('flex');
+        }
+
+        function drawRandomQuestion() {
+            const available = eslQuestions.filter(item => item !== currentQuestion);
+            const chosen = available[Math.floor(Math.random() * available.length)] || eslQuestions[0];
+            currentQuestion = chosen;
+
+            const badgeEl = document.getElementById('question-badge');
+            const textEl = document.getElementById('question-text');
+            const answerEl = document.getElementById('answer-text');
+            const answerContainer = document.getElementById('answer-container');
+            const toggleLabel = document.getElementById('toggle-answer-label');
+
+            if (badgeEl) badgeEl.innerText = chosen.category;
+            if (textEl) textEl.innerText = chosen.q;
+            if (answerEl) answerEl.innerText = chosen.a;
+
+            // Reset answer visibility
+            isAnswerVisible = false;
+            if (answerContainer) answerContainer.classList.add('hidden');
+            if (toggleLabel) toggleLabel.innerText = "Show Answer";
+        }
+
+        function toggleAnswerVisibility() {
+            const answerContainer = document.getElementById('answer-container');
+            const toggleLabel = document.getElementById('toggle-answer-label');
+            if (!answerContainer || !toggleLabel) return;
+
+            isAnswerVisible = !isAnswerVisible;
+            if (isAnswerVisible) {
+                answerContainer.classList.remove('hidden');
+                toggleLabel.innerText = "Hide Answer";
+            } else {
+                answerContainer.classList.add('hidden');
+                toggleLabel.innerText = "Show Answer";
+            }
+        }
+
+        // Init
+        renderTeams();
+        renderInventory();
+        updateCart();
+        updateDisplay();
+    </script>
+</body>
+</html>
