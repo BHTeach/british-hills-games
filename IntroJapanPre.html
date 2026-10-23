@@ -82,6 +82,12 @@
     <!-- SCREEN 2: VIDEO PLAYER -->
     <div id="player-screen" class="absolute inset-0 z-40 hidden flex items-center justify-center bg-black">
         
+        <!-- Floating Home Button (Top Left) -->
+        <button id="home-btn-top" class="absolute top-6 left-6 z-50 text-white bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-md p-3 px-5 rounded-full transition-all duration-300 shadow-2xl border border-white/20 flex items-center gap-2 cursor-pointer">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="font-semibold tracking-wide">Home</span>
+        </button>
+
         <!-- Video Element -->
         <video 
             id="presentation-video" 
@@ -153,6 +159,7 @@
         // Control Buttons
         const videoBtns = document.querySelectorAll('.video-btn');
         const backBtn = document.getElementById('back-btn');
+        const homeBtnTop = document.getElementById('home-btn-top');
         const playPauseBtn = document.getElementById('play-pause-btn');
         const skipDontsBtn = document.getElementById('skip-donts-btn');
         const skipOutroBtn = document.getElementById('skip-outro-btn');
@@ -199,15 +206,18 @@
 
         // --- 3. Control Bar Interactions ---
         
-        // Back to Menu
-        backBtn.addEventListener('click', () => {
+        // Back to Menu Logic
+        function returnToMenu() {
             video.pause();
             video.currentTime = 0;
             video.src = ""; // Clear source to stop buffering
             
             playerScreen.classList.add('hidden');
             menuScreen.style.display = 'flex';
-        });
+        }
+
+        backBtn.addEventListener('click', returnToMenu);
+        homeBtnTop.addEventListener('click', returnToMenu);
 
         // Play/Pause Toggle
         playPauseBtn.addEventListener('click', () => {
@@ -267,22 +277,24 @@
             
             isFading = true;
 
-            const fadeOutDuration = 150; // Fade down over 150ms
-            const fadeInDuration = 150;  // Fade up over 150ms
-            const steps = 10;            
+            const fadeOutDuration = 600; // Increased to 600ms for a noticeable smooth fade out
+            const fadeInDuration = 600;  // Increased to 600ms for a smooth fade in
+            const steps = 20;            // Increased steps for smoother volume transition
             
             const fadeOutStepTime = fadeOutDuration / steps;
             const fadeInStepTime = fadeInDuration / steps;
             
             let currentStep = 0;
+            const originalVolume = video.volume || 1.0;
 
             // Fade Audio Out
             const fadeOutInterval = setInterval(() => {
                 currentStep++;
-                video.volume = Math.max(0, 1 - (currentStep / steps));
+                video.volume = Math.max(0, originalVolume * (1 - (currentStep / steps)));
                 
                 if (currentStep >= steps) {
                     clearInterval(fadeOutInterval);
+                    video.volume = 0;
                     
                     // Seek Video
                     video.currentTime = targetTime;
@@ -291,11 +303,11 @@
                     // Fade Audio In
                     const fadeInInterval = setInterval(() => {
                         currentStep++;
-                        video.volume = Math.min(1, currentStep / steps);
+                        video.volume = Math.min(originalVolume, originalVolume * (currentStep / steps));
                         
                         if (currentStep >= steps) {
                             clearInterval(fadeInInterval);
-                            video.volume = 1.0; 
+                            video.volume = originalVolume; 
                             isFading = false;
                         }
                     }, fadeInStepTime);
