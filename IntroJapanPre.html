@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Restrict scaling for a native app feel on iPad -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eating in Japan - Interactive Presentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Ensure app container fills screen natively when fullscreen is triggered */
+        #app-container:fullscreen { background-color: #000; }
+        #app-container:-webkit-full-screen { background-color: #000; }
+    </style>
+</head>
+<body class="bg-black text-slate-100 w-screen h-screen overflow-hidden fixed inset-0 select-none">
+
+    <!-- Main Container (Used for Fullscreen to keep custom UI overlaid on top of video) -->
+    <div id="app-container" class="relative w-full h-full flex items-center justify-center bg-black">
+
+        <!-- Video Element (Hardcoded to repository assets) -->
+        <video 
+            id="presentation-video" 
+            src="assets/eatinginjapanweb.mp4" 
+            playsinline 
+            webkit-playsinline 
+            preload="auto" 
+            class="w-full h-full object-contain">
+        </video>
+
+        <!-- Start Overlay (Required to handle iOS user gesture policies for video/audio) -->
+        <div id="start-overlay" class="absolute inset-0 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm z-30 cursor-pointer transition-opacity duration-500">
+            <button class="px-10 py-5 bg-white text-slate-900 rounded-full font-bold text-xl shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:scale-105 transition-transform duration-300 flex items-center gap-3">
+                <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                Start Presentation
+            </button>
+        </div>
+
+        <!-- Floating Controls (Bottom Center) -->
+        <div class="absolute bottom-8 left-0 right-0 z-20 flex justify-center pointer-events-none">
+            
+            <!-- Control Bar (Pointer events enabled here so the rest of screen is clear) -->
+            <div class="flex items-center gap-4 bg-slate-800/30 p-2 rounded-full backdrop-blur-md border border-slate-600/30 pointer-events-auto opacity-60 hover:opacity-100 transition-opacity duration-300 shadow-2xl">
+                
+                <button id="skip-donts-btn" class="text-slate-200 px-6 py-2.5 rounded-full hover:bg-slate-700/80 hover:text-white transition-colors duration-200 text-sm tracking-wide flex items-center gap-2">
+                    Skip to Don'ts
+                    <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                </button>
+
+                <div class="w-px h-6 bg-slate-600/50"></div>
+
+                <button id="skip-outro-btn" class="text-slate-200 px-6 py-2.5 rounded-full hover:bg-slate-700/80 hover:text-white transition-colors duration-200 text-sm tracking-wide flex items-center gap-2">
+                    Skip to Outro
+                    <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                </button>
+                
+                <div class="w-px h-6 bg-slate-600/50"></div>
+
+                <button id="fullscreen-btn" class="text-slate-200 p-2.5 px-4 rounded-full hover:bg-slate-700/80 hover:text-white transition-colors duration-200 flex items-center gap-2 text-sm tracking-wide" title="Toggle Fullscreen">
+                    <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                    Toggle Fullscreen
+                </button>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM Elements
+        const appContainer = document.getElementById('app-container');
+        const video = document.getElementById('presentation-video');
+        const startOverlay = document.getElementById('start-overlay');
+        
+        const skipDontsBtn = document.getElementById('skip-donts-btn');
+        const skipOutroBtn = document.getElementById('skip-outro-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+        // State variables
+        let isFading = false;
+        
+        // Timestamps (in seconds)
+        const TIME_DONTS = 59.0;
+        const TIME_OUTRO = 108.0;
+
+        // 1. Initialize Playback
+        startOverlay.addEventListener('click', () => {
+            video.play().then(() => {
+                startOverlay.classList.add('opacity-0');
+                setTimeout(() => {
+                    startOverlay.style.display = 'none';
+                }, 500); // Wait for transition to finish
+            }).catch(err => {
+                console.error("Video playback failed:", err);
+            });
+        });
+
+        // 2. Audio Fading & Seeking Logic
+        function fadeAndSeek(targetTime) {
+            if (isFading) return;
+            isFading = true;
+
+            const fadeOutDuration = 150; // Fade down over 150ms
+            const fadeInDuration = 150;  // Fade up over 150ms
+            const steps = 15;            // Smoothness of fade
+            
+            const fadeOutStepTime = fadeOutDuration / steps;
+            const fadeInStepTime = fadeInDuration / steps;
+            
+            let currentStep = 0;
+
+            // Fade Audio Out
+            const fadeOutInterval = setInterval(() => {
+                currentStep++;
+                video.volume = Math.max(0, 1 - (currentStep / steps));
+                
+                // When fade out completes
+                if (currentStep >= steps) {
+                    clearInterval(fadeOutInterval);
+                    
+                    // Seek Video to target time
+                    video.currentTime = targetTime;
+                    currentStep = 0;
+                    
+                    // Fade Audio In
+                    const fadeInInterval = setInterval(() => {
+                        currentStep++;
+                        video.volume = Math.min(1, currentStep / steps);
+                        
+                        // When fade in completes
+                        if (currentStep >= steps) {
+                            clearInterval(fadeInInterval);
+                            video.volume = 1.0; // Ensure it is exactly 1
+                            isFading = false;
+                        }
+                    }, fadeInStepTime);
+                }
+            }, fadeOutStepTime);
+        }
+
+        // 3. Button Event Listeners
+        skipDontsBtn.addEventListener('click', () => fadeAndSeek(TIME_DONTS));
+        skipOutroBtn.addEventListener('click', () => fadeAndSeek(TIME_OUTRO));
+
+        // 4. Fullscreen Toggle Logic (Handles iPad Safari Prefixing)
+        fullscreenBtn.addEventListener('click', () => {
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+            
+            if (!isFullscreen) {
+                // Enter fullscreen on the container so buttons stay visible
+                if (appContainer.requestFullscreen) {
+                    appContainer.requestFullscreen();
+                } else if (appContainer.webkitRequestFullscreen) {
+                    appContainer.webkitRequestFullscreen();
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
