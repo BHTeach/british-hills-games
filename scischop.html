@@ -920,16 +920,44 @@
                 <!-- Rendered by JS -->
             </div>
 
-            <div class="pt-4 border-t-2 border-purple-100 mt-4 flex items-center justify-between gap-3">
-                <button onclick="addNewTeamFromSettings()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 border-2 border-purple-200 px-4 py-2.5 rounded-2xl font-bold text-sm transition hover:scale-105 active:scale-95 shadow-sm flex items-center gap-1.5">
-                    <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="10" cy="10" r="8" fill="#DDD6FE"/>
-                        <path d="M10 6V14M6 10H14" stroke="#7C3AED" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <span>Add New Team</span>
-                </button>
-                <button onclick="closeTeamSettings()" class="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white px-6 py-2.5 rounded-2xl font-bold text-sm shadow-md transition hover:scale-105 active:scale-95">
+            <div class="pt-4 border-t-2 border-purple-100 mt-4 flex flex-wrap items-center justify-between gap-2.5">
+                <div class="flex items-center gap-2">
+                    <button onclick="addNewTeamFromSettings()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 border-2 border-purple-200 px-3.5 py-2 rounded-2xl font-bold text-xs sm:text-sm transition hover:scale-105 active:scale-95 shadow-sm flex items-center gap-1.5">
+                        <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="10" cy="10" r="8" fill="#DDD6FE"/>
+                            <path d="M10 6V14M6 10H14" stroke="#7C3AED" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <span>Add Team</span>
+                    </button>
+                    <button onclick="showResetConfirmModal()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 border-2 border-rose-300 px-3.5 py-2 rounded-2xl font-bold text-xs sm:text-sm transition hover:scale-105 active:scale-95 shadow-sm flex items-center gap-1.5" title="Reset all teams and funds">
+                        <svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 4V8H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 8C5.5 5 8.5 3 12 3C16.4 3 20 6.6 20 11C20 15.4 16.4 19 12 19C8.2 19 5 16.3 4.2 12.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <span>Reset All</span>
+                    </button>
+                </div>
+                <button onclick="closeTeamSettings()" class="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white px-5 py-2 rounded-2xl font-bold text-xs sm:text-sm shadow-md transition hover:scale-105 active:scale-95">
                     Done ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal (replaces browser confirm) -->
+    <div id="reset-confirm-modal" class="fixed inset-0 bg-purple-950/70 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center border-4 border-rose-200 relative overflow-hidden">
+            <div class="text-4xl mb-2">🔄 ✨</div>
+            <h2 class="text-xl font-black text-purple-950 mb-2">Reset All Teams &amp; Funds?</h2>
+            <p class="text-xs sm:text-sm font-medium text-purple-800/80 mb-6 leading-relaxed">
+                This will reset all team names, starting budgets, and active order carts back to default (Teams 1–4, £0).
+            </p>
+            <div class="flex gap-2.5">
+                <button onclick="closeResetConfirmModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-2xl transition active:scale-95 text-xs sm:text-sm">
+                    Cancel
+                </button>
+                <button onclick="confirmResetAll()" class="flex-1 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-black py-2.5 rounded-2xl shadow-md transition active:scale-95 text-xs sm:text-sm">
+                    Yes, Reset
                 </button>
             </div>
         </div>
@@ -963,21 +991,33 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // State
-        let teams = {
+        const defaultTeams = {
             'Team 1': { cart: [], budget: 0 },
             'Team 2': { cart: [], budget: 0 },
             'Team 3': { cart: [], budget: 0 },
             'Team 4': { cart: [], budget: 0 }
         };
+        let teams = JSON.parse(JSON.stringify(defaultTeams));
         let currentTeam = 'Team 1';
 
         let currentInput = "0";
-        let mode = 'REGISTER'; // 'REGISTER' or 'PAYMENT'
+        let mode = 'REGISTER';
         
         let subtotal = 0;
         let total = 0;
+
+        // Persistence Variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'whimsical-pos-default';
+        let app = null;
+        let db = null;
+        let auth = null;
+        let currentUser = null;
 
         const eslQuestions = [
             { category: "Space 🚀", q: "What planet do we live on?", a: "Earth 🌍" },
@@ -1105,6 +1145,73 @@
             'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-teal-500'
         ];
 
+        // Cloud Storage Synchronization
+        async function saveState() {
+            if (!db || !currentUser) return;
+            try {
+                const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'posState', 'state');
+                await setDoc(stateDocRef, {
+                    teams: teams,
+                    currentTeam: currentTeam,
+                    updatedAt: Date.now()
+                });
+            } catch (err) {
+                console.warn("Save state note:", err);
+            }
+        }
+
+        function setupSync() {
+            if (!db || !currentUser) return;
+            const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'posState', 'state');
+            onSnapshot(stateDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data && data.teams) {
+                        teams = data.teams;
+                        if (data.currentTeam && teams[data.currentTeam]) {
+                            currentTeam = data.currentTeam;
+                        } else if (!teams[currentTeam]) {
+                            currentTeam = Object.keys(teams)[0] || 'Team 1';
+                        }
+                        renderTeams();
+                        updateCart();
+                        updateDisplay();
+                        checkTeamCartReminder();
+                        const settingsModal = document.getElementById('team-settings-modal');
+                        if (settingsModal && !settingsModal.classList.contains('hidden')) {
+                            renderTeamSettingsList();
+                        }
+                    }
+                } else {
+                    saveState();
+                }
+            }, (error) => {
+                console.warn("Storage sync note:", error);
+            });
+        }
+
+        async function initStorage() {
+            try {
+                if (typeof __firebase_config === 'undefined') return;
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                currentUser = auth.currentUser;
+                if (!currentUser) return;
+
+                setupSync();
+            } catch (err) {
+                console.warn("Storage initialization note:", err);
+            }
+        }
+
         function getTeamRemaining(teamName) {
             const t = teams[teamName];
             if (!t) return 0;
@@ -1156,6 +1263,36 @@
             modal.classList.remove('flex');
             renderTeams();
             updateCart();
+        }
+
+        function showResetConfirmModal() {
+            const modal = document.getElementById('reset-confirm-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeResetConfirmModal() {
+            const modal = document.getElementById('reset-confirm-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function confirmResetAll() {
+            teams = JSON.parse(JSON.stringify(defaultTeams));
+            currentTeam = 'Team 1';
+            currentInput = "0";
+            closeResetConfirmModal();
+            renderTeams();
+            renderTeamSettingsList();
+            updateCart();
+            updateDisplay();
+            hideReminder();
+            saveState();
+            showModal("Reset Complete ✨", "All teams, budgets, and orders have been reset to default!");
         }
 
         function renderTeamSettingsList() {
@@ -1213,6 +1350,7 @@
             if (currentTeam === oldName) currentTeam = trimmed;
             renderTeamSettingsList();
             renderTeams();
+            saveState();
         }
 
         function updateTeamBudget(teamName, newBudget) {
@@ -1224,6 +1362,7 @@
             if (currentTeam === teamName) {
                 updateCart();
             }
+            saveState();
         }
 
         function deleteTeamFromSettings(teamName) {
@@ -1239,6 +1378,7 @@
             renderTeamSettingsList();
             renderTeams();
             updateCart();
+            saveState();
         }
 
         function addNewTeamFromSettings() {
@@ -1252,6 +1392,7 @@
             teams[newName] = { cart: [], budget: 0 };
             renderTeamSettingsList();
             renderTeams();
+            saveState();
         }
 
         function switchTeam(teamName) {
@@ -1261,17 +1402,7 @@
             renderTeams();
             updateCart();
             checkTeamCartReminder();
-        }
-
-        function addTeam() {
-            const teamName = prompt("Enter new team name:");
-            if (teamName && teamName.trim() !== "") {
-                const name = teamName.trim();
-                if (!teams[name]) {
-                    teams[name] = { cart: [], budget: 0 };
-                }
-                switchTeam(name);
-            }
+            saveState();
         }
 
         function renderInventory() {
@@ -1295,7 +1426,6 @@
             if (currentInput === "0") {
                 currentInput = numStr;
             } else {
-                // Prevent ridiculously large numbers
                 if(currentInput.length < 8) {
                     currentInput += numStr;
                 }
@@ -1362,6 +1492,7 @@
             }
             updateCart();
             checkReminder(name);
+            saveState();
         }
 
         function handleSetBudget() {
@@ -1371,6 +1502,7 @@
             currentInput = "0";
             updateDisplay();
             updateCart();
+            saveState();
         }
 
         function handleEnglishChallenge() {
@@ -1379,11 +1511,11 @@
                 showModal("English Reward", "Enter an amount on the keypad first, then press English (+).");
                 return;
             }
-            // English ADDING to the team's budget
             teams[currentTeam].budget += val;
             currentInput = "0";
             updateDisplay();
             updateCart();
+            saveState();
         }
 
         function handleJapanesePenalty() {
@@ -1392,11 +1524,11 @@
                 showModal("Japanese Penalty", "Enter a penalty amount on the keypad first, then press Japanese (-).");
                 return;
             }
-            // Japanese PENALIZING (subtracting from the team's budget)
             teams[currentTeam].budget -= val;
             currentInput = "0";
             updateDisplay();
             updateCart();
+            saveState();
         }
 
         function updateCart() {
@@ -1458,21 +1590,20 @@
             
             payBtn.disabled = cart.length === 0;
             
-            // Re-render team tabs to keep all team balances live
             renderTeams();
-
-            // Scroll to bottom
             receiptEl.scrollTop = receiptEl.scrollHeight;
         }
         
         function removeItem(index) {
             teams[currentTeam].cart.splice(index, 1);
             updateCart();
+            saveState();
         }
 
         function increaseQty(index) {
             teams[currentTeam].cart[index].qty += 1;
             updateCart();
+            saveState();
         }
 
         function decreaseQty(index) {
@@ -1483,6 +1614,7 @@
                 return;
             }
             updateCart();
+            saveState();
         }
 
         function clearCart() {
@@ -1491,6 +1623,7 @@
             updateDisplay();
             updateCart();
             hideReminder();
+            saveState();
         }
 
         function initiatePayment() {
@@ -1498,22 +1631,21 @@
             if (cart.length === 0) return;
 
             const orderCost = total;
-            // Deduct the order total directly from the team's budget
             teams[currentTeam].budget -= orderCost;
             
-            // Clear the cart
             teams[currentTeam].cart = [];
             currentInput = "0";
             
             updateDisplay();
             updateCart();
             hideReminder();
+            saveState();
 
             const remaining = teams[currentTeam].budget;
             const remainingColor = remaining < 0 ? 'text-red-500' : 'text-emerald-600';
 
             showModal(
-                "Order Complete",
+                "Order Complete ✨",
                 `<b>${currentTeam}</b> paid <b>${formatMoney(orderCost)}</b>.<br><br>Remaining Budget: <span class="text-2xl font-bold ${remainingColor}">${formatMoney(remaining)}</span>`
             );
         }
@@ -1565,7 +1697,6 @@
             if (textEl) textEl.innerText = chosen.q;
             if (answerEl) answerEl.innerText = chosen.a;
 
-            // Reset answer visibility
             isAnswerVisible = false;
             if (answerContainer) answerContainer.classList.add('hidden');
             if (toggleLabel) toggleLabel.innerText = "Show Answer";
@@ -1586,11 +1717,44 @@
             }
         }
 
-        // Init
+        // Expose functions to global scope for HTML event attributes
+        Object.assign(window, {
+            openTeamSettings,
+            closeTeamSettings,
+            showResetConfirmModal,
+            closeResetConfirmModal,
+            confirmResetAll,
+            addNewTeamFromSettings,
+            deleteTeamFromSettings,
+            updateTeamName,
+            updateTeamBudget,
+            switchTeam,
+            renderTeams,
+            clearCart,
+            initiatePayment,
+            handleSetBudget,
+            handleEnglishChallenge,
+            handleJapanesePenalty,
+            appendNum,
+            clearDisplay,
+            addQuickItem,
+            decreaseQty,
+            increaseQty,
+            removeItem,
+            openQuestionModal,
+            closeQuestionModal,
+            drawRandomQuestion,
+            toggleAnswerVisibility,
+            closeModal,
+            showModal
+        });
+
+        // Initialize App
         renderTeams();
         renderInventory();
         updateCart();
         updateDisplay();
+        initStorage();
     </script>
 </body>
 </html>
