@@ -991,12 +991,9 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // State
+        const STORAGE_KEY = 'whimsical_pos_data_v1';
         const defaultTeams = {
             'Team 1': { cart: [], budget: 0 },
             'Team 2': { cart: [], budget: 0 },
@@ -1012,12 +1009,37 @@
         let subtotal = 0;
         let total = 0;
 
-        // Persistence Variables
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'whimsical-pos-default';
-        let app = null;
-        let db = null;
-        let auth = null;
-        let currentUser = null;
+        // Local Storage Persistence (Saves directly to iPad Safari / Browser memory)
+        function saveToLocalStorage() {
+            try {
+                const data = {
+                    teams: teams,
+                    currentTeam: currentTeam
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (err) {
+                console.warn("LocalStorage save note:", err);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && parsed.teams && Object.keys(parsed.teams).length > 0) {
+                        teams = parsed.teams;
+                        if (parsed.currentTeam && teams[parsed.currentTeam]) {
+                            currentTeam = parsed.currentTeam;
+                        } else {
+                            currentTeam = Object.keys(teams)[0];
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("LocalStorage load note:", err);
+            }
+        }
 
         const eslQuestions = [
             { category: "Space 🚀", q: "What planet do we live on?", a: "Earth 🌍" },
@@ -1145,73 +1167,6 @@
             'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-teal-500'
         ];
 
-        // Cloud Storage Synchronization
-        async function saveState() {
-            if (!db || !currentUser) return;
-            try {
-                const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'posState', 'state');
-                await setDoc(stateDocRef, {
-                    teams: teams,
-                    currentTeam: currentTeam,
-                    updatedAt: Date.now()
-                });
-            } catch (err) {
-                console.warn("Save state note:", err);
-            }
-        }
-
-        function setupSync() {
-            if (!db || !currentUser) return;
-            const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'posState', 'state');
-            onSnapshot(stateDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data && data.teams) {
-                        teams = data.teams;
-                        if (data.currentTeam && teams[data.currentTeam]) {
-                            currentTeam = data.currentTeam;
-                        } else if (!teams[currentTeam]) {
-                            currentTeam = Object.keys(teams)[0] || 'Team 1';
-                        }
-                        renderTeams();
-                        updateCart();
-                        updateDisplay();
-                        checkTeamCartReminder();
-                        const settingsModal = document.getElementById('team-settings-modal');
-                        if (settingsModal && !settingsModal.classList.contains('hidden')) {
-                            renderTeamSettingsList();
-                        }
-                    }
-                } else {
-                    saveState();
-                }
-            }, (error) => {
-                console.warn("Storage sync note:", error);
-            });
-        }
-
-        async function initStorage() {
-            try {
-                if (typeof __firebase_config === 'undefined') return;
-                const firebaseConfig = JSON.parse(__firebase_config);
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                currentUser = auth.currentUser;
-                if (!currentUser) return;
-
-                setupSync();
-            } catch (err) {
-                console.warn("Storage initialization note:", err);
-            }
-        }
-
         function getTeamRemaining(teamName) {
             const t = teams[teamName];
             if (!t) return 0;
@@ -1285,13 +1240,16 @@
             teams = JSON.parse(JSON.stringify(defaultTeams));
             currentTeam = 'Team 1';
             currentInput = "0";
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (err) {}
             closeResetConfirmModal();
             renderTeams();
             renderTeamSettingsList();
             updateCart();
             updateDisplay();
             hideReminder();
-            saveState();
+            saveToLocalStorage();
             showModal("Reset Complete ✨", "All teams, budgets, and orders have been reset to default!");
         }
 
@@ -1350,7 +1308,7 @@
             if (currentTeam === oldName) currentTeam = trimmed;
             renderTeamSettingsList();
             renderTeams();
-            saveState();
+            saveToLocalStorage();
         }
 
         function updateTeamBudget(teamName, newBudget) {
@@ -1362,7 +1320,7 @@
             if (currentTeam === teamName) {
                 updateCart();
             }
-            saveState();
+            saveToLocalStorage();
         }
 
         function deleteTeamFromSettings(teamName) {
@@ -1378,7 +1336,7 @@
             renderTeamSettingsList();
             renderTeams();
             updateCart();
-            saveState();
+            saveToLocalStorage();
         }
 
         function addNewTeamFromSettings() {
@@ -1392,7 +1350,7 @@
             teams[newName] = { cart: [], budget: 0 };
             renderTeamSettingsList();
             renderTeams();
-            saveState();
+            saveToLocalStorage();
         }
 
         function switchTeam(teamName) {
@@ -1402,7 +1360,7 @@
             renderTeams();
             updateCart();
             checkTeamCartReminder();
-            saveState();
+            saveToLocalStorage();
         }
 
         function renderInventory() {
@@ -1492,7 +1450,7 @@
             }
             updateCart();
             checkReminder(name);
-            saveState();
+            saveToLocalStorage();
         }
 
         function handleSetBudget() {
@@ -1502,7 +1460,7 @@
             currentInput = "0";
             updateDisplay();
             updateCart();
-            saveState();
+            saveToLocalStorage();
         }
 
         function handleEnglishChallenge() {
@@ -1515,7 +1473,7 @@
             currentInput = "0";
             updateDisplay();
             updateCart();
-            saveState();
+            saveToLocalStorage();
         }
 
         function handleJapanesePenalty() {
@@ -1528,7 +1486,7 @@
             currentInput = "0";
             updateDisplay();
             updateCart();
-            saveState();
+            saveToLocalStorage();
         }
 
         function updateCart() {
@@ -1597,13 +1555,13 @@
         function removeItem(index) {
             teams[currentTeam].cart.splice(index, 1);
             updateCart();
-            saveState();
+            saveToLocalStorage();
         }
 
         function increaseQty(index) {
             teams[currentTeam].cart[index].qty += 1;
             updateCart();
-            saveState();
+            saveToLocalStorage();
         }
 
         function decreaseQty(index) {
@@ -1614,7 +1572,7 @@
                 return;
             }
             updateCart();
-            saveState();
+            saveToLocalStorage();
         }
 
         function clearCart() {
@@ -1623,7 +1581,7 @@
             updateDisplay();
             updateCart();
             hideReminder();
-            saveState();
+            saveToLocalStorage();
         }
 
         function initiatePayment() {
@@ -1639,7 +1597,7 @@
             updateDisplay();
             updateCart();
             hideReminder();
-            saveState();
+            saveToLocalStorage();
 
             const remaining = teams[currentTeam].budget;
             const remainingColor = remaining < 0 ? 'text-red-500' : 'text-emerald-600';
@@ -1717,44 +1675,13 @@
             }
         }
 
-        // Expose functions to global scope for HTML event attributes
-        Object.assign(window, {
-            openTeamSettings,
-            closeTeamSettings,
-            showResetConfirmModal,
-            closeResetConfirmModal,
-            confirmResetAll,
-            addNewTeamFromSettings,
-            deleteTeamFromSettings,
-            updateTeamName,
-            updateTeamBudget,
-            switchTeam,
-            renderTeams,
-            clearCart,
-            initiatePayment,
-            handleSetBudget,
-            handleEnglishChallenge,
-            handleJapanesePenalty,
-            appendNum,
-            clearDisplay,
-            addQuickItem,
-            decreaseQty,
-            increaseQty,
-            removeItem,
-            openQuestionModal,
-            closeQuestionModal,
-            drawRandomQuestion,
-            toggleAnswerVisibility,
-            closeModal,
-            showModal
-        });
-
         // Initialize App
+        loadFromLocalStorage();
         renderTeams();
         renderInventory();
         updateCart();
         updateDisplay();
-        initStorage();
+        checkTeamCartReminder();
     </script>
 </body>
 </html>
